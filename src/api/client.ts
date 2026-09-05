@@ -2,7 +2,7 @@
  * LemGendary AI Studio - API Client
  */
 
-import { HardwareProfile, HealthAuditReport, PipelineEvent, PipelineStatus } from "./types";
+import { HardwareProfile, HealthAuditReport, PipelineEvent, PipelineStatus, ProjectHealth } from "./types";
 
 const API_BASE = "http://127.0.0.1:8000";
 const WS_URL = "ws://127.0.0.1:8000/ws/log";
@@ -19,7 +19,7 @@ export async function fetchHealth(): Promise<HealthAuditReport> {
   return res.json();
 }
 
-export async function fetchProjects(): Promise<any[]> {
+export async function fetchProjects(): Promise<ProjectHealth[]> {
   const res = await fetch(`${API_BASE}/api/projects`);
   if (!res.ok) throw new Error(`Failed to fetch projects: ${res.statusText}`);
   return res.json();
@@ -31,7 +31,7 @@ export async function fetchPipelineStatus(): Promise<PipelineStatus> {
   return res.json();
 }
 
-export async function triggerPipeline(targetProject?: string): Promise<any> {
+export async function triggerPipeline(targetProject?: string): Promise<{ status: string; message?: string }> {
   const res = await fetch(`${API_BASE}/api/pipeline/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

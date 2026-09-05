@@ -24,12 +24,16 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
 
   const lastEvent = recentEvents[recentEvents.length - 1];
   const activeStep = lastEvent ? lastEvent.step_number : 0;
+  const currentStepName = steps[activeStep - 1]?.name || "Ready";
 
   return (
-    <div className="card">
+    <section className="card" aria-labelledby="pipeline-panel-title">
       <div className="card-title">
-        <span>Smart Clean Install Pipeline Orchestrator</span>
-        <span className={`badge ${isRunning ? "badge-warning" : "badge-info"}`}>
+        <h3 id="pipeline-panel-title" style={{ fontSize: "16px", fontWeight: 600 }}>Smart Clean Install Pipeline Orchestrator</h3>
+        <span
+          className={`badge ${isRunning ? "badge-warning" : "badge-info"}`}
+          aria-label={`Pipeline execution state: ${isRunning ? "Active" : "Ready"}`}
+        >
           {isRunning ? "PIPELINE ACTIVE" : "READY"}
         </span>
       </div>
@@ -40,16 +44,18 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         safe package updates, and zero-emoji bytecode compilation.
       </p>
 
-      <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
+      <div
+        role="progressbar"
+        aria-valuenow={activeStep}
+        aria-valuemin={0}
+        aria-valuemax={7}
+        aria-valuetext={isRunning ? `Step ${activeStep} of 7: ${currentStepName}` : "Pipeline ready to execute"}
+        style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}
+      >
         {steps.map((s) => {
-          let stepClass = "badge-info";
-          let labelPrefix = `[Step ${s.num}]`;
-
-          if (isRunning && activeStep === s.num) {
-            stepClass = "badge-warning";
-          } else if (activeStep > s.num) {
-            stepClass = "badge-success";
-          }
+          const isCurrent = isRunning && activeStep === s.num;
+          const isDone = activeStep > s.num;
+          const statusBadge = isCurrent ? "badge-warning" : isDone ? "badge-success" : "badge-info";
 
           return (
             <div
@@ -59,11 +65,16 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
                 padding: "12px",
                 backgroundColor: "var(--bg-secondary)",
                 borderRadius: "var(--radius-sm)",
-                border: activeStep === s.num && isRunning ? "1px solid var(--accent-amber)" : "1px solid var(--border-color)",
+                border: isCurrent ? "1px solid var(--accent-amber)" : "1px solid var(--border-color)",
               }}
             >
-              <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                {labelPrefix}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                  [Step {s.num}]
+                </span>
+                <span className={`badge ${statusBadge}`} style={{ fontSize: "9px", padding: "1px 4px" }}>
+                  {isCurrent ? "RUN" : isDone ? "DONE" : "WAIT"}
+                </span>
               </div>
               <div style={{ fontSize: "12px", fontWeight: 600, marginTop: "4px" }}>
                 {s.name}
@@ -79,10 +90,12 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           className="btn btn-primary"
           onClick={onRunPipeline}
           disabled={isRunning}
+          aria-label={isRunning ? "Pipeline execution in progress" : "Execute Full Clean Install Pipeline across all projects"}
+          aria-busy={isRunning}
         >
           {isRunning ? "Executing Pipeline..." : "Execute Full Clean Install Pipeline"}
         </button>
       </div>
-    </div>
+    </section>
   );
 };

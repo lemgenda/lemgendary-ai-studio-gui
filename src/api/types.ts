@@ -73,7 +73,7 @@ export interface PipelineEvent {
   step_name: string;
   status: "info" | "success" | "warning" | "error";
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface PipelineStatus {

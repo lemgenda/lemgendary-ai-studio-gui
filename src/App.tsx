@@ -112,6 +112,10 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+
       <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
       <div className="main-content">
@@ -121,7 +125,13 @@ export const App: React.FC = () => {
           isRefreshing={isRefreshing}
         />
 
-        <main className="view-container">
+        <main
+          id="main-content"
+          className="view-container"
+          role="tabpanel"
+          aria-labelledby={`tab-${currentTab}`}
+          tabIndex={-1}
+        >
           {currentTab === "dashboard" && (
             <>
               <div className="card-grid">

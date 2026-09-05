@@ -25,10 +25,13 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
       : "badge-warning";
 
   return (
-    <div className="card">
+    <section className="card" aria-labelledby="hw-card-title">
       <div className="card-title">
-        <span>System & Hardware Architecture</span>
-        <span className={`badge ${backendBadgeClass}`}>
+        <h3 id="hw-card-title" style={{ fontSize: "16px", fontWeight: 600 }}>System & Hardware Architecture</h3>
+        <span
+          className={`badge ${backendBadgeClass}`}
+          aria-label={`Primary accelerator backend: ${hardware.primary_backend.toUpperCase()}`}
+        >
           {hardware.primary_backend.toUpperCase()}
         </span>
       </div>
@@ -80,6 +83,6 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 };

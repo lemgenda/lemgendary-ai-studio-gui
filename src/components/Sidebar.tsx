@@ -15,23 +15,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => 
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" aria-label="Application Sidebar">
       <div className="brand-header">
-        <span className="brand-badge">PRO</span>
+        <span className="brand-badge" aria-label="Professional Edition">PRO</span>
         <h1 className="brand-title">LemGendary AI</h1>
       </div>
 
-      <nav className="nav-menu">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`nav-item ${currentTab === item.id ? "active" : ""}`}
-            onClick={() => onSelectTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+      <nav className="nav-menu" role="tablist" aria-label="Workspace Sections">
+        {navItems.map((item) => {
+          const isSelected = currentTab === item.id;
+          return (
+            <button
+              key={item.id}
+              id={`tab-${item.id}`}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              aria-controls={`panel-${item.id}`}
+              className={`nav-item ${isSelected ? "active" : ""}`}
+              onClick={() => onSelectTab(item.id)}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </nav>
     </aside>
   );

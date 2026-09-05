@@ -12,11 +12,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onInstall,
   isProcessing,
 }) => {
+  const headingId = `proj-title-${project.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
   return (
-    <div className="card">
+    <article className="card" aria-labelledby={headingId}>
       <div className="card-title">
-        <span>{project.name}</span>
-        <span className={`badge ${project.is_healthy ? "badge-success" : "badge-warning"}`}>
+        <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{project.name}</h3>
+        <span
+          className={`badge ${project.is_healthy ? "badge-success" : "badge-warning"}`}
+          aria-label={`Project status: ${project.is_healthy ? "Healthy" : "Attention required"}`}
+        >
           {project.is_healthy ? "HEALTHY" : "ATTENTION"}
         </span>
       </div>
@@ -61,10 +66,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           style={{ width: "100%", fontSize: "12px" }}
           onClick={() => onInstall(project.name)}
           disabled={isProcessing}
+          aria-label={`Reconcile environment for project ${project.name}`}
+          aria-busy={isProcessing}
         >
           {isProcessing ? "Processing..." : "Reconcile Environment"}
         </button>
       </div>
-    </div>
+    </article>
   );
 };

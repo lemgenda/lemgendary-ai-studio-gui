@@ -8,7 +8,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title, onRefresh, isRefreshing }) => {
   return (
-    <header className="top-header">
+    <header className="top-header" role="banner">
       <h2 className="header-title">{title}</h2>
       <div className="header-actions">
         <button
@@ -16,6 +16,8 @@ export const Header: React.FC<HeaderProps> = ({ title, onRefresh, isRefreshing }
           className="btn btn-secondary"
           onClick={onRefresh}
           disabled={isRefreshing}
+          aria-label={isRefreshing ? "Refreshing audit in progress" : "Refresh audit and hardware data"}
+          aria-busy={isRefreshing}
         >
           {isRefreshing ? "Refreshing..." : "Refresh Audit"}
         </button>

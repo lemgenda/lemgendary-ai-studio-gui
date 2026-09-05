@@ -19,10 +19,13 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      <div className="card">
+      <section className="card" aria-labelledby="toolchain-prereq-title">
         <div className="card-title">
-          <span>Toolchain Prerequisites</span>
-          <span className={`badge ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "badge-success" : "badge-error"}`}>
+          <h3 id="toolchain-prereq-title" style={{ fontSize: "16px", fontWeight: 600 }}>Toolchain Prerequisites</h3>
+          <span
+            className={`badge ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "badge-success" : "badge-error"}`}
+            aria-label={`Toolchain status: ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "All prerequisites verified" : "Attention required"}`}
+          >
             {report.bootstrap.python_valid && report.bootstrap.git_installed ? "ALL PREREQUISITES VERIFIED" : "ATTENTION REQUIRED"}
           </span>
         </div>
@@ -60,33 +63,37 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="card">
+      <section className="card" aria-labelledby="drift-matrix-title">
         <div className="card-title">
-          <span>Cross-Project Package Version Drift Matrix</span>
-          <span className={`badge ${report.version_drift.some((d) => d.has_drift) ? "badge-warning" : "badge-success"}`}>
+          <h3 id="drift-matrix-title" style={{ fontSize: "16px", fontWeight: 600 }}>Cross-Project Package Version Drift Matrix</h3>
+          <span
+            className={`badge ${report.version_drift.some((d) => d.has_drift) ? "badge-warning" : "badge-success"}`}
+            aria-label={`Drift status: ${report.version_drift.some((d) => d.has_drift) ? "Version drift observed" : "Synchronized"}`}
+          >
             {report.version_drift.some((d) => d.has_drift) ? "VERSION DRIFT OBSERVED" : "SYNCHRONIZED"}
           </span>
         </div>
 
         <div style={{ overflowX: "auto", marginTop: "12px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+            <caption className="sr-only">Cross-Project Package Version Drift Matrix comparing package versions across projects</caption>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border-color)", textAlign: "left", color: "var(--text-muted)" }}>
-                <th style={{ padding: "8px 12px" }}>Package</th>
+                <th scope="col" style={{ padding: "8px 12px" }}>Package</th>
                 {projNames.map((name) => (
-                  <th key={name} style={{ padding: "8px 12px" }}>{name}</th>
+                  <th key={name} scope="col" style={{ padding: "8px 12px" }}>{name}</th>
                 ))}
-                <th style={{ padding: "8px 12px" }}>Status</th>
+                <th scope="col" style={{ padding: "8px 12px" }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {report.version_drift.map((drift) => (
                 <tr key={drift.package_name} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
-                  <td style={{ padding: "8px 12px", color: "var(--accent-cyan)", fontWeight: 500 }}>
+                  <th scope="row" style={{ padding: "8px 12px", color: "var(--accent-cyan)", fontWeight: 500, textAlign: "left" }}>
                     {drift.package_name}
-                  </td>
+                  </th>
                   {projNames.map((pName) => (
                     <td key={pName} style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>
                       {drift.versions[pName] || "-"}
@@ -102,7 +109,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

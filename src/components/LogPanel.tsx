@@ -17,11 +17,14 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
   }, [events]);
 
   return (
-    <div className="card">
+    <section className="card" aria-labelledby="telemetry-stream-heading">
       <div className="card-title">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span>Real-time Telemetry & Pipeline Stream</span>
-          <span className={`badge ${isConnected ? "badge-success" : "badge-error"}`}>
+          <h3 id="telemetry-stream-heading" style={{ fontSize: "16px", fontWeight: 600 }}>Real-time Telemetry & Pipeline Stream</h3>
+          <span
+            className={`badge ${isConnected ? "badge-success" : "badge-error"}`}
+            aria-label={`WebSocket status: ${isConnected ? "Connected" : "Offline"}`}
+          >
             {isConnected ? "WS CONNECTED" : "OFFLINE"}
           </span>
         </div>
@@ -30,12 +33,22 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
           className="btn btn-secondary"
           style={{ fontSize: "11px", padding: "4px 10px" }}
           onClick={onClear}
+          aria-label="Clear telemetry stream log"
         >
           Clear Stream
         </button>
       </div>
 
-      <div ref={containerRef} className="log-container">
+      <div
+        ref={containerRef}
+        className="log-container"
+        role="log"
+        aria-live="polite"
+        aria-atomic="false"
+        aria-relevant="additions text"
+        aria-label="Real-time telemetry and pipeline stream log"
+        tabIndex={0}
+      >
         {events.length === 0 ? (
           <div style={{ color: "var(--text-muted)", padding: "12px 0" }}>
             [Awaiting telemetry stream from sidecar server...]
@@ -64,6 +77,6 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
           })
         )}
       </div>
-    </div>
+    </section>
   );
 };

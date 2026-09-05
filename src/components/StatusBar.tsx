@@ -14,15 +14,18 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   lastUpdated,
 }) => {
   return (
-    <footer className="status-bar">
+    <footer className="status-bar" role="contentinfo" aria-label="System Status Bar">
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <span className={`status-indicator ${isConnected ? "status-online" : "status-offline"}`} />
+        <div style={{ display: "flex", alignItems: "center" }} role="status" aria-live="polite">
+          <span
+            className={`status-indicator ${isConnected ? "status-online" : "status-offline"}`}
+            aria-hidden="true"
+          />
           <span>{isConnected ? "Sidecar Server Online (Port 8000)" : "Sidecar Server Offline"}</span>
         </div>
-        <span>|</span>
+        <span aria-hidden="true">|</span>
         <span>Accelerator: {backend.toUpperCase()}</span>
-        <span>|</span>
+        <span aria-hidden="true">|</span>
         <span>Managed Projects: {projectCount}</span>
       </div>
 
