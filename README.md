@@ -5,6 +5,7 @@ Modern cross-platform desktop user interface for the LemGendary AI ecosystem, bu
 ## Architectural Overview
 
 LemGendary AI Studio communicates with the Python backend (`lemgendary-env-manager`) via:
+
 1. **REST APIs**: Querying hardware capabilities (`GET /api/hardware`), project health audits (`GET /api/health`), and triggering the Smart Clean Install Pipeline (`POST /api/pipeline/run`).
 2. **WebSockets**: Streaming real-time telemetry and validation progress (`WS /ws/log`).
 3. **Tauri Native Shell**: Direct process management, window styling, and native operating system integration.
