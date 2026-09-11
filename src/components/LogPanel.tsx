@@ -47,7 +47,6 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
         aria-atomic="false"
         aria-relevant="additions text"
         aria-label="Real-time telemetry and pipeline stream log"
-        tabIndex={0}
       >
         {events.length === 0 ? (
           <div style={{ color: "var(--text-muted)", padding: "12px 0" }}>

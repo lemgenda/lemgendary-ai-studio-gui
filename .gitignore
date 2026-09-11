@@ -6,9 +6,18 @@ src-tauri/target
 .DS_Store
 *.log
 
+# Validation Cache
+.w3c_cache.json
+
 # Local Tooling & Linters
 pyrightconfig.json
 .markdownlint.json
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv*/
 
 # IDE & Editor Files
 .vscode/
@@ -20,3 +29,4 @@ pyrightconfig.json
 *.tmp
 .cache/
 scratch/
+Thumbs.db
