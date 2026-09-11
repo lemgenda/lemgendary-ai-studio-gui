@@ -5,3 +5,18 @@ dist-ssr
 src-tauri/target
 .DS_Store
 *.log
+
+# Local Tooling & Linters
+pyrightconfig.json
+.markdownlint.json
+
+# IDE & Editor Files
+.vscode/
+.idea/
+.gemini/
+.antigravity/
+
+# Caches & Temporary Files
+*.tmp
+.cache/
+scratch/
