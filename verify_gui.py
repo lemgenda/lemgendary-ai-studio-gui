@@ -364,7 +364,9 @@ def check_markdown_lint() -> bool:
         print("[INFO] No Markdown files to lint.")
         return True
 
-    cfg_path = PROJECT_ROOT / ".markdownlint.yaml"
+    cfg_path = REPO_ROOT / ".markdownlint.json"
+    if not cfg_path.exists():
+        cfg_path = REPO_ROOT / ".markdownlint.yaml"
     cmd = [NPX_CMD, "markdownlint-cli"]
     if cfg_path.exists():
         cmd.extend(["-c", str(cfg_path)])
@@ -372,7 +374,7 @@ def check_markdown_lint() -> bool:
 
     print(f"[RUN] Linting {len(md_files)} Markdown files...")
     try:
-        res = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
+        res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
         if res.returncode == 0:
             print(f"[PASS] All {len(md_files)} Markdown files passed with 0 errors/warnings.")
             return True
@@ -387,6 +389,16 @@ def check_markdown_lint() -> bool:
         return False
 
 
+def clean_residual_artifacts() -> None:
+    """Clean up test logs, temporary files, and residue."""
+    for pattern in ["*.log", "*.tmp"]:
+        for f in REPO_ROOT.glob(pattern):
+            try:
+                f.unlink()
+            except OSError:
+                pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="Pre-commit Verification Suite for LemGendary AI Studio GUI")
     parser.add_argument("--staged", action="store_true", help="Run pre-commit checks for staged files")
@@ -397,6 +409,9 @@ def main():
     print("=" * 70)
     print(" LEMGENDARY AI STUDIO GUI - PRE-COMMIT AUDIT SUITE")
     print("=" * 70)
+
+    clean_residual_artifacts()
+
 
     g1 = check_typecheck()
     g2 = check_lint()
