@@ -1,10 +1,35 @@
 #!/bin/sh
-# Pre-commit hook for lemgendary-ai-studio-gui
-echo "[PRE-COMMIT] Running LemGendary AI Studio GUI Verification Suite..."
-python verify_gui.py --staged
-EXIT_CODE=$?
+# LemGendary Ecosystem Pre-Commit Hook
+# Standardized hook enforcing full validation via lemgendary-env-manager
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_NAME="$(basename "$ROOT_DIR")"
+WORKSPACE_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
+
+echo "[PRE-COMMIT] Running LemGendary Ecosystem Validation for $PROJECT_NAME..."
+
+LEM_ENV_EXE="$WORKSPACE_ROOT/lemgendary-env-manager/.venv/Scripts/lem-env.exe"
+LEM_ENV_PY="$WORKSPACE_ROOT/lemgendary-env-manager/.venv/Scripts/python.exe"
+
+if [ -f "$LEM_ENV_EXE" ]; then
+    "$LEM_ENV_EXE" validate --project "$PROJECT_NAME"
+    EXIT_CODE=$?
+elif [ -f "$LEM_ENV_PY" ]; then
+    export PYTHONPATH="$WORKSPACE_ROOT/lemgendary-env-manager:$PYTHONPATH"
+    "$LEM_ENV_PY" -m env_manager.cli validate --project "$PROJECT_NAME"
+    EXIT_CODE=$?
+else
+    echo "[ERROR] lem-env not found at $WORKSPACE_ROOT/lemgendary-env-manager. Cannot validate."
+    exit 1
+fi
+
 if [ $EXIT_CODE -ne 0 ]; then
-    echo "[PRE-COMMIT] Verification failed with exit code $EXIT_CODE. Aborting commit."
+    echo "====================================================="
+    echo "COMMIT BLOCKED: Validation failed for $PROJECT_NAME."
+    echo "Run 'lem-env validate --project $PROJECT_NAME' to inspect."
+    echo "====================================================="
     exit $EXIT_CODE
 fi
+
+echo "[PRE-COMMIT] Validation passed for $PROJECT_NAME."
 exit 0
