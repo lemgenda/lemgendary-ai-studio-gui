@@ -111,6 +111,23 @@ export interface ManifestSaveResponse {
   bytes_written: number;
 }
 
+export interface SecretItem {
+  id: string;
+  service: "kaggle" | "google_drive" | "github" | "huggingface" | "metatrader5" | "saturn_cloud" | "wandb" | "custom" | string;
+  label: string;
+  username?: string;
+  secret_value: string;
+  server?: string;
+  is_default?: boolean;
+  created_at?: string;
+}
+
+export interface DocsStatusResponse {
+  offline_available: boolean;
+  local_url: string;
+  online_url: string;
+}
+
 export interface DatasetFormatBreakdown {
   webp: number;
   jpg: number;

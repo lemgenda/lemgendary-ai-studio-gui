@@ -22,17 +22,39 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => window.open("http://127.0.0.1:8000/documentation-hub/index.html", "_blank")}
+            aria-label="Open local offline Documentation Hub"
+          >
+            Docs Hub (Offline)
+          </button>
+          <HelpTooltip content="Open the complete local Documentation Hub whitepapers and manuals offline, served directly by the Environment Manager sidecar (zero internet connection required)." />
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank")}
+            aria-label="Open online Documentation Hub on GitHub Pages"
+          >
+            Docs (Web)
+          </button>
+          <HelpTooltip content="Visit the official LemGendary AI Documentation Hub hosted on GitHub Pages (https://lemgenda.github.io/ai-training-whitepapers/index.html)." />
+        </div>
+
         {onOpenConfigEditor && (
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={onOpenConfigEditor}
-              aria-label="Open Universal Configuration & Registry Editor"
+              aria-label="Open Universal Configuration & Registry Editor and Secrets Vault"
             >
-              Config Editor
+              Config &amp; Secrets
             </button>
-            <HelpTooltip content="Open the Universal Dynamic Config & Registry Editor to inspect and safely edit ecosystem YAML and JSON manifests." />
+            <HelpTooltip content="Open the Universal Dynamic Config & Registry Editor and Secrets Vault to inspect manifests, hyperparameters, and manage API tokens (Kaggle mandatory, Google Drive, GitHub, MT5)." />
           </div>
         )}
 

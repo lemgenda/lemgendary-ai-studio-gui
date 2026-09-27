@@ -5,6 +5,7 @@
 import {
   CompilerPreset,
   DatasetItem,
+  DocsStatusResponse,
   EcosystemSidecarMesh,
   HardwareProfile,
   HealthAuditReport,
@@ -18,6 +19,7 @@ import {
   ProjectHealth,
   QuickCompilePayload,
   QuickTrainPayload,
+  SecretItem,
 } from "./types";
 
 export const ENV_BASE = "http://127.0.0.1:8000";
@@ -101,6 +103,46 @@ export async function saveManifest(name: string, content: string): Promise<Manif
   });
   if (!res.ok) throw new Error(`Failed to save manifest: ${res.statusText}`);
   return res.json();
+}
+
+// ─── Ecosystem Secrets & Tokens Vault ───────────────────────────────────────
+
+export async function fetchSecrets(): Promise<SecretItem[]> {
+  try {
+    const res = await fetch(`${ENV_BASE}/api/secrets`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.secrets || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSecrets(secrets: SecretItem[]): Promise<{ status: string; count: number; message: string }> {
+  const res = await fetch(`${ENV_BASE}/api/secrets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ secrets }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to save secrets: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchDocsStatus(): Promise<DocsStatusResponse> {
+  try {
+    const res = await fetch(`${ENV_BASE}/api/docs/status`);
+    if (!res.ok) throw new Error("Offline docs unreachable");
+    return res.json();
+  } catch {
+    return {
+      offline_available: false,
+      local_url: "http://127.0.0.1:8000/documentation-hub/index.html",
+      online_url: "https://lemgenda.github.io/ai-training-whitepapers/index.html",
+    };
+  }
 }
 
 // ─── Dataset Compiler Sidecar (Port 8100) ───────────────────────────────────
