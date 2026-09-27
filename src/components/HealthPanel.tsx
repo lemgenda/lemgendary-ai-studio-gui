@@ -1,4 +1,5 @@
 import React from "react";
+import { HelpTooltip } from "./HelpTooltip";
 import { HealthAuditReport } from "../api/types";
 
 interface HealthPanelProps {
@@ -9,7 +10,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
   if (!report) {
     return (
       <div className="card">
-        <h3 className="card-title">Ecosystem Health & Version Drift</h3>
+        <h3 className="card-title">Ecosystem Health &amp; Version Drift</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Loading health matrix...</p>
       </div>
     );
@@ -21,13 +22,19 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <section className="card" aria-labelledby="toolchain-prereq-title">
         <div className="card-title">
-          <h3 id="toolchain-prereq-title" style={{ fontSize: "16px", fontWeight: 600 }}>Toolchain Prerequisites</h3>
-          <span
-            className={`badge ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "badge-success" : "badge-error"}`}
-            aria-label={`Toolchain status: ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "All prerequisites verified" : "Attention required"}`}
-          >
-            {report.bootstrap.python_valid && report.bootstrap.git_installed ? "ALL PREREQUISITES VERIFIED" : "ATTENTION REQUIRED"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <h3 id="toolchain-prereq-title" style={{ fontSize: "16px", fontWeight: 600 }}>Toolchain Prerequisites</h3>
+            <HelpTooltip content="Audits global developer toolchains on the host operating system: Python 3.12+, Git SCM, and Node.js LTS engine." />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              className={`badge ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "badge-success" : "badge-error"}`}
+              aria-label={`Toolchain status: ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "All prerequisites verified" : "Attention required"}`}
+            >
+              {report.bootstrap.python_valid && report.bootstrap.git_installed ? "ALL PREREQUISITES VERIFIED" : "ATTENTION REQUIRED"}
+            </span>
+            <HelpTooltip content={report.bootstrap.python_valid && report.bootstrap.git_installed ? "All host toolchains meet ecosystem requirements." : "One or more required toolchains are missing or outdated."} />
+          </div>
         </div>
 
         <div className="metric-row">
@@ -67,13 +74,19 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
 
       <section className="card" aria-labelledby="drift-matrix-title">
         <div className="card-title">
-          <h3 id="drift-matrix-title" style={{ fontSize: "16px", fontWeight: 600 }}>Cross-Project Package Version Drift Matrix</h3>
-          <span
-            className={`badge ${report.version_drift.some((d) => d.has_drift) ? "badge-warning" : "badge-success"}`}
-            aria-label={`Drift status: ${report.version_drift.some((d) => d.has_drift) ? "Version drift observed" : "Synchronized"}`}
-          >
-            {report.version_drift.some((d) => d.has_drift) ? "VERSION DRIFT OBSERVED" : "SYNCHRONIZED"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <h3 id="drift-matrix-title" style={{ fontSize: "16px", fontWeight: 600 }}>Cross-Project Package Version Drift Matrix</h3>
+            <HelpTooltip content="Compares package versions across all project virtual environments. Highlights version drift where different projects run conflicting dependency releases." />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              className={`badge ${report.version_drift.some((d) => d.has_drift) ? "badge-warning" : "badge-success"}`}
+              aria-label={`Drift status: ${report.version_drift.some((d) => d.has_drift) ? "Version drift observed" : "Synchronized"}`}
+            >
+              {report.version_drift.some((d) => d.has_drift) ? "VERSION DRIFT OBSERVED" : "SYNCHRONIZED"}
+            </span>
+            <HelpTooltip content={report.version_drift.some((d) => d.has_drift) ? "Version differences detected across virtual environments. Reconcile projects to resolve drift." : "All shared packages across virtual environments are synchronized."} />
+          </div>
         </div>
 
         <div style={{ overflowX: "auto", marginTop: "12px" }}>
@@ -100,9 +113,12 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
                     </td>
                   ))}
                   <td style={{ padding: "8px 12px" }}>
-                    <span className={`badge ${drift.has_drift ? "badge-warning" : "badge-success"}`}>
-                      {drift.has_drift ? "DRIFT" : "SYNC"}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span className={`badge ${drift.has_drift ? "badge-warning" : "badge-success"}`}>
+                        {drift.has_drift ? "DRIFT" : "SYNC"}
+                      </span>
+                      <HelpTooltip content={drift.has_drift ? `Package ${drift.package_name} has mismatched versions across projects.` : `Package ${drift.package_name} is identically pinned across all manifests.`} position="left" />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -113,3 +129,5 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
     </div>
   );
 };
+
+export default HealthPanel;

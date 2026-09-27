@@ -1,38 +1,59 @@
 /**
- * LemGendary AI Studio - API Client
+ * LemGendary AI Studio - Tripartite Multi-Sidecar API Client
  */
 
-import { HardwareProfile, HealthAuditReport, PipelineEvent, PipelineStatus, ProjectHealth } from "./types";
+import {
+  CompilerPreset,
+  DatasetItem,
+  EcosystemSidecarMesh,
+  HardwareProfile,
+  HealthAuditReport,
+  ManifestItem,
+  ManifestReadResponse,
+  ManifestSaveResponse,
+  ManifestValidateResponse,
+  ModelItem,
+  PipelineEvent,
+  PipelineStatus,
+  ProjectHealth,
+  QuickCompilePayload,
+  QuickTrainPayload,
+} from "./types";
 
-const API_BASE = "http://127.0.0.1:8000";
+export const ENV_BASE = "http://127.0.0.1:8000";
+export const DATASETS_BASE = "http://127.0.0.1:8100";
+export const TRAINING_BASE = "http://127.0.0.1:8200";
+
 const WS_URL = "ws://127.0.0.1:8000/ws/log";
 
+// ─── Environment Manager (Port 8000) ─────────────────────────────────────────
+
 export async function fetchHardware(): Promise<HardwareProfile> {
-  const res = await fetch(`${API_BASE}/api/hardware`);
+  const res = await fetch(`${ENV_BASE}/api/hardware`);
   if (!res.ok) throw new Error(`Failed to fetch hardware profile: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchHealth(): Promise<HealthAuditReport> {
-  const res = await fetch(`${API_BASE}/api/health`);
+  const res = await fetch(`${ENV_BASE}/api/health`);
   if (!res.ok) throw new Error(`Failed to fetch health report: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchProjects(): Promise<ProjectHealth[]> {
-  const res = await fetch(`${API_BASE}/api/projects`);
+  const res = await fetch(`${ENV_BASE}/api/projects`);
   if (!res.ok) throw new Error(`Failed to fetch projects: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchPipelineStatus(): Promise<PipelineStatus> {
-  const res = await fetch(`${API_BASE}/api/pipeline/status`);
+  const res = await fetch(`${ENV_BASE}/api/pipeline/status`);
   if (!res.ok) throw new Error(`Failed to fetch pipeline status: ${res.statusText}`);
   return res.json();
 }
 
 export async function triggerPipeline(targetProject?: string): Promise<{ status: string; message?: string }> {
-  const res = await fetch(`${API_BASE}/api/pipeline/run`, {
+  const res = await fetch(`${ENV_BASE}/api/pipeline/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ target_project: targetProject || null }),
@@ -40,6 +61,106 @@ export async function triggerPipeline(targetProject?: string): Promise<{ status:
   if (!res.ok) throw new Error(`Failed to trigger pipeline: ${res.statusText}`);
   return res.json();
 }
+
+export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
+  const res = await fetch(`${ENV_BASE}/api/gui/ecosystem`);
+  if (!res.ok) throw new Error(`Failed to probe ecosystem mesh: ${res.statusText}`);
+  return res.json();
+}
+
+// ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────
+
+export async function fetchManifestRegistry(): Promise<ManifestItem[]> {
+  const res = await fetch(`${ENV_BASE}/api/manifests/registry`);
+  if (!res.ok) throw new Error(`Failed to fetch manifest registry: ${res.statusText}`);
+  const data = await res.json();
+  return data.manifests || [];
+}
+
+export async function readManifest(name: string): Promise<ManifestReadResponse> {
+  const res = await fetch(`${ENV_BASE}/api/manifests/read?name=${encodeURIComponent(name)}`);
+  if (!res.ok) throw new Error(`Failed to read manifest '${name}': ${res.statusText}`);
+  return res.json();
+}
+
+export async function validateManifest(name: string, content: string): Promise<ManifestValidateResponse> {
+  const res = await fetch(`${ENV_BASE}/api/manifests/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, content }),
+  });
+  if (!res.ok) throw new Error(`Failed to validate manifest: ${res.statusText}`);
+  return res.json();
+}
+
+export async function saveManifest(name: string, content: string): Promise<ManifestSaveResponse> {
+  const res = await fetch(`${ENV_BASE}/api/manifests/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, content }),
+  });
+  if (!res.ok) throw new Error(`Failed to save manifest: ${res.statusText}`);
+  return res.json();
+}
+
+// ─── Dataset Compiler Sidecar (Port 8100) ───────────────────────────────────
+
+export async function fetchDatasets(): Promise<DatasetItem[]> {
+  try {
+    const res = await fetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.datasets || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
+  try {
+    const res = await fetch(`${DATASETS_BASE}/api/gui/presets`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.presets || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function triggerQuickCompile(payload: QuickCompilePayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${DATASETS_BASE}/api/gui/quick-compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to trigger compilation: ${res.statusText}`);
+  return res.json();
+}
+
+// ─── Training Suite Sidecar (Port 8200) ─────────────────────────────────────
+
+export async function fetchModels(): Promise<ModelItem[]> {
+  try {
+    const res = await fetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.models || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${TRAINING_BASE}/api/gui/quick-train`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to trigger training: ${res.statusText}`);
+  return res.json();
+}
+
+// ─── Real-Time WebSocket Streaming ──────────────────────────────────────────
 
 export function createLogWebSocket(
   onEvent: (event: PipelineEvent) => void,

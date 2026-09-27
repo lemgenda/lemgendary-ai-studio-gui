@@ -7,6 +7,10 @@ import { PipelinePanel } from "./components/PipelinePanel";
 import { HealthPanel } from "./components/HealthPanel";
 import { LogPanel } from "./components/LogPanel";
 import { StatusBar } from "./components/StatusBar";
+import { CompilerPanel } from "./components/CompilerPanel";
+import { TrainingPanel } from "./components/TrainingPanel";
+import { ConfigEditorModal } from "./components/ConfigEditorModal";
+import { HelpTooltip } from "./components/HelpTooltip";
 import {
   fetchHardware,
   fetchHealth,
@@ -25,6 +29,7 @@ export const App: React.FC = () => {
   const [isRunningPipeline, setIsRunningPipeline] = useState<boolean>(false);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(false);
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
@@ -97,6 +102,10 @@ export const App: React.FC = () => {
     switch (currentTab) {
       case "dashboard":
         return "Ecosystem Control Dashboard";
+      case "datasets":
+        return "Dataset Compiler & Storage Modernization";
+      case "training":
+        return "Master Training Suite & Architecture Matrix";
       case "pipeline":
         return "Smart Clean Install Pipeline";
       case "projects":
@@ -116,13 +125,18 @@ export const App: React.FC = () => {
         Skip to main content
       </a>
 
-      <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <Sidebar
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+      />
 
       <div className="main-content">
         <Header
           title={getHeaderTitle()}
           onRefresh={loadData}
           isRefreshing={isRefreshing}
+          onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
         />
 
         <main
@@ -144,7 +158,10 @@ export const App: React.FC = () => {
               </div>
 
               <div>
-                <h3 style={{ fontSize: "16px", marginBottom: "16px" }}>Managed Projects</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Managed Workspace Projects</h3>
+                  <HelpTooltip content="Independent sub-repositories in the workspace governed by the LemGendary environment manager. Each card provides status, package metrics, and individual virtual environment reconciliation." />
+                </div>
                 <div className="card-grid">
                   {health?.projects.map((p) => (
                     <ProjectCard
@@ -164,6 +181,10 @@ export const App: React.FC = () => {
               />
             </>
           )}
+
+          {currentTab === "datasets" && <CompilerPanel />}
+
+          {currentTab === "training" && <TrainingPanel />}
 
           {currentTab === "pipeline" && (
             <>
@@ -211,6 +232,11 @@ export const App: React.FC = () => {
           lastUpdated={lastUpdated}
         />
       </div>
+
+      <ConfigEditorModal
+        isOpen={isConfigEditorOpen}
+        onClose={() => setIsConfigEditorOpen(false)}
+      />
     </div>
   );
 };

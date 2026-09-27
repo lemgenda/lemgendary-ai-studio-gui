@@ -1,4 +1,5 @@
 import React from "react";
+import { HelpTooltip } from "./HelpTooltip";
 import { ProjectHealth } from "../api/types";
 
 interface ProjectCardProps {
@@ -17,13 +18,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   return (
     <article className="card" aria-labelledby={headingId}>
       <div className="card-title">
-        <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{project.name}</h3>
-        <span
-          className={`badge ${project.is_healthy ? "badge-success" : "badge-warning"}`}
-          aria-label={`Project status: ${project.is_healthy ? "Healthy" : "Attention required"}`}
-        >
-          {project.is_healthy ? "HEALTHY" : "ATTENTION"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{project.name}</h3>
+          <HelpTooltip content={`Discovered workspace project at ${project.project_dir}. Managed via SSOT requirements manifest.`} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span
+            className={`badge ${project.is_healthy ? "badge-success" : "badge-warning"}`}
+            aria-label={`Project status: ${project.is_healthy ? "Healthy" : "Attention required"}`}
+          >
+            {project.is_healthy ? "HEALTHY" : "ATTENTION"}
+          </span>
+          <HelpTooltip content={project.is_healthy ? "All required packages installed without missing dependencies." : "One or more required packages are missing or mismatched."} />
+        </div>
       </div>
 
       <div className="metric-row">
@@ -59,7 +66,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       )}
 
-      <div style={{ marginTop: "16px" }}>
+      <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
         <button
           type="button"
           className="btn btn-secondary"
@@ -71,7 +78,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         >
           {isProcessing ? "Processing..." : "Reconcile Environment"}
         </button>
+        <HelpTooltip content={`Reconciles virtual environment for ${project.name}. Synchronizes pip wheels to match the SSOT manifest.`} />
       </div>
     </article>
   );
 };
+
+export default ProjectCard;

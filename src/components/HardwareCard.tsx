@@ -1,4 +1,5 @@
 import React from "react";
+import { HelpTooltip } from "./HelpTooltip";
 import { HardwareProfile } from "../api/types";
 
 interface HardwareCardProps {
@@ -9,7 +10,7 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
   if (!hardware) {
     return (
       <div className="card">
-        <h3 className="card-title">System & Accelerator Profile</h3>
+        <h3 className="card-title">System &amp; Accelerator Profile</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Loading hardware profile...</p>
       </div>
     );
@@ -27,13 +28,19 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
   return (
     <section className="card" aria-labelledby="hw-card-title">
       <div className="card-title">
-        <h3 id="hw-card-title" style={{ fontSize: "16px", fontWeight: 600 }}>System & Hardware Architecture</h3>
-        <span
-          className={`badge ${backendBadgeClass}`}
-          aria-label={`Primary accelerator backend: ${hardware.primary_backend.toUpperCase()}`}
-        >
-          {hardware.primary_backend.toUpperCase()}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <h3 id="hw-card-title" style={{ fontSize: "16px", fontWeight: 600 }}>System &amp; Hardware Architecture</h3>
+          <HelpTooltip content="Deep platform probe executed by env_manager.system_probe. Queries OS kernel, CPU topology, system RAM, and GPU accelerator features." />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span
+            className={`badge ${backendBadgeClass}`}
+            aria-label={`Primary accelerator backend: ${hardware.primary_backend.toUpperCase()}`}
+          >
+            {hardware.primary_backend.toUpperCase()}
+          </span>
+          <HelpTooltip content={`Primary deep learning acceleration backend detected: ${hardware.primary_backend.toUpperCase()}.`} />
+        </div>
       </div>
 
       <div className="metric-row">
@@ -69,9 +76,12 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
 
       {hardware.accelerators.length > 0 && (
         <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
-            Detected Accelerators:
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
+              Detected Accelerators:
+            </span>
+            <HelpTooltip content="Physical GPU devices detected via NVIDIA Management Library (NVML) or DirectML platform enumeration." />
+          </div>
           {hardware.accelerators.map((acc, idx) => (
             <div key={idx} className="metric-row">
               <span className="metric-label">{acc.name}</span>
@@ -86,3 +96,5 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
     </section>
   );
 };
+
+export default HardwareCard;
