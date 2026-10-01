@@ -1,17 +1,31 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { MeshStatus } from "../api/types";
 
 interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
   onOpenConfigEditor?: () => void;
+  meshStatus: MeshStatus;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   onOpenConfigEditor,
+  meshStatus,
 }) => {
+  // Map each tab to the sidecar port it depends on for online/offline dot.
+  const tabSidecarOnline: Record<string, boolean> = {
+    dashboard: meshStatus.envManager,
+    datasets: meshStatus.datasetCompiler,
+    training: meshStatus.trainingSuite,
+    pipeline: meshStatus.envManager,
+    projects: meshStatus.envManager,
+    health: meshStatus.envManager,
+    logs: meshStatus.envManager,
+  };
+
   const navItems = [
     { id: "dashboard", label: "Dashboard", tooltip: "Ecosystem overview: system hardware, quick clean install orchestrator, managed project environments, and live log stream." },
     { id: "datasets", label: "Dataset Compiler", tooltip: "Port 8100 sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation." },
@@ -61,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="nav-menu" role="tablist" aria-orientation="vertical" aria-label="Workspace Sections">
         {navItems.map((item, index) => {
           const isSelected = currentTab === item.id;
+          const isOnline = tabSidecarOnline[item.id] ?? false;
           return (
             <div key={item.id} className="nav-item-wrapper" style={{ display: "flex", alignItems: "center", position: "relative" }}>
               <button
@@ -75,6 +90,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => onSelectTab(item.id)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
               >
+                <span
+                  className={`status-indicator ${isOnline ? "status-online" : "status-offline"}`}
+                  aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
+                  style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
+                />
                 {item.label}
               </button>
               <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>

@@ -10,15 +10,26 @@ import { StatusBar } from "./components/StatusBar";
 import { CompilerPanel } from "./components/CompilerPanel";
 import { TrainingPanel } from "./components/TrainingPanel";
 import { ConfigEditorModal } from "./components/ConfigEditorModal";
+import { ServiceTiles } from "./components/ServiceTiles";
 import { HelpTooltip } from "./components/HelpTooltip";
 import {
   fetchHardware,
   fetchHealth,
   fetchPipelineStatus,
+  fetchEcosystemMesh,
+  probeSidecarPort,
   triggerPipeline,
   createLogWebSocket,
 } from "./api/client";
-import { HardwareProfile, HealthAuditReport, PipelineEvent } from "./api/types";
+import { HardwareProfile, HealthAuditReport, MeshStatus, PipelineEvent, ProjectHealth } from "./api/types";
+
+const FALLBACK_PROJECTS: ProjectHealth[] = [
+  { name: "lemgendary-env-manager", project_dir: "./lemgendary-env-manager", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
+  { name: "lemgendary-datasets", project_dir: "./lemgendary-datasets", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
+  { name: "lemgendary-training-suite", project_dir: "./lemgendary-training-suite", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
+  { name: "lemgendary-ai-studio-gui", project_dir: "./lemgendary-ai-studio-gui", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
+  { name: "lemgendary-docs", project_dir: "./lemgendary-docs", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
+];
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>("dashboard");
@@ -30,6 +41,14 @@ export const App: React.FC = () => {
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [meshStatus, setMeshStatus] = useState<MeshStatus>({
+    envManager: false,
+    datasetCompiler: false,
+    trainingSuite: false,
+  });
+
+  const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
@@ -52,9 +71,33 @@ export const App: React.FC = () => {
           });
         }
       }
+
+      // Populate sidecar mesh status. Try the ecosystem endpoint on port 8000 first;
+      // if it is unreachable, fall back to independent per-port HEAD probes so that
+      // mesh awareness works even when the env-manager itself is offline.
+      try {
+        const mesh = await fetchEcosystemMesh();
+        setMeshStatus({
+          envManager: mesh.env_manager.reachable,
+          datasetCompiler: mesh.dataset_compiler.reachable,
+          trainingSuite: mesh.training_suite.reachable,
+        });
+      } catch {
+        const [em, dc, ts] = await Promise.all([
+          probeSidecarPort(8000),
+          probeSidecarPort(8100),
+          probeSidecarPort(8200),
+        ]);
+        setMeshStatus({ envManager: em, datasetCompiler: dc, trainingSuite: ts });
+      }
+
       setLastUpdated(new Date().toISOString());
+      setRefreshError(null);
     } catch {
-      // Handled via state
+      setRefreshError(
+        "Refresh failed: No sidecars reachable on ports 8000, 8100, or 8200. " +
+        "Launch the ecosystem mesh to synchronize live data."
+      );
     } finally {
       setIsRefreshing(false);
     }
@@ -85,6 +128,7 @@ export const App: React.FC = () => {
       setIsRunningPipeline(true);
       await triggerPipeline();
     } catch {
+      setRefreshError("Pipeline trigger failed: Environment Manager (Port 8000) is not reachable.");
       setIsRunningPipeline(false);
     }
   };
@@ -94,8 +138,14 @@ export const App: React.FC = () => {
       setIsRunningPipeline(true);
       await triggerPipeline(projectName);
     } catch {
+      setRefreshError(`Reconcile failed for ${projectName}: Environment Manager (Port 8000) is not reachable.`);
       setIsRunningPipeline(false);
     }
+  };
+
+  const handleStartEcosystem = () => {
+    setCurrentTab("pipeline");
+    handleRunPipeline();
   };
 
   const getHeaderTitle = () => {
@@ -129,6 +179,7 @@ export const App: React.FC = () => {
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
         onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+        meshStatus={meshStatus}
       />
 
       <div className="main-content">
@@ -137,6 +188,7 @@ export const App: React.FC = () => {
           onRefresh={loadData}
           isRefreshing={isRefreshing}
           onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+          envManagerOnline={meshStatus.envManager}
         />
 
         <main
@@ -146,14 +198,81 @@ export const App: React.FC = () => {
           aria-labelledby={`tab-${currentTab}`}
           tabIndex={-1}
         >
+          {/* Global offline banner — shown across all tabs when entire mesh is down */}
+          {!meshStatus.envManager && !meshStatus.datasetCompiler && !meshStatus.trainingSuite && (
+            <div
+              role="alert"
+              style={{
+                padding: "12px 20px",
+                backgroundColor: "rgba(244, 63, 94, 0.12)",
+                border: "1px solid var(--accent-rose)",
+                borderRadius: "var(--radius-sm)",
+                marginBottom: "16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontSize: "13px", color: "var(--accent-rose)", fontWeight: 600 }}>
+                Ecosystem mesh offline. All three sidecars (Ports 8000, 8100, 8200) are unreachable.
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ fontSize: "12px" }}
+                onClick={handleStartEcosystem}
+                aria-label="Start all LemGendary ecosystem sidecars"
+              >
+                Start All Services
+              </button>
+            </div>
+          )}
+
+          {/* Dismissible refresh error banner */}
+          {refreshError && (
+            <div
+              role="alert"
+              style={{
+                padding: "10px 16px",
+                backgroundColor: "rgba(251, 146, 60, 0.10)",
+                border: "1px solid var(--accent-amber, #f59e0b)",
+                borderRadius: "var(--radius-sm)",
+                marginBottom: "16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{refreshError}</span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "11px", padding: "2px 10px", flexShrink: 0 }}
+                onClick={() => setRefreshError(null)}
+                aria-label="Dismiss error message"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {currentTab === "dashboard" && (
             <>
+              <ServiceTiles
+                meshStatus={meshStatus}
+                onNavigate={setCurrentTab}
+                onRunAudit={handleRunPipeline}
+                onStartServices={handleStartEcosystem}
+              />
+
               <div className="card-grid">
-                <HardwareCard hardware={hardware} />
+                <HardwareCard hardware={hardware} onStartEnvManager={handleStartEcosystem} />
                 <PipelinePanel
                   isRunning={isRunningPipeline}
                   onRunPipeline={handleRunPipeline}
                   recentEvents={events}
+                  envManagerOnline={meshStatus.envManager}
                 />
               </div>
 
@@ -163,12 +282,13 @@ export const App: React.FC = () => {
                   <HelpTooltip content="Independent sub-repositories in the workspace governed by the LemGendary environment manager. Each card provides status, package metrics, and individual virtual environment reconciliation." />
                 </div>
                 <div className="card-grid">
-                  {health?.projects.map((p) => (
+                  {displayProjects.map((p) => (
                     <ProjectCard
                       key={p.name}
                       project={p}
                       onInstall={handleReconcileProject}
                       isProcessing={isRunningPipeline}
+                      isOffline={!health}
                     />
                   ))}
                 </div>
@@ -182,9 +302,9 @@ export const App: React.FC = () => {
             </>
           )}
 
-          {currentTab === "datasets" && <CompilerPanel />}
+          {currentTab === "datasets" && <CompilerPanel datasetCompilerOnline={meshStatus.datasetCompiler} />}
 
-          {currentTab === "training" && <TrainingPanel />}
+          {currentTab === "training" && <TrainingPanel trainingSuiteOnline={meshStatus.trainingSuite} />}
 
           {currentTab === "pipeline" && (
             <>
@@ -192,6 +312,7 @@ export const App: React.FC = () => {
                 isRunning={isRunningPipeline}
                 onRunPipeline={handleRunPipeline}
                 recentEvents={events}
+                envManagerOnline={meshStatus.envManager}
               />
               <LogPanel
                 events={events}
@@ -203,18 +324,19 @@ export const App: React.FC = () => {
 
           {currentTab === "projects" && (
             <div className="card-grid">
-              {health?.projects.map((p) => (
+              {displayProjects.map((p) => (
                 <ProjectCard
                   key={p.name}
                   project={p}
                   onInstall={handleReconcileProject}
                   isProcessing={isRunningPipeline}
+                  isOffline={!health}
                 />
               ))}
             </div>
           )}
 
-          {currentTab === "health" && <HealthPanel report={health} />}
+          {currentTab === "health" && <HealthPanel report={health} onStartEnvManager={handleStartEcosystem} />}
 
           {currentTab === "logs" && (
             <LogPanel
@@ -226,7 +348,7 @@ export const App: React.FC = () => {
         </main>
 
         <StatusBar
-          isConnected={wsConnected}
+          meshStatus={meshStatus}
           backend={hardware?.primary_backend || "unknown"}
           projectCount={health?.projects.length || 0}
           lastUpdated={lastUpdated}

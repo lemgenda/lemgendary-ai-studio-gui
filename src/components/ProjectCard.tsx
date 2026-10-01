@@ -6,12 +6,14 @@ interface ProjectCardProps {
   project: ProjectHealth;
   onInstall: (projectName: string) => void;
   isProcessing: boolean;
+  isOffline?: boolean;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   onInstall,
   isProcessing,
+  isOffline = false,
 }) => {
   const headingId = `proj-title-${project.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
@@ -24,12 +26,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span
-            className={`badge ${project.is_healthy ? "badge-success" : "badge-warning"}`}
-            aria-label={`Project status: ${project.is_healthy ? "Healthy" : "Attention required"}`}
+            className={`badge ${isOffline ? "badge-warning" : project.is_healthy ? "badge-success" : "badge-warning"}`}
+            aria-label={`Project status: ${isOffline ? "Unknown" : project.is_healthy ? "Healthy" : "Attention required"}`}
           >
-            {project.is_healthy ? "HEALTHY" : "ATTENTION"}
+            {isOffline ? "UNKNOWN" : project.is_healthy ? "HEALTHY" : "ATTENTION"}
           </span>
-          <HelpTooltip content={project.is_healthy ? "All required packages installed without missing dependencies." : "One or more required packages are missing or mismatched."} />
+          <HelpTooltip content={isOffline ? "Status unavailable — Environment Manager (Port 8000) is offline." : project.is_healthy ? "All required packages installed without missing dependencies." : "One or more required packages are missing or mismatched."} />
         </div>
       </div>
 
@@ -48,14 +50,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       <div className="metric-row">
         <span className="metric-label">Installed / Required</span>
         <span className="metric-value">
-          {project.total_installed} / {project.total_required}
+          {isOffline ? "-- / --" : `${project.total_installed} / ${project.total_required}`}
         </span>
       </div>
 
       <div className="metric-row">
         <span className="metric-label">Missing Packages</span>
-        <span className="metric-value" style={{ color: project.missing_packages.length > 0 ? "var(--accent-rose)" : "inherit" }}>
-          {project.missing_packages.length}
+        <span className="metric-value" style={{ color: !isOffline && project.missing_packages.length > 0 ? "var(--accent-rose)" : "inherit" }}>
+          {isOffline ? "--" : project.missing_packages.length}
         </span>
       </div>
 
@@ -72,13 +74,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           className="btn btn-secondary"
           style={{ width: "100%", fontSize: "12px" }}
           onClick={() => onInstall(project.name)}
-          disabled={isProcessing}
-          aria-label={`Reconcile environment for project ${project.name}`}
+          disabled={isProcessing || isOffline}
+          aria-label={isOffline ? `Reconcile unavailable for ${project.name} — Environment Manager offline` : `Reconcile environment for project ${project.name}`}
+          aria-disabled={isOffline}
           aria-busy={isProcessing}
         >
-          {isProcessing ? "Processing..." : "Reconcile Environment"}
+          {isProcessing ? "Processing..." : isOffline ? "Reconcile Environment (Sidecar Required)" : "Reconcile Environment"}
         </button>
-        <HelpTooltip content={`Reconciles virtual environment for ${project.name}. Synchronizes pip wheels to match the SSOT manifest.`} />
+        <HelpTooltip content={isOffline ? "Reconcile requires Environment Manager (Port 8000) to be running." : `Reconciles virtual environment for ${project.name}. Synchronizes pip wheels to match the SSOT manifest.`} />
       </div>
     </article>
   );

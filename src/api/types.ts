@@ -205,3 +205,8 @@ export interface EcosystemSidecarMesh {
   training_suite: SidecarNodeStatus;
 }
 
+export interface MeshStatus {
+  envManager: boolean;
+  datasetCompiler: boolean;
+  trainingSuite: boolean;
+}

@@ -311,9 +311,11 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
     try {
       const res = await saveSecrets(secrets);
       setSecretsSuccessMsg(res.message || "Secrets securely saved and propagated across repositories.");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to persist secrets";
-      setSecretsErrorMsg(msg);
+    } catch {
+      setSecretsErrorMsg(
+        "Secrets vault is unavailable (Port 8000 offline). " +
+        "Credentials cannot be encrypted until Environment Manager is running."
+      );
     } finally {
       setIsSecretsSaving(false);
     }
@@ -397,6 +399,16 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
 
         {activeTab === "manifests" ? (
           <div className="modal-body">
+          {/* Offline banner — shown when manifests list is empty (sidecar offline) */}
+          {manifests.length === 0 && (
+            <div className="validation-banner banner-error" role="alert" style={{ marginBottom: "12px" }}>
+              <span>
+                Manifest registry is unavailable (Port 8000 offline).
+                Manifests can be edited directly in the workspace filesystem when the sidecar is running.
+              </span>
+            </div>
+          )}
+
             <div className="editor-toolbar">
               <div className="editor-control-group">
                 <label htmlFor="manifest-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
@@ -424,12 +436,13 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleValidate}
-                  disabled={isLoading || isSaving}
+                  disabled={isLoading || isSaving || manifests.length === 0}
                   aria-label="Validate syntax of current document"
+                  aria-disabled={manifests.length === 0}
                 >
                   Validate Syntax
                 </button>
-                <HelpTooltip content="Check syntax in real-time. Parses YAML indentation or JSON structure and alerts if errors exist." />
+                <HelpTooltip content={manifests.length === 0 ? "Validation requires Environment Manager (Port 8000) to be online." : "Check syntax in real-time. Parses YAML indentation or JSON structure and alerts if errors exist."} />
 
                 <button
                   type="button"
@@ -457,12 +470,13 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
                   type="button"
                   className="btn btn-primary"
                   onClick={handleSaveManifest}
-                  disabled={isLoading || isSaving || !isModified}
+                  disabled={isLoading || isSaving || !isModified || manifests.length === 0}
                   aria-label="Save changes to disk with atomic backup"
+                  aria-disabled={manifests.length === 0}
                 >
                   {isSaving ? "Saving..." : "Save Manifest"}
                 </button>
-                <HelpTooltip content="Commit changes to disk. Creates an automatic .bak snapshot before atomically writing the file." />
+                <HelpTooltip content={manifests.length === 0 ? "Save requires Environment Manager (Port 8000) to be online." : "Commit changes to disk. Creates an automatic .bak snapshot before atomically writing the file."} />
               </div>
             </div>
 

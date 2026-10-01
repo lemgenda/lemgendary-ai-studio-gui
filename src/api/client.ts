@@ -13,6 +13,7 @@ import {
   ManifestReadResponse,
   ManifestSaveResponse,
   ManifestValidateResponse,
+  MeshStatus,
   ModelItem,
   PipelineEvent,
   PipelineStatus,
@@ -21,6 +22,8 @@ import {
   QuickTrainPayload,
   SecretItem,
 } from "./types";
+
+export type { MeshStatus };
 
 export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
@@ -68,6 +71,27 @@ export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
   const res = await fetch(`${ENV_BASE}/api/gui/ecosystem`);
   if (!res.ok) throw new Error(`Failed to probe ecosystem mesh: ${res.statusText}`);
   return res.json();
+}
+
+/**
+ * Lightweight reachability probe for a single sidecar port.
+ * Uses a 1500 ms AbortController timeout so the UI never hangs waiting.
+ * Falls back to false on any network error or timeout.
+ */
+export async function probeSidecarPort(port: number): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 1500);
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/health`, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 // ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────

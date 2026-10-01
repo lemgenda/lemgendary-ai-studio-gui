@@ -4,15 +4,34 @@ import { HealthAuditReport } from "../api/types";
 
 interface HealthPanelProps {
   report: HealthAuditReport | null;
+  onStartEnvManager?: () => void;
 }
 
-export const HealthPanel: React.FC<HealthPanelProps> = ({ report }) => {
+export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvManager }) => {
   if (!report) {
     return (
-      <div className="card">
-        <h3 className="card-title">Ecosystem Health &amp; Version Drift</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Loading health matrix...</p>
-      </div>
+      <section className="card" aria-labelledby="health-offline-title">
+        <div className="card-title">
+          <h3 id="health-offline-title" style={{ fontSize: "16px", fontWeight: 600 }}>
+            Ecosystem Health &amp; Version Drift
+          </h3>
+          <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
+          Health audit requires Environment Manager (Port 8000).
+          Launch it to populate the toolchain prerequisite matrix and cross-project version drift table.
+        </p>
+        {onStartEnvManager && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onStartEnvManager}
+            aria-label="Launch the Environment Manager sidecar on Port 8000"
+          >
+            Start Environment Manager
+          </button>
+        )}
+      </section>
     );
   }
 

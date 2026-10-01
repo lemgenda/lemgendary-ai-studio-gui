@@ -4,15 +4,34 @@ import { HardwareProfile } from "../api/types";
 
 interface HardwareCardProps {
   hardware: HardwareProfile | null;
+  onStartEnvManager?: () => void;
 }
 
-export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware }) => {
+export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnvManager }) => {
   if (!hardware) {
     return (
-      <div className="card">
-        <h3 className="card-title">System &amp; Accelerator Profile</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Loading hardware profile...</p>
-      </div>
+      <section className="card" aria-labelledby="hw-card-title-offline">
+        <div className="card-title">
+          <h3 id="hw-card-title-offline" style={{ fontSize: "16px", fontWeight: 600 }}>
+            System &amp; Accelerator Profile
+          </h3>
+          <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
+          Environment Manager (Port 8000) is not reachable.
+          Hardware metrics, Python runtime, and accelerator data are unavailable.
+        </p>
+        {onStartEnvManager && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onStartEnvManager}
+            aria-label="Launch the Environment Manager sidecar on Port 8000"
+          >
+            Start Environment Manager
+          </button>
+        )}
+      </section>
     );
   }
 

@@ -69,3 +69,34 @@ The desktop application complies with LemGendary ecosystem standards:
 ```bash
 lem-env validate --project lemgendary-ai-studio-gui
 ```
+
+## Changelog
+
+### v2.1.0 — Tripartite Sidecar Mesh Status Integration (GUI Remediation Phase A1)
+
+- **`src/api/types.ts` — `MeshStatus` Interface** — Added shared `MeshStatus` interface (`{ envManager: boolean; datasetCompiler: boolean; trainingSuite: boolean }`) used across `App`, `Sidebar`, and `StatusBar` for unified per-port awareness.
+- **`src/api/client.ts` — `probeSidecarPort(port)`** — Added lightweight HEAD-request reachability probe with a 1500 ms `AbortController` timeout as a fallback for when port 8000 is itself offline and `fetchEcosystemMesh()` cannot be called. Also re-exports `MeshStatus` for convenience.
+- **`src/App.tsx` — Mesh State Hydration** — Added `meshStatus` state (initially all `false`). `loadData()` now attempts `fetchEcosystemMesh()` first; on failure it falls back to three parallel `probeSidecarPort()` calls covering ports 8000, 8100, and 8200. Passes `meshStatus` to `Sidebar` and `StatusBar`.
+- **`src/components/Sidebar.tsx` — Per-Tab Sidecar Status Dots** — Added `meshStatus: MeshStatus` prop. Each navigation tab now renders a colored `.status-indicator` dot reflecting the reachability of its dependent sidecar (Dataset Compiler tab → port 8100, Training Suite tab → port 8200, all others → port 8000).
+- **`src/components/StatusBar.tsx` — Tripartite Port Status Display** — Replaced single `isConnected: boolean` prop with `meshStatus: MeshStatus`. Status bar now renders three individual port entries (Env Manager :8000, Dataset Compiler :8100, Training Suite :8200) each with their own status dot, plus a composite `Mesh Online / Mesh Partial / Mesh Offline` summary badge.
+
+### v2.2.0 — Offline Fallback Hydration (GUI Remediation Phase A2)
+
+- **`src/components/HardwareCard.tsx` — Offline Card** — Replaced permanent `Loading hardware profile...` spinner with a proper OFFLINE badge card explaining Port 8000 is unreachable. Accepts optional `onStartEnvManager` prop to render a `Start Environment Manager` button.
+- **`src/components/HealthPanel.tsx` — Offline Banner** — Replaced permanent `Loading health matrix...` spinner with an OFFLINE banner explaining the dependency on Port 8000. Accepts optional `onStartEnvManager` prop.
+- **`src/components/ProjectCard.tsx` — Offline Visual Mode** — Added `isOffline?: boolean` prop. When true: badge shows `UNKNOWN`, package counts render as `--`, and the reconcile button shows `(Sidecar Required)` and is disabled.
+- **`src/components/Header.tsx` — Docs Hub Smart Routing** — Fixed `Docs Hub (Offline)` button which previously caused `ERR_CONNECTION_REFUSED` when Port 8000 is down. Now calls `fetchDocsStatus()` on click and opens the offline URL only if `offline_available` is true, otherwise falls back to the GitHub Pages web URL. Button label dynamically reads `Docs Hub (Offline)` vs `Docs (Web Fallback)` based on `envManagerOnline` prop.
+- **`src/App.tsx` — FALLBACK_PROJECTS + Error Banners + Offline Wiring** — Added `FALLBACK_PROJECTS` constant (all 5 canonical workspace projects) displayed when `health` is null. Added `refreshError` state surfaced as a dismissible amber banner. Added global red offline banner with `Start All Services` button when all 3 sidecars are down. All previously silent `catch` blocks now call `setRefreshError` with actionable messages. `handleStartEcosystem` navigates to the pipeline tab and triggers the clean install. All new `onStartEnvManager`, `envManagerOnline`, and `isOffline` props wired throughout.
+
+### v2.3.0 — Dashboard Service Control Plane Restoration (GUI Remediation Phase A3)
+
+- **`src/components/ServiceTiles.tsx` — New Component** — Tripartite sidecar service control plane rendered as three cards in a 3-column CSS grid at the top of the Dashboard. Each card shows: service name, ONLINE/OFFLINE badge (border turns red when offline), port number, base URL, description, and a context-appropriate quick-action button (disabled when offline). An additional `Start Service` primary button appears only when the sidecar is offline and routes to `handleStartEcosystem`. Cards cover Env Manager (:8000), Dataset Compiler (:8100), and Training Suite (:8200). Base URL constants (`ENV_BASE`, `DATASETS_BASE`, `TRAINING_BASE`) imported directly from `client.ts`.
+- **`src/App.tsx` — ServiceTiles Integration** — `ServiceTiles` inserted as the first element inside the dashboard tab fragment, above the `HardwareCard`/`PipelinePanel` grid. Wires `meshStatus`, `setCurrentTab` as `onNavigate`, `handleRunPipeline` as `onRunAudit`, and `handleStartEcosystem` as `onStartServices`.
+
+### v2.4.0 — Full Action Wiring and Error Resilience (GUI Remediation Phase A4)
+
+- **src/components/PipelinePanel.tsx — Offline Action Guard** — Added nvManagerOnline: boolean prop. Execute Full Clean Install Pipeline button is now disabled with aria-disabled when Port 8000 is offline. An inline role=alert paragraph appears below the button. Both the dashboard and pipeline tab usages are wired.
+- **src/components/CompilerPanel.tsx — Offline Action Guard + Structured Error** — Added datasetCompilerOnline: boolean prop. Compile Manifold button disabled when Port 8100 is offline. Catch block now emits: Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable. Launch lemgendary-datasets to compile.
+- **src/components/TrainingPanel.tsx — Offline Action Guard + Structured Error** — Added     rainingSuiteOnline: boolean prop. Start Training button disabled when Port 8200 is offline. Structured catch message replacing raw Failed to fetch.
+- **src/components/ConfigEditorModal.tsx — Manifests Offline Banner + Secrets Structured Error** — Manifests tab: when manifests.length === 0, renders a banner-error alert. Validate Syntax and Save Manifest buttons disabled with aria-disabled. Secrets tab catch now emits: Secrets vault is unavailable (Port 8000 offline). Credentials cannot be encrypted until Environment Manager is running.
+- **src/App.tsx — A4 Prop Wiring** — Passes envManagerOnline to both PipelinePanel instances, datasetCompilerOnline to CompilerPanel, and trainingSuiteOnline to TrainingPanel.

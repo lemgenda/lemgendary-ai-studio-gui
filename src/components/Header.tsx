@@ -1,11 +1,13 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { fetchDocsStatus } from "../api/client";
 
 interface HeaderProps {
   title: string;
   onRefresh: () => void;
   isRefreshing: boolean;
   onOpenConfigEditor?: () => void;
+  envManagerOnline: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -13,7 +15,24 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   isRefreshing,
   onOpenConfigEditor,
+  envManagerOnline,
 }) => {
+  const handleOpenDocs = async () => {
+    if (!envManagerOnline) {
+      window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank");
+      return;
+    }
+    try {
+      const status = await fetchDocsStatus();
+      if (status.offline_available) {
+        window.open(status.local_url, "_blank");
+      } else {
+        window.open(status.online_url, "_blank");
+      }
+    } catch {
+      window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank");
+    }
+  };
   return (
     <header className="top-header" role="banner">
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -26,12 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => window.open("http://127.0.0.1:8000/documentation-hub/index.html", "_blank")}
-            aria-label="Open local offline Documentation Hub"
+            onClick={handleOpenDocs}
+            aria-label={envManagerOnline ? "Open local offline Documentation Hub" : "Open online Documentation Hub (offline sidecar unavailable)"}
           >
-            Docs Hub (Offline)
+            {envManagerOnline ? "Docs Hub (Offline)" : "Docs (Web Fallback)"}
           </button>
-          <HelpTooltip content="Open the complete local Documentation Hub whitepapers and manuals offline, served directly by the Environment Manager sidecar (zero internet connection required)." />
+          <HelpTooltip content={envManagerOnline ? "Open the complete local Documentation Hub whitepapers and manuals offline, served directly by the Environment Manager sidecar (zero internet connection required)." : "Environment Manager (Port 8000) is offline. Redirecting to the GitHub Pages web version of the Documentation Hub."} />
 
           <button
             type="button"

@@ -6,7 +6,11 @@ import {
 } from "../api/client";
 import { ModelItem } from "../api/types";
 
-export const TrainingPanel: React.FC = () => {
+interface TrainingPanelProps {
+  trainingSuiteOnline: boolean;
+}
+
+export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnline }) => {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [epochs, setEpochs] = useState<number>(30);
@@ -44,6 +48,10 @@ export const TrainingPanel: React.FC = () => {
   }, [loadTrainingData]);
 
   const handleStartTraining = async () => {
+    if (!trainingSuiteOnline) {
+      setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
+      return;
+    }
     setIsTraining(true);
     setTrainStatus(null);
     try {
@@ -56,9 +64,8 @@ export const TrainingPanel: React.FC = () => {
         env: "local",
       });
       setTrainStatus(`Training run initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Training trigger failed";
-      setTrainStatus(`Training error: ${msg}`);
+    } catch {
+      setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
     } finally {
       setIsTraining(false);
     }
@@ -200,8 +207,9 @@ export const TrainingPanel: React.FC = () => {
             type="button"
             className="btn btn-primary"
             onClick={handleStartTraining}
-            disabled={isTraining}
-            aria-label="Initiate neural model training pass"
+            disabled={isTraining || !trainingSuiteOnline}
+            aria-label={!trainingSuiteOnline ? "Training unavailable: Training Suite Sidecar offline" : "Initiate neural model training pass"}
+            aria-disabled={!trainingSuiteOnline}
           >
             {isTraining ? "Dispatching Job..." : "Start Training"}
           </button>
@@ -218,6 +226,12 @@ export const TrainingPanel: React.FC = () => {
           </button>
           <HelpTooltip content="Poll port 8200 sidecar to update model weights status, best validation metrics, and active training telemetry." />
         </div>
+
+        {!trainingSuiteOnline && (
+          <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
+            <span>Training Suite Sidecar (Port 8200) is offline. Launch lemgendary-training-suite to enable training dispatch.</span>
+          </div>
+        )}
 
         {trainStatus && (
           <div className="validation-banner banner-success" style={{ marginTop: "16px" }} role="status">

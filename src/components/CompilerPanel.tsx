@@ -7,7 +7,11 @@ import {
 } from "../api/client";
 import { CompilerPreset, DatasetItem } from "../api/types";
 
-export const CompilerPanel: React.FC = () => {
+interface CompilerPanelProps {
+  datasetCompilerOnline: boolean;
+}
+
+export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnline }) => {
   const [datasets, setDatasets] = useState<DatasetItem[]>([]);
   const [presets, setPresets] = useState<CompilerPreset[]>([]);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
@@ -59,6 +63,10 @@ export const CompilerPanel: React.FC = () => {
   }, [loadCompilerData]);
 
   const handleCompile = async () => {
+    if (!datasetCompilerOnline) {
+      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable. Launch lemgendary-datasets to compile.");
+      return;
+    }
     setIsCompiling(true);
     setCompileStatus(null);
     try {
@@ -69,9 +77,8 @@ export const CompilerPanel: React.FC = () => {
         purge_loose_images: purgeLooseImages,
       });
       setCompileStatus(`Compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Compilation request failed";
-      setCompileStatus(`Compilation request error: ${msg}`);
+    } catch {
+      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable. Launch lemgendary-datasets to compile.");
     } finally {
       setIsCompiling(false);
     }
@@ -177,8 +184,9 @@ export const CompilerPanel: React.FC = () => {
             type="button"
             className="btn btn-primary"
             onClick={handleCompile}
-            disabled={isCompiling}
-            aria-label="Start dataset manifold compilation"
+            disabled={isCompiling || !datasetCompilerOnline}
+            aria-label={!datasetCompilerOnline ? "Compile unavailable: Dataset Compiler Sidecar offline" : "Start dataset manifold compilation"}
+            aria-disabled={!datasetCompilerOnline}
           >
             {isCompiling ? "Compiling Manifold..." : "Compile Manifold"}
           </button>
@@ -195,6 +203,12 @@ export const CompilerPanel: React.FC = () => {
           </button>
           <HelpTooltip content="Query the datasets sidecar daemon on port 8100 to update sample counts, format breakdowns, and shard inventories." />
         </div>
+
+        {!datasetCompilerOnline && (
+          <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
+            <span>Dataset Compiler Sidecar (Port 8100) is offline. Launch lemgendary-datasets to enable compilation.</span>
+          </div>
+        )}
 
         {compileStatus && (
           <div className="validation-banner banner-success" style={{ marginTop: "16px" }} role="status">

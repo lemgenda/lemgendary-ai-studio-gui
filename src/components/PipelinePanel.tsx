@@ -6,12 +6,14 @@ interface PipelinePanelProps {
   isRunning: boolean;
   onRunPipeline: () => void;
   recentEvents: PipelineEvent[];
+  envManagerOnline: boolean;
 }
 
 export const PipelinePanel: React.FC<PipelinePanelProps> = ({
   isRunning,
   onRunPipeline,
   recentEvents,
+  envManagerOnline,
 }) => {
   const steps = [
     { num: 1, name: "Hardware Discovery", desc: "Detects CUDA devices, driver levels, CPU architecture, and recommended PyTorch wheel index." },
@@ -98,14 +100,24 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           type="button"
           className="btn btn-primary"
           onClick={onRunPipeline}
-          disabled={isRunning}
-          aria-label={isRunning ? "Pipeline execution in progress" : "Execute Full Clean Install Pipeline across all projects"}
+          disabled={isRunning || !envManagerOnline}
+          aria-label={isRunning ? "Pipeline execution in progress" : !envManagerOnline ? "Pipeline unavailable: Environment Manager offline" : "Execute Full Clean Install Pipeline across all projects"}
           aria-busy={isRunning}
         >
           {isRunning ? "Executing Pipeline..." : "Execute Full Clean Install Pipeline"}
         </button>
         <HelpTooltip content="Initiates the 7-step clean install sequence across all workspace projects. Reclaims site-packages and installs frozen wheels from SSOT manifests." />
       </div>
+
+      {!envManagerOnline && (
+        <p
+          role="alert"
+          style={{ fontSize: "12px", color: "var(--accent-rose)", marginTop: "8px" }}
+        >
+          Environment Manager (Port 8000) is offline.
+          The pipeline cannot execute until the sidecar is launched.
+        </p>
+      )}
     </section>
   );
 };
