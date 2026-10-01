@@ -113,11 +113,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="btn btn-secondary"
               style={{ width: "100%", fontSize: "12px" }}
               onClick={onOpenConfigEditor}
-              aria-label="Open Universal Configuration & Registry Editor Modal"
+              aria-label="Open Universal Configuration, Registry Editor & Secrets Vault Modal"
             >
-              Config &amp; Registries
+              Config &amp; Secrets
             </button>
-            <HelpTooltip content="Open the Universal Dynamic Config & Registry Editor to inspect, modify, and validate YAML/JSON manifests." position="right" />
+            <HelpTooltip content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens." position="right" />
           </div>
         </div>
       )}

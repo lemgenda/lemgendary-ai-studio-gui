@@ -63,7 +63,9 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
       >
         {steps.map((s) => {
           const isCurrent = isRunning && activeStep === s.num;
-          const isDone = activeStep > s.num;
+          // A step is DONE if: the pipeline is still running and we're past it,
+          // OR the pipeline finished and we've reached or passed this step number.
+          const isDone = isRunning ? activeStep > s.num : activeStep >= s.num;
           const statusBadge = isCurrent ? "badge-warning" : isDone ? "badge-success" : "badge-info";
 
           return (

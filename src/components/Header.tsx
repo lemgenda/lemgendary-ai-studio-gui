@@ -1,6 +1,5 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
-import { fetchDocsStatus } from "../api/client";
 
 interface HeaderProps {
   title: string;
@@ -14,25 +13,12 @@ export const Header: React.FC<HeaderProps> = ({
   title,
   onRefresh,
   isRefreshing,
-  onOpenConfigEditor,
-  envManagerOnline,
 }) => {
-  const handleOpenDocs = async () => {
-    if (!envManagerOnline) {
-      window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank");
-      return;
-    }
-    try {
-      const status = await fetchDocsStatus();
-      if (status.offline_available) {
-        window.open(status.local_url, "_blank");
-      } else {
-        window.open(status.online_url, "_blank");
-      }
-    } catch {
-      window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank");
-    }
+  const handleOpenDocs = () => {
+    // Opens the local offline documentation hub directly (zero internet connection required)
+    window.open("/documentation-hub/index.html", "_blank");
   };
+
   return (
     <header className="top-header" role="banner">
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -46,36 +32,12 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className="btn btn-secondary"
             onClick={handleOpenDocs}
-            aria-label={envManagerOnline ? "Open local offline Documentation Hub" : "Open online Documentation Hub (offline sidecar unavailable)"}
+            aria-label="Open local offline Documentation Hub"
           >
-            {envManagerOnline ? "Docs Hub (Offline)" : "Docs (Web Fallback)"}
+            Docs Hub (Offline)
           </button>
-          <HelpTooltip content={envManagerOnline ? "Open the complete local Documentation Hub whitepapers and manuals offline, served directly by the Environment Manager sidecar (zero internet connection required)." : "Environment Manager (Port 8000) is offline. Redirecting to the GitHub Pages web version of the Documentation Hub."} />
-
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => window.open("https://lemgenda.github.io/ai-training-whitepapers/index.html", "_blank")}
-            aria-label="Open online Documentation Hub on GitHub Pages"
-          >
-            Docs (Web)
-          </button>
-          <HelpTooltip content="Visit the official LemGendary AI Documentation Hub hosted on GitHub Pages (https://lemgenda.github.io/ai-training-whitepapers/index.html)." />
+          <HelpTooltip content="Open the complete local Documentation Hub whitepapers and manuals offline, served directly from local storage with zero internet connection required." />
         </div>
-
-        {onOpenConfigEditor && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onOpenConfigEditor}
-              aria-label="Open Universal Configuration & Registry Editor and Secrets Vault"
-            >
-              Config &amp; Secrets
-            </button>
-            <HelpTooltip content="Open the Universal Dynamic Config & Registry Editor and Secrets Vault to inspect manifests, hyperparameters, and manage API tokens (Kaggle mandatory, Google Drive, GitHub, MT5)." />
-          </div>
-        )}
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <button

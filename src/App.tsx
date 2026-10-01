@@ -144,8 +144,11 @@ export const App: React.FC = () => {
   };
 
   const handleStartEcosystem = () => {
+    // Navigate to the Pipeline tab so the user can inspect state and manually
+    // trigger execution. We do NOT auto-run the pipeline here because clicking
+    // "Start Service" on an individual card should never fire a full clean
+    // reinstall without explicit confirmation.
     setCurrentTab("pipeline");
-    handleRunPipeline();
   };
 
   const getHeaderTitle = () => {
