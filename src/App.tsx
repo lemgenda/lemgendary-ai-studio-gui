@@ -20,6 +20,8 @@ import {
   probeSidecarPort,
   triggerPipeline,
   createLogWebSocket,
+  startService,
+  startAllServices,
 } from "./api/client";
 import { HardwareProfile, HealthAuditReport, MeshStatus, PipelineEvent, ProjectHealth } from "./api/types";
 
@@ -143,12 +145,36 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleStartEcosystem = () => {
-    // Navigate to the Pipeline tab so the user can inspect state and manually
-    // trigger execution. We do NOT auto-run the pipeline here because clicking
-    // "Start Service" on an individual card should never fire a full clean
-    // reinstall without explicit confirmation.
-    setCurrentTab("pipeline");
+  const [startingServiceId, setStartingServiceId] = useState<string | null>(null);
+
+  const handleStartService = async (serviceId: string) => {
+    try {
+      setStartingServiceId(serviceId);
+      setRefreshError(null);
+      await startService(serviceId);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRefreshError(`Failed to start ${serviceId}: ${message}`);
+    } finally {
+      setStartingServiceId(null);
+    }
+  };
+
+  const handleStartAllServices = async () => {
+    try {
+      setStartingServiceId("all");
+      setRefreshError(null);
+      await startAllServices();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRefreshError(`Failed to start services: ${message}`);
+    } finally {
+      setStartingServiceId(null);
+    }
   };
 
   const getHeaderTitle = () => {
@@ -223,10 +249,11 @@ export const App: React.FC = () => {
                 type="button"
                 className="btn btn-primary"
                 style={{ fontSize: "12px" }}
-                onClick={handleStartEcosystem}
+                onClick={handleStartAllServices}
+                disabled={startingServiceId !== null}
                 aria-label="Start all LemGendary ecosystem sidecars"
               >
-                Start All Services
+                {startingServiceId === "all" ? "Starting Services..." : "Start All Services"}
               </button>
             </div>
           )}
@@ -266,11 +293,15 @@ export const App: React.FC = () => {
                 meshStatus={meshStatus}
                 onNavigate={setCurrentTab}
                 onRunAudit={handleRunPipeline}
-                onStartServices={handleStartEcosystem}
+                onStartService={handleStartService}
+                startingServiceId={startingServiceId}
               />
 
               <div className="card-grid">
-                <HardwareCard hardware={hardware} onStartEnvManager={handleStartEcosystem} />
+                <HardwareCard
+                  hardware={hardware}
+                  onStartEnvManager={() => handleStartService("env-manager")}
+                />
                 <PipelinePanel
                   isRunning={isRunningPipeline}
                   onRunPipeline={handleRunPipeline}
@@ -339,7 +370,9 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {currentTab === "health" && <HealthPanel report={health} onStartEnvManager={handleStartEcosystem} />}
+          {currentTab === "health" && (
+            <HealthPanel report={health} onStartEnvManager={() => handleStartService("env-manager")} />
+          )}
 
           {currentTab === "logs" && (
             <LogPanel

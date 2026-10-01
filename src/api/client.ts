@@ -21,9 +21,10 @@ import {
   QuickCompilePayload,
   QuickTrainPayload,
   SecretItem,
+  ServiceOperationResult,
 } from "./types";
 
-export type { MeshStatus };
+export type { MeshStatus, ServiceOperationResult };
 
 export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
@@ -92,6 +93,41 @@ export async function probeSidecarPort(port: number): Promise<boolean> {
   } finally {
     window.clearTimeout(timer);
   }
+}
+
+// ─── Ecosystem Sidecar Daemon Lifecycle Management (Port 8000) ───────────────
+
+export async function startService(serviceId: string): Promise<ServiceOperationResult> {
+  const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to start ${serviceId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
+  const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to stop ${serviceId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function startAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
+  const res = await fetch(`${ENV_BASE}/api/services/start-all`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to start all services: ${res.statusText}`);
+  }
+  return res.json();
 }
 
 // ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────

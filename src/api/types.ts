@@ -210,3 +210,11 @@ export interface MeshStatus {
   datasetCompiler: boolean;
   trainingSuite: boolean;
 }
+
+export interface ServiceOperationResult {
+  status: string;
+  message: string;
+  port?: number;
+  pid?: number;
+}
+

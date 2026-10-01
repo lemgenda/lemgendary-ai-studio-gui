@@ -7,7 +7,8 @@ interface ServiceTilesProps {
   meshStatus: MeshStatus;
   onNavigate: (tab: string) => void;
   onRunAudit: () => void;
-  onStartServices: () => void;
+  onStartService: (serviceId: string) => Promise<void> | void;
+  startingServiceId?: string | null;
 }
 
 interface ServiceCardProps {
@@ -20,7 +21,8 @@ interface ServiceCardProps {
   quickActionLabel: string;
   quickActionAriaLabel: string;
   onQuickAction: () => void;
-  onStartServices: () => void;
+  onStartService: (id: string) => void;
+  isStarting?: boolean;
   helpContent: string;
 }
 
@@ -34,7 +36,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   quickActionLabel,
   quickActionAriaLabel,
   onQuickAction,
-  onStartServices,
+  onStartService,
+  isStarting,
   helpContent,
 }) => {
   const headingId = `service-card-title-${id}`;
@@ -107,10 +110,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             type="button"
             className="btn btn-primary"
             style={{ width: "100%", fontSize: "12px" }}
-            aria-label={`Attempt to start ${name} via the clean install pipeline`}
-            onClick={onStartServices}
+            aria-label={`Start ${name} background daemon`}
+            disabled={isStarting}
+            onClick={() => onStartService(id)}
           >
-            Start Service
+            {isStarting ? "Starting Service..." : "Start Service"}
           </button>
         )}
       </div>
@@ -122,9 +126,10 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
   meshStatus,
   onNavigate,
   onRunAudit,
-  onStartServices,
+  onStartService,
+  startingServiceId,
 }) => {
-  const services: ServiceCardProps[] = [
+  const services: Omit<ServiceCardProps, "onStartService" | "isStarting">[] = [
     {
       id: "env-manager",
       name: "LemGendary Environment Manager",
@@ -136,7 +141,6 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionLabel: "Run Full System Audit",
       quickActionAriaLabel: "Trigger a full system audit via the Environment Manager pipeline",
       onQuickAction: onRunAudit,
-      onStartServices,
       helpContent:
         "Port 8000 sidecar. Powers hardware profiling, project health audits, version drift matrices, and the deterministic clean install pipeline.",
     },
@@ -151,7 +155,6 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionLabel: "Open Dataset Compiler",
       quickActionAriaLabel: "Navigate to the Dataset Compiler panel",
       onQuickAction: () => onNavigate("datasets"),
-      onStartServices,
       helpContent:
         "Port 8100 sidecar. Provides manifold format inspection, streaming compilation, and automated WebP transcoding for all 20 production manifolds.",
     },
@@ -166,7 +169,6 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionLabel: "Open Training Suite",
       quickActionAriaLabel: "Navigate to the Master Training Suite panel",
       onQuickAction: () => onNavigate("training"),
-      onStartServices,
       helpContent:
         "Port 8200 sidecar. Controls model training runs, architecture selection, hyperparameter configuration, and safetensors checkpoint export.",
     },
@@ -178,12 +180,17 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
         <h3 id="service-tiles-heading" style={{ fontSize: "16px", fontWeight: 600 }}>
           Ecosystem Sidecar Services
         </h3>
-        <HelpTooltip content="Live status of all three local microservices. Each sidecar must be running to enable its respective GUI panel. Use 'Start Service' to launch via the clean install pipeline when offline." />
+        <HelpTooltip content="Live status of all three local microservices. Each sidecar must be running to enable its respective GUI panel. Click 'Start Service' on any card to launch its background daemon." />
       </div>
 
       <div className="card-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
         {services.map((svc) => (
-          <ServiceCard key={svc.id} {...svc} />
+          <ServiceCard
+            key={svc.id}
+            {...svc}
+            onStartService={onStartService}
+            isStarting={startingServiceId === svc.id || startingServiceId === "all"}
+          />
         ))}
       </div>
     </section>
