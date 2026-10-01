@@ -87,13 +87,13 @@ export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
  */
 export async function probeSidecarPort(port: number): Promise<boolean> {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 1500);
+  const timer = window.setTimeout(() => controller.abort(), 2000);
   try {
-    await fetch(`http://127.0.0.1:${port}/api/health`, {
-      method: "HEAD",
+    const res = await fetch(`http://127.0.0.1:${port}/api/health`, {
+      method: "GET",
       signal: controller.signal,
     });
-    return true;
+    return res.ok;
   } catch {
     return false;
   } finally {

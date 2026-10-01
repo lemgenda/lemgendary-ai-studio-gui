@@ -52,8 +52,31 @@ export const App: React.FC = () => {
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
 
+  const refreshMeshStatus = useCallback(async () => {
+    try {
+      const mesh = await fetchEcosystemMesh();
+      setMeshStatus({
+        envManager: mesh.env_manager.reachable,
+        datasetCompiler: mesh.dataset_compiler.reachable,
+        trainingSuite: mesh.training_suite.reachable,
+      });
+      return true;
+    } catch {
+      const [em, dc, ts] = await Promise.all([
+        probeSidecarPort(8000),
+        probeSidecarPort(8100),
+        probeSidecarPort(8200),
+      ]);
+      setMeshStatus({ envManager: em, datasetCompiler: dc, trainingSuite: ts });
+      return em || dc || ts;
+    }
+  }, []);
+
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
+    // Refresh mesh status immediately (<100ms) so sidecar cards are instantly accurate
+    void refreshMeshStatus();
+
     try {
       const [hwData, healthData, pipeStatus] = await Promise.all([
         fetchHardware().catch(() => null),
@@ -74,25 +97,7 @@ export const App: React.FC = () => {
         }
       }
 
-      // Populate sidecar mesh status. Try the ecosystem endpoint on port 8000 first;
-      // if it is unreachable, fall back to independent per-port HEAD probes so that
-      // mesh awareness works even when the env-manager itself is offline.
-      try {
-        const mesh = await fetchEcosystemMesh();
-        setMeshStatus({
-          envManager: mesh.env_manager.reachable,
-          datasetCompiler: mesh.dataset_compiler.reachable,
-          trainingSuite: mesh.training_suite.reachable,
-        });
-      } catch {
-        const [em, dc, ts] = await Promise.all([
-          probeSidecarPort(8000),
-          probeSidecarPort(8100),
-          probeSidecarPort(8200),
-        ]);
-        setMeshStatus({ envManager: em, datasetCompiler: dc, trainingSuite: ts });
-      }
-
+      await refreshMeshStatus();
       setLastUpdated(new Date().toISOString());
       setRefreshError(null);
     } catch {
@@ -103,10 +108,15 @@ export const App: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [refreshMeshStatus]);
 
   useEffect(() => {
     loadData();
+
+    // Periodic lightweight mesh poll (every 4 seconds) to ensure sidecar transitions are always live
+    const meshInterval = setInterval(() => {
+      void refreshMeshStatus();
+    }, 4000);
 
     const cleanupWs = createLogWebSocket(
       (ev) => {
@@ -121,9 +131,51 @@ export const App: React.FC = () => {
     );
 
     return () => {
+      clearInterval(meshInterval);
       cleanupWs();
     };
-  }, [loadData]);
+  }, [loadData, refreshMeshStatus]);
+
+  // Auto-start any offline sidecars on GUI startup
+  useEffect(() => {
+    let cancelled = false;
+    const autoStartOffline = async () => {
+      // Grace period for initial local network and server hydration
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (cancelled) return;
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const mesh = await fetchEcosystemMesh();
+          if (cancelled) return;
+          const needsStart = !mesh.dataset_compiler.reachable || !mesh.training_suite.reachable;
+          if (needsStart) {
+            await startAllServices();
+            if (cancelled) return;
+            // Poll mesh status until all sidecars report ready
+            for (let i = 0; i < 15; i++) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              if (cancelled) return;
+              await refreshMeshStatus();
+              const check = await fetchEcosystemMesh().catch(() => null);
+              if (check?.dataset_compiler.reachable && check?.training_suite.reachable) {
+                break;
+              }
+            }
+            await loadData();
+          }
+          break;
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+      }
+    };
+
+    void autoStartOffline();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadData, refreshMeshStatus]);
 
   const handleRunPipeline = async () => {
     try {
@@ -152,7 +204,11 @@ export const App: React.FC = () => {
       setStartingServiceId(serviceId);
       setRefreshError(null);
       await startService(serviceId);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Poll mesh status for up to 10 seconds to confirm readiness
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await refreshMeshStatus();
+      }
       await loadData();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -167,7 +223,10 @@ export const App: React.FC = () => {
       setStartingServiceId("all");
       setRefreshError(null);
       await startAllServices();
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await refreshMeshStatus();
+      }
       await loadData();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

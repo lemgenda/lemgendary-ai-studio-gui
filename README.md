@@ -104,3 +104,9 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/api/client.ts` — Daemon Lifecycle Endpoints** — Added `startService(serviceId)`, `stopService(serviceId)`, and `startAllServices()` connecting directly to Environment Manager daemon process endpoints on port 8000.
 - **`src/components/ServiceTiles.tsx` — Independent Start Service Buttons** — Replaced generic clean install redirection with dedicated `onStartService(serviceId)` actions. Button displays live `Starting Service...` state and prevents accidental multi-triggering while daemons bind to their ports.
 - **`src/App.tsx` — Non-Destructive Service Dispatch** — Replaced `handleStartEcosystem` with `handleStartService` and `handleStartAllServices`. Clicking `Start Service` on any offline card now cleanly spawns that specific process in the background without modifying or wiping existing project virtual environments or running the clean install pipeline.
+
+### v2.6.0 — Automated Sidecar Startup on Launch & Real-Time Mesh Telemetry
+
+- **`src/App.tsx` — Automated Startup Routine on Launch** — Added `autoStartOffline` startup effect on initial GUI mount. Automatically probes the tripartite mesh and triggers background daemon launch for any offline sidecar without manual intervention.
+- **`src/App.tsx` — Decoupled Fast Mesh Polling & Continuous Heartbeat** — Extracted `refreshMeshStatus()` to immediately update UI service tiles (<90ms) independently of slow full-ecosystem audits (~9s). Added a 4-second reactive background polling loop keeping sidecar status badges continuously synchronized.
+- **`src/api/client.ts` — GET-Based Health Fallback** — Standardized `probeSidecarPort()` to use standard `GET` requests with `res.ok` validation, ensuring universal compatibility across FastAPI routers.
