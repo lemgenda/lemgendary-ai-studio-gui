@@ -708,6 +708,12 @@ code, pre {
   color: var(--accent-rose);
 }
 
+.banner-info {
+  background-color: rgba(56, 189, 248, 0.15);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
 /* ─── Diff View ──────────────────────────────────────────────────────────── */
 .diff-view-container {
   flex: 1;

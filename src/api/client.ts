@@ -3,6 +3,7 @@
  */
 
 import {
+  BackendDatasetStats,
   CompilerPreset,
   DatasetItem,
   DocsStatusResponse,
@@ -212,7 +213,37 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
     const res = await fetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
     if (!res.ok) return [];
     const data = await res.json();
-    return data.datasets || [];
+    if (!data.datasets || !Array.isArray(data.datasets)) return [];
+
+    return (data.datasets as BackendDatasetStats[]).map((item: BackendDatasetStats): DatasetItem => {
+      const key = item.key || item.name.toLowerCase().replace(/^lemgendized/, "");
+      const displayName = item.display_name || item.name.replace(/^LemGendized/, "");
+      const totalSamples = item.sample_count ?? 0;
+      const totalSizeMb = Math.round((item.size_bytes || 0) / (1024 * 1024));
+      const formatBreakdown = {
+        webp: item.formats?.webp ?? 0,
+        jpg: item.formats?.jpg ?? 0,
+        png: item.formats?.png ?? 0,
+        parquet: item.formats?.parquet ?? 0,
+        other: item.formats?.other ?? 0,
+      };
+      const isCompiled = Boolean(
+        item.is_compiled ?? (item.shards_count && item.shards_count > 0)
+      );
+
+      return {
+        key,
+        display_name: displayName,
+        format: item.format || "directory",
+        canonical_format: item.canonical_format || "webdataset",
+        total_samples: totalSamples,
+        total_size_mb: totalSizeMb,
+        format_breakdown: formatBreakdown,
+        shards_count: item.shards_count ?? 0,
+        is_compiled: isCompiled,
+        modernized_folder: item.name,
+      };
+    });
   } catch {
     return [];
   }

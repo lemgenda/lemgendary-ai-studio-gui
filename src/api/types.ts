@@ -149,6 +149,24 @@ export interface DatasetItem {
   modernized_folder?: string;
 }
 
+export interface BackendDatasetStats {
+  name: string;
+  key?: string;
+  display_name?: string;
+  path: string;
+  task: string;
+  sample_count: number;
+  size_bytes: number;
+  size_gb: number;
+  format?: string;
+  canonical_format?: string;
+  formats: DatasetFormatBreakdown;
+  shards_count?: number;
+  is_compiled?: boolean;
+  has_hardlinks?: boolean;
+  hardlink_ratio?: number;
+}
+
 export interface CompilerPreset {
   id: string;
   name: string;

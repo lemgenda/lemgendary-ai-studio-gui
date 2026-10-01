@@ -20,8 +20,12 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [purgeLooseImages, setPurgeLooseImages] = useState<boolean>(true);
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compileStatus, setCompileStatus] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
   const loadCompilerData = useCallback(async () => {
+    setIsRefreshing(true);
+    setRefreshFeedback(null);
     try {
       const [dsList, prList] = await Promise.all([
         fetchDatasets(),
@@ -30,17 +34,21 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
       if (dsList.length > 0) {
         setDatasets(dsList);
-        if (!selectedManifold) setSelectedManifold(dsList[0].key);
+        setSelectedManifold((prev) => prev || dsList[0].key);
+        setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
         // Fallback default manifolds from unified_data.yaml
         setDatasets([
           { key: "mirnet_exposure", display_name: "MIRNet Low-Light & Exposure", format: "webdataset", canonical_format: "webdataset", total_samples: 1414438, total_size_mb: 87840, format_breakdown: { webp: 1414438, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 283, is_compiled: true },
-          { key: "upn_v2", display_name: "Unified Perceptual Net V2", format: "directory", canonical_format: "webdataset", total_samples: 840000, total_size_mb: 64200, format_breakdown: { webp: 840000, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 0, is_compiled: false },
+          { key: "upn_v2", display_name: "Unified Perceptual Net V2", format: "webdataset", canonical_format: "webdataset", total_samples: 1378070, total_size_mb: 53600, format_breakdown: { webp: 1378070, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 285, is_compiled: true },
           { key: "nima_aesthetic", display_name: "NIMA Perceptual Aesthetics", format: "parquet", canonical_format: "parquet", total_samples: 255530, total_size_mb: 18200, format_breakdown: { webp: 255530, jpg: 0, png: 0, parquet: 1, other: 0 }, shards_count: 51, is_compiled: true },
           { key: "film_restorer", display_name: "Film Restorer & Scratch Removal", format: "webdataset", canonical_format: "webdataset", total_samples: 312000, total_size_mb: 28500, format_breakdown: { webp: 312000, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 62, is_compiled: true },
           { key: "universal_nsfw", display_name: "Universal Safety & Content Filter", format: "parquet", canonical_format: "parquet", total_samples: 154000, total_size_mb: 9800, format_breakdown: { webp: 154000, jpg: 0, png: 0, parquet: 1, other: 0 }, shards_count: 30, is_compiled: true },
         ]);
-        if (!selectedManifold) setSelectedManifold("upn_v2");
+        setSelectedManifold((prev) => prev || "upn_v2");
+        if (!datasetCompilerOnline) {
+          setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying cached registry catalog.");
+        }
       }
 
       if (prList.length > 0) {
@@ -54,9 +62,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         ]);
       }
     } catch {
-      // Handled via defaults
+      setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [selectedManifold]);
+  }, [datasetCompilerOnline]);
 
   useEffect(() => {
     loadCompilerData();
@@ -196,10 +206,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
             type="button"
             className="btn btn-secondary"
             onClick={loadCompilerData}
-            disabled={isCompiling}
+            disabled={isCompiling || isRefreshing}
             aria-label="Refresh datasets list and format breakdown"
           >
-            Refresh Catalog
+            {isRefreshing ? "Refreshing Catalog..." : "Refresh Catalog"}
           </button>
           <HelpTooltip content="Query the datasets sidecar daemon on port 8100 to update sample counts, format breakdowns, and shard inventories." />
         </div>
@@ -207,6 +217,12 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         {!datasetCompilerOnline && (
           <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
             <span>Dataset Compiler Sidecar (Port 8100) is offline. Launch lemgendary-datasets to enable compilation.</span>
+          </div>
+        )}
+
+        {refreshFeedback && (
+          <div className="validation-banner banner-info" style={{ marginTop: "12px" }} role="status">
+            <span>{refreshFeedback}</span>
           </div>
         )}
 
