@@ -28,6 +28,12 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - In-app modal for viewing, modifying, and validating core manifests: `unified_data.yaml`, `unified_models_v2.yaml`, `config.yaml`, `presets.yaml`, `runtime_env.yaml`, `requirements.txt`, and `package.json`.
   - In-app syntax checking, schema validation, visual diff preview, and atomic backup writing.
 
+- **Dataset Compiler & Modernization Suite**:
+  - **Standard Compilation**: Fast transformation of raw archives into WebDataset `.tar` shards, Parquet, MosaicML `.mds`, or LitData containers.
+  - **Custom Multi-Source Dataset Compilation**: Synthesize new custom manifolds by supplying lists of source datasets from Kaggle (`kaggle://`), HuggingFace (`hf://`), Google Drive (`gd://`), or GitHub (`gh://`).
+  - **Kaggle Cloud Synchronization & Storage Hub**: Bi-directional cloud syncing: download pre-configured manifolds from `unified_data.yaml`, download custom datasets via direct URL or slug, and publish local compiled manifolds.
+  - **Production Manifolds Catalog**: Real-time status, format breakdowns, sample counts, and disk metrics across all 22 production manifolds.
+
 - **Contextual UX Help & Interactive Hover Guidance**:
   - Every interactive UI element (action buttons, navigation menu items, slider governors, toggle switches, form inputs, and status badges) features an inline help icon badge.
   - Hovering over any help icon displays an elevated glassmorphic tooltip card explaining the control's function, associated CLI/API command, and operational side effects.

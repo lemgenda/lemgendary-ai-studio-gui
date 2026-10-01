@@ -5,11 +5,16 @@
 import {
   BackendDatasetStats,
   CompilerPreset,
+  CustomCompilePayload,
   DatasetItem,
   DocsStatusResponse,
   EcosystemSidecarMesh,
   HardwareProfile,
   HealthAuditReport,
+  KaggleDatasetRegistryItem,
+  KaggleDownloadPayload,
+  KaggleStatusResponse,
+  KaggleUploadPayload,
   ManifestItem,
   ManifestReadResponse,
   ManifestSaveResponse,
@@ -267,6 +272,65 @@ export async function triggerQuickCompile(payload: QuickCompilePayload): Promise
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`Failed to trigger compilation: ${res.statusText}`);
+  return res.json();
+}
+
+export async function triggerCustomCompile(payload: CustomCompilePayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${DATASETS_BASE}/api/gui/custom-compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to trigger custom compilation: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function fetchKaggleStatus(): Promise<KaggleStatusResponse> {
+  try {
+    const res = await fetch(`${DATASETS_BASE}/api/kaggle/status`);
+    if (!res.ok) return { authenticated: false, auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false } };
+    return res.json();
+  } catch {
+    return { authenticated: false, auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false } };
+  }
+}
+
+export async function fetchKaggleRegistryDatasets(): Promise<KaggleDatasetRegistryItem[]> {
+  try {
+    const res = await fetch(`${DATASETS_BASE}/api/kaggle/registry-datasets`);
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${DATASETS_BASE}/api/kaggle/download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to trigger Kaggle download: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${DATASETS_BASE}/api/kaggle/upload`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to trigger Kaggle upload: ${res.statusText}`);
+  }
   return res.json();
 }
 

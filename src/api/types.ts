@@ -184,6 +184,50 @@ export interface QuickCompilePayload {
   purge_loose_images?: boolean;
 }
 
+export interface KaggleDatasetRegistryItem {
+  key: string;
+  title: string;
+  name: string;
+  modernized_folder: string;
+  kaggle_ref: string;
+  clean_repo_id: string;
+  is_local_present: boolean;
+  canonical_format: string;
+  sample_count: number;
+  size_gb: number;
+}
+
+export interface KaggleStatusResponse {
+  authenticated: boolean;
+  auth_methods: {
+    environment_variables: boolean;
+    dot_kaggle_token: boolean;
+    user_kaggle_json: boolean;
+  };
+}
+
+export interface KaggleDownloadPayload {
+  kaggle_ref: string;
+  target_folder?: string;
+  force?: boolean;
+}
+
+export interface KaggleUploadPayload {
+  manifold: string;
+  kaggle_ref?: string;
+  no_wait?: boolean;
+}
+
+export interface CustomCompilePayload {
+  custom_name: string;
+  task: string;
+  preset: string;
+  canonical_format: string;
+  shard_size: number;
+  sources: string[];
+  purge_loose_images?: boolean;
+}
+
 export interface ModelItem {
   key: string;
   display_name: string;
