@@ -83,6 +83,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.8.0 — SSOT Config-Governed Readonly Parameters & Dynamic Start/Stop Action Toggle
+
+- **`src/components/TrainingPanel.tsx` — Single Source of Truth (SSOT) Parameter Locking** — Locked `Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Spatial Ladder Stage` / `Timeframe Confluence Stage` into read-only controls (`.editor-input-readonly`) for all models. Parameters are strictly governed by canonical manifests (`unified_models_v2.yaml` / `presets.yaml`). Added the prominent `.config-governed-banner` with direct shortcut navigation to the Config Editor Modal (`onOpenConfigEditor`).
+- **`src/components/TrainingPanel.tsx` — Dynamic Start/Stop Action Toggle** — Replaced static one-way dispatch button with a reactive run-state toggle. Automatically polls `fetchRunningTrainingJobs()` (`GET /api/jobs?status=running`) every 3 seconds. While a training job is actively executing, the button switches to `Stop Training` with high-visibility `.btn-danger` styling and routes to `cancelTrainingJob(runningJobId)` (`POST /api/jobs/{job_id}/cancel`). Reverts to `Start Training` (`.btn-primary`) when idle or completed.
+- **`src/App.tsx` — Config Editor Modal Wiring** — Passed `onOpenConfigEditor={() => setIsConfigEditorOpen(true)}` to `TrainingPanel`, providing seamless in-app access to view and adjust authoritative model manifests.
+- **`src/index.css` — Readonly Controls & Action Button Styling** — Added `.btn-danger` gradient and focus states (`#ef4444` to `#dc2626`), `.editor-input-readonly` background and border styling, and `.config-governed-banner` responsive layout.
+
 ### v2.7.0 — Training Orchestration Form Stabilization & Dynamic Model Defaults
 
 - **`src/components/TrainingPanel.tsx` — Layout Collision Resolution** — Separated `Target Architecture` into a dedicated hero selector row with real-time architectural metadata badges (task category, parameter count, canonical format, preferred parallel mode). Restructured training parameters (`Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Ladder Stage`) into a dedicated 4-column responsive grid with `min-width: 0` constraints, eliminating horizontal overlap and input clipping.

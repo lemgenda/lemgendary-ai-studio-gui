@@ -421,7 +421,10 @@ export const App: React.FC = () => {
 
           {currentTab === "training" && (
             <>
-              <TrainingPanel trainingSuiteOnline={meshStatus.trainingSuite} />
+              <TrainingPanel
+                trainingSuiteOnline={meshStatus.trainingSuite}
+                onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+              />
               <LogPanel
                 events={events}
                 onClear={() => setEvents([])}

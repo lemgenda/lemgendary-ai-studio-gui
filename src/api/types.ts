@@ -310,3 +310,13 @@ export interface ServiceOperationResult {
   pid?: number;
 }
 
+export interface TrainingJobInfo {
+  id: string;
+  job_type: string;
+  model_key: string;
+  status: string;
+  created_at?: string;
+  started_at?: string;
+  params?: Record<string, unknown>;
+}
+

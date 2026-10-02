@@ -28,9 +28,10 @@ import {
   QuickTrainPayload,
   SecretItem,
   ServiceOperationResult,
+  TrainingJobInfo,
 } from "./types";
 
-export type { MeshStatus, ServiceOperationResult };
+export type { MeshStatus, ServiceOperationResult, TrainingJobInfo };
 
 export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
@@ -465,6 +466,29 @@ export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ s
   });
   if (!res.ok) throw new Error(`Failed to trigger training: ${res.statusText}`);
   return res.json();
+}
+
+export async function fetchRunningTrainingJobs(): Promise<TrainingJobInfo[]> {
+  try {
+    const res = await fetch(`${TRAINING_BASE}/api/jobs?status=running`);
+    if (!res.ok) return [];
+    return (await res.json()) as TrainingJobInfo[];
+  } catch {
+    return [];
+  }
+}
+
+export async function cancelTrainingJob(jobId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+      method: "POST",
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return Boolean(data.cancelled || data.status === "cancelled");
+  } catch {
+    return false;
+  }
 }
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────

@@ -3,14 +3,20 @@ import { HelpTooltip } from "./HelpTooltip";
 import {
   fetchModels,
   triggerQuickTrain,
+  fetchRunningTrainingJobs,
+  cancelTrainingJob,
 } from "../api/client";
 import { ModelItem } from "../api/types";
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
+  onOpenConfigEditor?: () => void;
 }
 
-export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnline }) => {
+export const TrainingPanel: React.FC<TrainingPanelProps> = ({
+  trainingSuiteOnline,
+  onOpenConfigEditor,
+}) => {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [epochs, setEpochs] = useState<number>(30);
@@ -18,10 +24,14 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
   const [learningRate, setLearningRate] = useState<number>(0.0002);
   const [selectedLadderStage, setSelectedLadderStage] = useState<number>(512);
   const [sawtoothGovernorActive, setSawtoothGovernorActive] = useState<boolean>(true);
-  const [isTraining, setIsTraining] = useState<boolean>(false);
+  const [isStarting, setIsStarting] = useState<boolean>(false);
+  const [isStopping, setIsStopping] = useState<boolean>(false);
+  const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [trainStatus, setTrainStatus] = useState<string | null>(null);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
+
+  const isJobActive = Boolean(runningJobId);
 
   const applyModelDefaults = useCallback((modelKey: string, modelList: ModelItem[]) => {
     const m = modelList.find((item) => item.key === modelKey);
@@ -105,6 +115,36 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
     loadTrainingData();
   }, [loadTrainingData]);
 
+  // Periodic polling for active running training jobs
+  useEffect(() => {
+    let isMounted = true;
+    const pollRunningJobs = async () => {
+      if (!trainingSuiteOnline) {
+        if (isMounted) setRunningJobId(null);
+        return;
+      }
+      try {
+        const jobs = await fetchRunningTrainingJobs();
+        if (!isMounted) return;
+        if (jobs && jobs.length > 0) {
+          const active = jobs.find((j) => j.status === "running") || jobs[0];
+          setRunningJobId(active.id);
+        } else {
+          setRunningJobId(null);
+        }
+      } catch {
+        // Training suite sidecar temporarily unreachable
+      }
+    };
+
+    pollRunningJobs();
+    const timer = setInterval(pollRunningJobs, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [trainingSuiteOnline]);
+
   const handleModelChange = (modelKey: string) => {
     setSelectedModel(modelKey);
     applyModelDefaults(modelKey, models);
@@ -115,7 +155,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
       setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
       return;
     }
-    setIsTraining(true);
+    setIsStarting(true);
     setTrainStatus(null);
     try {
       const res = await triggerQuickTrain({
@@ -128,11 +168,33 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
         ladder_stage: selectedLadderStage,
         enable_sawtooth: sawtoothGovernorActive,
       });
+      if (res.job_id) {
+        setRunningJobId(res.job_id);
+      }
       setTrainStatus(`Training run initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
     } catch {
       setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
     } finally {
-      setIsTraining(false);
+      setIsStarting(false);
+    }
+  };
+
+  const handleStopTraining = async () => {
+    if (!runningJobId) return;
+    setIsStopping(true);
+    try {
+      const cancelled = await cancelTrainingJob(runningJobId);
+      if (cancelled) {
+        setTrainStatus(`Training job ${runningJobId} cancellation signal dispatched successfully.`);
+        setRunningJobId(null);
+      } else {
+        setTrainStatus(`Failed to cancel job ${runningJobId}. The job may have completed or exited.`);
+        setRunningJobId(null);
+      }
+    } catch {
+      setTrainStatus(`Error dispatching cancellation signal for job ${runningJobId}.`);
+    } finally {
+      setIsStopping(false);
     }
   };
 
@@ -220,7 +282,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               className="editor-select"
               value={selectedModel}
               onChange={(e) => handleModelChange(e.target.value)}
-              disabled={isTraining}
+              disabled={isJobActive || isStarting || isStopping}
               style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
             >
               {models.map((m) => (
@@ -232,24 +294,43 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
           </div>
         </div>
 
-        {/* Hyperparameters Grid: 4 clean columns */}
+        {/* Config Governed Parameters Banner */}
+        <div className="config-governed-banner">
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span className="badge badge-info" style={{ fontSize: "11px", fontWeight: 600 }}>CONFIG GOVERNED</span>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+              Training parameters are locked to canonical specifications (unified_models_v2.yaml / presets.yaml).
+            </span>
+          </div>
+          {onOpenConfigEditor && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onOpenConfigEditor}
+              style={{ padding: "4px 10px", fontSize: "11px" }}
+            >
+              Adjust via Config Editor
+            </button>
+          )}
+        </div>
+
+        {/* Hyperparameters Grid: 4 clean read-only columns */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "18px" }}>
           <div className="form-group">
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
               <label htmlFor="epochs-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 Training Epochs:
               </label>
-              <HelpTooltip content="Total training passes over the dataset. Automatically populated with model default or preset." />
+              <HelpTooltip content="Total training passes over the dataset. Governed by model specification in unified_models_v2.yaml; adjustable via Config Editor." />
             </div>
             <input
               id="epochs-input"
               type="number"
-              className="editor-input"
+              className="editor-input editor-input-readonly"
               value={epochs}
-              onChange={(e) => setEpochs(Number(e.target.value))}
-              disabled={isTraining}
-              min={1}
-              max={500}
+              readOnly
+              disabled
+              title="Governed by unified_models_v2.yaml specification"
             />
           </div>
 
@@ -258,17 +339,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               <label htmlFor="batch-size-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 Minibatch Size:
               </label>
-              <HelpTooltip content="Number of samples per training forward pass per GPU worker. Automatically scaled down by the Sawtooth Governor if VRAM pressure exceeds 92%." />
+              <HelpTooltip content="Number of samples per training forward pass per GPU worker. Governed by model specification in unified_models_v2.yaml and dynamically adjusted by Sawtooth Governor." />
             </div>
             <input
               id="batch-size-input"
               type="number"
-              className="editor-input"
+              className="editor-input editor-input-readonly"
               value={batchSize}
-              onChange={(e) => setBatchSize(Number(e.target.value))}
-              disabled={isTraining}
-              min={1}
-              max={256}
+              readOnly
+              disabled
+              title="Governed by unified_models_v2.yaml specification"
             />
           </div>
 
@@ -277,16 +357,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               <label htmlFor="learning-rate-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 Initial Learning Rate:
               </label>
-              <HelpTooltip content="Base learning rate for AdamW/Lion optimizer with cosine annealing warm restarts." />
+              <HelpTooltip content="Base learning rate for AdamW/Lion optimizer with cosine annealing. Governed by model specification in unified_models_v2.yaml; adjustable via Config Editor." />
             </div>
             <input
               id="learning-rate-input"
               type="number"
-              step="0.00005"
-              className="editor-input"
+              className="editor-input editor-input-readonly"
               value={learningRate}
-              onChange={(e) => setLearningRate(Number(e.target.value))}
-              disabled={isTraining}
+              readOnly
+              disabled
+              title="Governed by unified_models_v2.yaml specification"
             />
           </div>
 
@@ -295,14 +375,14 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               <label htmlFor="spatial-ladder-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 {isForexModel ? "Timeframe Confluence Stage:" : "Spatial Ladder Stage:"}
               </label>
-              <HelpTooltip content={isForexModel ? "Select multi-timeframe confluence horizon for causal TCN and cross-attention fusion." : "Select spatial training resolution stage. Progressive resolution scaling accelerates initial convergence and sharpens final high-frequency detail."} />
+              <HelpTooltip content={isForexModel ? "Multi-timeframe confluence horizon for causal TCN. Governed by model specification in unified_models_v2.yaml." : "Spatial training resolution stage. Governed by model specification in unified_models_v2.yaml; progressive ladders accelerate convergence."} />
             </div>
             <select
               id="spatial-ladder-select"
-              className="editor-select"
+              className="editor-select editor-input-readonly"
               value={selectedLadderStage}
-              onChange={(e) => setSelectedLadderStage(Number(e.target.value))}
-              disabled={isTraining}
+              disabled
+              title="Governed by unified_models_v2.yaml specification"
             >
               {ladderStages.map((res, idx) => (
                 <option key={res} value={res}>
@@ -322,7 +402,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
                 type="checkbox"
                 checked={sawtoothGovernorActive}
                 onChange={(e) => setSawtoothGovernorActive(e.target.checked)}
-                disabled={isTraining}
+                disabled={isJobActive || isStarting || isStopping}
                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
               <label htmlFor="sawtooth-check" style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)", cursor: "pointer" }}>
@@ -340,23 +420,36 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleStartTraining}
-            disabled={isTraining || !trainingSuiteOnline}
-            aria-label={!trainingSuiteOnline ? "Training unavailable: Training Suite Sidecar offline" : "Initiate neural model training pass"}
-            aria-disabled={!trainingSuiteOnline}
-          >
-            {isTraining ? "Dispatching Job..." : "Start Training"}
-          </button>
-          <HelpTooltip content="Launch the training execution loop. Spawns background worker process, records checkpoint artifacts, and streams telemetry to the local console." />
+          {isJobActive ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={handleStopTraining}
+              disabled={isStopping || !trainingSuiteOnline}
+              aria-label="Stop running neural model training pass"
+              aria-disabled={!trainingSuiteOnline}
+            >
+              {isStopping ? "Stopping Training..." : "Stop Training"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleStartTraining}
+              disabled={isStarting || !trainingSuiteOnline}
+              aria-label={!trainingSuiteOnline ? "Training unavailable: Training Suite Sidecar offline" : "Initiate neural model training pass"}
+              aria-disabled={!trainingSuiteOnline}
+            >
+              {isStarting ? "Dispatching Job..." : "Start Training"}
+            </button>
+          )}
+          <HelpTooltip content={isJobActive ? "Abort active training job in-flight and flush checkpoint state." : "Launch the training execution loop. Spawns background worker process, records checkpoint artifacts, and streams telemetry to the local console."} />
 
           <button
             type="button"
             className="btn btn-secondary"
             onClick={loadTrainingData}
-            disabled={isTraining || isRefreshing}
+            disabled={isStarting || isStopping || isRefreshing}
             aria-label="Refresh models and metrics from training sidecar"
           >
             {isRefreshing ? "Refreshing Models..." : "Refresh Models"}
