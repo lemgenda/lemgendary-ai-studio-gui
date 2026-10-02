@@ -34,6 +34,11 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - **Kaggle Cloud Synchronization & Storage Hub**: Bi-directional cloud syncing: download pre-configured manifolds from `unified_data.yaml`, download custom datasets via direct URL or slug, and publish local compiled manifolds.
   - **Production Manifolds Catalog**: Real-time status, format breakdowns, sample counts, and disk metrics across all 22 production manifolds.
 
+- **Training Manifold & SOTA Model Cards**:
+  - **Interactive Topology Catalog**: Real-time model cards displaying neural architecture, parameter counts, primary targets, SOTA target progress counters (`X / Y Met`), Resolution Ladder progress, and Data Fraction completion.
+  - **Strict 3-Pillar Convergence Badges**: Model cards authoritatively evaluate `FULLY TRAINED` (all SOTA targets met + entire ladder passed + 100% data fraction), `PARTIALLY TRAINED`, `WEIGHTS READY`, and `INITIALIZING`.
+  - **Adaptive Domain Controls**: Selecting `forex_predictor` dynamically switches dropdowns from "Spatial Ladder Stage" to **"Timeframe Confluence Stage"** with MetaTrader 5 horizons (`M1 Scalping`, `M5 Order Flow`, `M15 Trigger`, `H1 Trend`, `H4 Momentum`, `D1 Macro Confluence`).
+
 - **Contextual UX Help & Interactive Hover Guidance**:
   - Every interactive UI element (action buttons, navigation menu items, slider governors, toggle switches, form inputs, and status badges) features an inline help icon badge.
   - Hovering over any help icon displays an elevated glassmorphic tooltip card explaining the control's function, associated CLI/API command, and operational side effects.

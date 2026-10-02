@@ -336,12 +336,118 @@ export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise
 
 // ─── Training Suite Sidecar (Port 8200) ─────────────────────────────────────
 
+interface RawModelData {
+  key?: string;
+  model_key?: string;
+  name?: string;
+  display_name?: string;
+  category?: string;
+  task_type?: string;
+  architecture?: string;
+  architecture_type?: string;
+  class_name?: string;
+  canonical_format?: string;
+  parameters_m?: number;
+  best_checkpoint_size_mb?: number | null;
+  spatial_ladder?: number[];
+  resolution?: number | number[] | null;
+  checkpoint_exists?: boolean;
+  has_best_checkpoint?: boolean;
+  checkpoints_count?: number;
+  preferred_parallel?: "single" | "dp" | "ddp";
+  epochs_completed?: number;
+  latest_checkpoint_epoch?: number | null;
+  ladder_type?: "spatial" | "timeframe";
+  is_forex?: boolean;
+  ladder_passed?: boolean;
+  max_res_completed?: number | null;
+  target_res?: number | null;
+  data_fraction_completed?: number;
+  data_fraction_passed?: boolean;
+  best_metric?: number;
+  metric_name?: string;
+  sota_target?: number;
+  sota_reached?: boolean;
+  sota_targets_total?: number;
+  sota_targets_met?: number;
+  sota_all_met?: boolean;
+  sota_details?: import("./types").SotaMetricDetail[];
+  training_status?: string;
+}
+
 export async function fetchModels(): Promise<ModelItem[]> {
   try {
     const res = await fetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
     if (!res.ok) return [];
-    const data = await res.json();
-    return data.models || [];
+    const data = (await res.json()) as RawModelData[] | { models?: RawModelData[] };
+    const rawList: RawModelData[] = Array.isArray(data) ? data : (data.models || []);
+    return rawList.map((item) => {
+      const isForex = item.is_forex ?? (item.key === "forex_predictor" || item.category === "forex" || item.task_type === "forex");
+      const ladderType = item.ladder_type ?? (isForex ? "timeframe" : "spatial");
+      const defaultLadder = isForex ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512];
+      const spatialLadder: number[] = Array.isArray(item.spatial_ladder) && item.spatial_ladder.length > 0
+        ? item.spatial_ladder
+        : Array.isArray(item.resolution)
+        ? (item.resolution as number[])
+        : typeof item.resolution === "number"
+        ? [item.resolution]
+        : defaultLadder;
+
+      const modelKey = item.key || item.model_key || "";
+      const displayName = item.display_name || item.name || modelKey;
+      const arch = item.architecture || item.architecture_type || item.class_name || "PyTorch Architecture";
+      const task = item.task_type || item.category || "general";
+      const canonicalFmt = item.canonical_format || "webdataset";
+      const paramsM = item.parameters_m ?? (item.best_checkpoint_size_mb ? Math.round(item.best_checkpoint_size_mb * 0.25 * 10) / 10 : undefined);
+      const ckptExists = item.checkpoint_exists ?? (item.has_best_checkpoint === true || (item.checkpoints_count !== undefined && item.checkpoints_count > 0));
+      const parallelMode = item.preferred_parallel || "single";
+      const completedEpochs = item.epochs_completed ?? (item.latest_checkpoint_epoch ?? 0);
+      const metricVal = item.best_metric;
+      const metricLabel = item.metric_name || "Metric";
+      const sotaTarget = item.sota_target;
+      const sotaReached = item.sota_reached ?? false;
+      const ladderPassed = item.ladder_passed ?? false;
+      const dataFractionPassed = item.data_fraction_passed ?? false;
+      const status = item.training_status || (
+        (sotaReached && ladderPassed && dataFractionPassed)
+          ? "fully_trained"
+          : completedEpochs > 0
+          ? "partially_trained"
+          : ckptExists
+          ? "weights_ready"
+          : "initializing"
+      );
+
+      return {
+        key: modelKey,
+        display_name: displayName,
+        architecture: arch,
+        task_type: task,
+        category: item.category,
+        canonical_format: canonicalFmt,
+        parameters_m: paramsM,
+        spatial_ladder: spatialLadder,
+        ladder_type: ladderType,
+        is_forex: isForex,
+        ladder_passed: ladderPassed,
+        max_res_completed: item.max_res_completed ?? null,
+        target_res: item.target_res ?? (spatialLadder.length > 0 ? spatialLadder[spatialLadder.length - 1] : null),
+        data_fraction_completed: item.data_fraction_completed ?? 0,
+        data_fraction_passed: dataFractionPassed,
+        checkpoint_exists: ckptExists,
+        preferred_parallel: parallelMode,
+        epochs_completed: completedEpochs,
+        best_metric: metricVal,
+        metric_name: metricLabel,
+        sota_target: sotaTarget,
+        sota_reached: sotaReached,
+        sota_targets_total: item.sota_targets_total,
+        sota_targets_met: item.sota_targets_met,
+        sota_all_met: item.sota_all_met,
+        sota_details: item.sota_details,
+        training_status: status,
+      };
+    });
   } catch {
     return [];
   }

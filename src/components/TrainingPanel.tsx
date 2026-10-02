@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import {
   fetchModels,
@@ -19,29 +19,40 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
   const [selectedLadderStage, setSelectedLadderStage] = useState<number>(512);
   const [sawtoothGovernorActive, setSawtoothGovernorActive] = useState<boolean>(true);
   const [isTraining, setIsTraining] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [trainStatus, setTrainStatus] = useState<string | null>(null);
+  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
   const loadTrainingData = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const modelList = await fetchModels();
       if (modelList.length > 0) {
         setModels(modelList);
-        if (!selectedModel) setSelectedModel(modelList[0].key);
+        setSelectedModel((prev) => {
+          if (prev && modelList.some((m) => m.key === prev)) return prev;
+          return modelList[0].key;
+        });
+        setRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
       } else {
         // Fallback default models from unified_models_v2.yaml
         setModels([
-          { key: "nima_aesthetic", display_name: "NIMA Perceptual Aesthetics", architecture: "MobileNetV2-NIMA", task_type: "quality_assessment", canonical_format: "parquet", parameters_m: 2.3, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 30, best_metric: 0.742, metric_name: "SRCC" },
-          { key: "upn_v2", display_name: "Unified Perceptual Net V2", architecture: "ConvNeXt-V2-Base", task_type: "multi_modal_perception", canonical_format: "webdataset", parameters_m: 88.5, spatial_ladder: [256, 384, 512, 640], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 45, best_metric: 0.891, metric_name: "LPIPS-Cosine" },
-          { key: "film_restorer", display_name: "Film Restorer & Grain Synthesis", architecture: "NAFNet-Restoration", task_type: "image_restoration", canonical_format: "webdataset", parameters_m: 17.1, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "dp", epochs_completed: 60, best_metric: 32.4, metric_name: "PSNR (dB)" },
-          { key: "mirnet_exposure", display_name: "MIRNet Dual Residual Exposure", architecture: "MIRNet-v2", task_type: "low_light_enhancement", canonical_format: "webdataset", parameters_m: 31.8, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 50, best_metric: 29.8, metric_name: "PSNR (dB)" },
-          { key: "universal_nsfw", display_name: "Universal Safety Classifier", architecture: "EfficientNet-B0", task_type: "classification", canonical_format: "parquet", parameters_m: 4.1, spatial_ladder: [256, 384], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 25, best_metric: 0.982, metric_name: "AUC-ROC" },
+          { key: "nima_aesthetic_mobile", display_name: "NIMA Perceptual Aesthetics", architecture: "MobileNetV2-NIMA", task_type: "quality_assessment", canonical_format: "webdataset", parameters_m: 2.3, spatial_ladder: [224], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 30, best_metric: 0.65, metric_name: "SRCC" },
+          { key: "upn_v2", display_name: "Unified Perceptual Net V2", architecture: "ConvNeXt-V2-Base", task_type: "multi_modal_perception", canonical_format: "webdataset", parameters_m: 88.5, spatial_ladder: [128, 192, 256], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 45, best_metric: 0.05, metric_name: "MAE" },
+          { key: "film_restorer", display_name: "Film Restorer & Grain Synthesis", architecture: "NAFNet-Restoration", task_type: "image_restoration", canonical_format: "webdataset", parameters_m: 17.1, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 60, best_metric: 24.0, metric_name: "PSNR (dB)" },
+          { key: "mirnet_exposure", display_name: "MIRNet Dual Residual Exposure", architecture: "MIRNet-v2", task_type: "low_light_enhancement", canonical_format: "webdataset", parameters_m: 31.8, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 50, best_metric: 25.5, metric_name: "PSNR (dB)" },
+          { key: "universal_nsfw_classification", display_name: "Universal Safety Classifier", architecture: "EfficientNet-B0", task_type: "classification", canonical_format: "webdataset", parameters_m: 4.1, spatial_ladder: [224, 256], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 25, best_metric: 0.982, metric_name: "AUC-ROC" },
         ]);
-        if (!selectedModel) setSelectedModel("upn_v2");
+        setSelectedModel((prev) => prev || "upn_v2");
+        setRefreshFeedback("Training sidecar unreachable: showing fallback architectures.");
       }
     } catch {
-      // Handled via defaults
+      setRefreshFeedback("Error loading models from training sidecar.");
+    } finally {
+      setIsRefreshing(false);
+      setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, [selectedModel]);
+  }, []);
 
   useEffect(() => {
     loadTrainingData();
@@ -70,6 +81,38 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
       setIsTraining(false);
     }
   };
+
+  const currentModel = models.find((m) => m.key === selectedModel);
+  const isForexModel = Boolean(currentModel?.is_forex || currentModel?.category === "forex" || currentModel?.task_type === "forex");
+
+  const ladderStages = useMemo(() => {
+    if (currentModel?.spatial_ladder && currentModel.spatial_ladder.length > 0) {
+      return currentModel.spatial_ladder;
+    }
+    return isForexModel ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512, 640];
+  }, [currentModel, isForexModel]);
+
+  const formatLadderLabel = (stageValue: number, idx: number, total: number, isForex: boolean) => {
+    if (isForex) {
+      const tfLabels: Record<number, string> = {
+        1: "M1 (1-min) Scalping",
+        5: "M5 (5-min) Order Flow",
+        15: "M15 (15-min) Trigger Timing",
+        60: "H1 (1-hour) Intraday Trend",
+        240: "H4 (4-hour) Swing Momentum",
+        1440: "D1 (Daily) Macro Regime",
+      };
+      const label = tfLabels[stageValue] || `${stageValue}m Timeframe`;
+      return `Stage ${idx + 1}: ${label} (${idx === 0 ? "Base" : idx === total - 1 ? "Target Confluence" : "Intermediate"})`;
+    }
+    return `Stage ${idx + 1}: ${stageValue} x ${stageValue} (${idx === 0 ? "Base" : idx === total - 1 ? "Target" : "Progressive"})`;
+  };
+
+  useEffect(() => {
+    if (ladderStages.length > 0 && !ladderStages.includes(selectedLadderStage)) {
+      setSelectedLadderStage(ladderStages[ladderStages.length - 1]);
+    }
+  }, [ladderStages, selectedLadderStage]);
 
   return (
     <div className="panel-container">
@@ -169,9 +212,9 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
           <div className="form-group">
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
               <label htmlFor="spatial-ladder-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Spatial Ladder Stage:
+                {isForexModel ? "Timeframe Confluence Stage:" : "Spatial Ladder Stage:"}
               </label>
-              <HelpTooltip content="Select spatial training resolution stage (256px, 384px, 512px, or 640px). Progressive resolution scaling accelerates initial convergence and sharpens final high-frequency detail." />
+              <HelpTooltip content={isForexModel ? "Select multi-timeframe confluence horizon for causal TCN and cross-attention fusion." : "Select spatial training resolution stage. Progressive resolution scaling accelerates initial convergence and sharpens final high-frequency detail."} />
             </div>
             <select
               id="spatial-ladder-select"
@@ -180,10 +223,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               onChange={(e) => setSelectedLadderStage(Number(e.target.value))}
               disabled={isTraining}
             >
-              <option value={256}>Stage 1: 256 x 256 (Base Topology)</option>
-              <option value={384}>Stage 2: 384 x 384 (Structural Tuning)</option>
-              <option value={512}>Stage 3: 512 x 512 (High Fidelity)</option>
-              <option value={640}>Stage 4: 640 x 640 (Ultra Detail)</option>
+              {ladderStages.map((res, idx) => (
+                <option key={res} value={res}>
+                  {formatLadderLabel(res, idx, ladderStages.length, isForexModel)}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -219,13 +263,19 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
             type="button"
             className="btn btn-secondary"
             onClick={loadTrainingData}
-            disabled={isTraining}
+            disabled={isTraining || isRefreshing}
             aria-label="Refresh models and metrics from training sidecar"
           >
-            Refresh Models
+            {isRefreshing ? "Refreshing Models..." : "Refresh Models"}
           </button>
-          <HelpTooltip content="Poll port 8200 sidecar to update model weights status, best validation metrics, and active training telemetry." />
+          <HelpTooltip content="Poll port 8200 sidecar to update model weights status, best validation metrics, and active training telemetry from unified_models_v2.yaml." />
         </div>
+
+        {refreshFeedback && (
+          <div className="validation-banner banner-info" style={{ marginTop: "12px" }} role="status">
+            <span>{refreshFeedback}</span>
+          </div>
+        )}
 
         {!trainingSuiteOnline && (
           <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
@@ -252,9 +302,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
                   <h5 style={{ fontSize: "14px", fontWeight: 600 }}>{m.display_name}</h5>
                   <HelpTooltip content={`Architecture specs for ${m.key}. Parallel execution mode: ${m.preferred_parallel?.toUpperCase() || "SINGLE"}.`} />
                 </div>
-                <span className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-warning"}`}>
-                  {m.checkpoint_exists ? "WEIGHTS READY" : "INITIALIZING"}
-                </span>
+                {m.training_status === "fully_trained" ? (
+                  <span className="badge badge-success">FULLY TRAINED</span>
+                ) : m.training_status === "partially_trained" || (m.epochs_completed ?? 0) > 0 ? (
+                  <span className="badge badge-info">PARTIALLY TRAINED</span>
+                ) : m.checkpoint_exists ? (
+                  <span className="badge badge-success">WEIGHTS READY</span>
+                ) : (
+                  <span className="badge badge-warning">INITIALIZING</span>
+                )}
               </div>
 
               <div className="metric-row">
@@ -281,6 +337,62 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
                 <span className="metric-label">Best {m.metric_name || "Metric"}</span>
                 <span className="metric-value" style={{ color: "var(--accent-emerald)" }}>
                   {m.best_metric !== undefined ? m.best_metric : "N/A"}
+                </span>
+              </div>
+
+              {m.sota_targets_total !== undefined && m.sota_targets_total > 0 && (
+                <div className="metric-row">
+                  <span className="metric-label">SOTA Targets</span>
+                  <span
+                    className="metric-value"
+                    style={{
+                      color: m.sota_reached ? "var(--accent-emerald)" : (m.sota_targets_met ?? 0) > 0 ? "#38bdf8" : "var(--text-muted)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {m.sota_targets_met ?? 0} / {m.sota_targets_total} Met {m.sota_reached ? "(All Passed)" : ""}
+                  </span>
+                </div>
+              )}
+
+              {m.sota_target !== undefined && (
+                <div className="metric-row">
+                  <span className="metric-label">Primary Target</span>
+                  <span
+                    className="metric-value"
+                    style={{
+                      color: "var(--text-muted)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {m.sota_target}
+                  </span>
+                </div>
+              )}
+
+              <div className="metric-row">
+                <span className="metric-label">{m.is_forex || m.ladder_type === "timeframe" ? "Confluence Ladder" : "Resolution Ladder"}</span>
+                <span
+                  className="metric-value"
+                  style={{
+                    color: m.ladder_passed ? "var(--accent-emerald)" : undefined,
+                  }}
+                >
+                  {m.ladder_passed
+                    ? (m.is_forex || m.ladder_type === "timeframe" ? "Full Confluence (D1)" : `Full (${m.target_res ?? m.max_res_completed ?? 512}px)`)
+                    : (m.is_forex || m.ladder_type === "timeframe" ? "Partial Confluence" : `${m.max_res_completed ?? 0}px / ${m.target_res ?? 512}px`)}
+                </span>
+              </div>
+
+              <div className="metric-row">
+                <span className="metric-label">Data Fraction</span>
+                <span
+                  className="metric-value"
+                  style={{
+                    color: m.data_fraction_passed ? "var(--accent-emerald)" : undefined,
+                  }}
+                >
+                  {m.data_fraction_completed ? `${Math.round(m.data_fraction_completed * 100)}%` : "0%"} {m.data_fraction_passed ? "(100% Passed)" : ""}
                 </span>
               </div>
             </div>

@@ -233,14 +233,38 @@ export interface ModelItem {
   display_name: string;
   architecture: string;
   task_type: string;
+  category?: string;
   canonical_format?: string;
   parameters_m?: number;
   spatial_ladder?: number[];
+  ladder_type?: "spatial" | "timeframe";
+  is_forex?: boolean;
+  ladder_passed?: boolean;
+  max_res_completed?: number | null;
+  target_res?: number | null;
+  data_fraction_completed?: number;
+  data_fraction_passed?: boolean;
   checkpoint_exists?: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
   best_metric?: number;
   metric_name?: string;
+  sota_target?: number;
+  sota_reached?: boolean;
+  sota_targets_total?: number;
+  sota_targets_met?: number;
+  sota_all_met?: boolean;
+  sota_details?: SotaMetricDetail[];
+  training_status?: "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | string;
+}
+
+export interface SotaMetricDetail {
+  key: string;
+  label: string;
+  target: number;
+  achieved: number | null;
+  lower_is_better: boolean;
+  passed: boolean;
 }
 
 export interface QuickTrainPayload {
