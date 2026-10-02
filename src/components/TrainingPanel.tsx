@@ -70,7 +70,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     const stages = m.spatial_ladder && m.spatial_ladder.length > 0
       ? m.spatial_ladder
       : (m.is_forex ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512, 640]);
-    setSelectedLadderStage(stages[stages.length - 1]);
+    setSelectedLadderStage(stages[0]);
   }, []);
 
   const loadTrainingData = useCallback(async () => {
@@ -226,7 +226,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   useEffect(() => {
     if (ladderStages.length > 0 && !ladderStages.includes(selectedLadderStage)) {
-      setSelectedLadderStage(ladderStages[ladderStages.length - 1]);
+      setSelectedLadderStage(ladderStages[0]);
     }
   }, [ladderStages, selectedLadderStage]);
 
