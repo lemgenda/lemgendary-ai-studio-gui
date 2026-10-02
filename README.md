@@ -83,6 +83,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.8.5 — Telemetry Stream Positioning & Sub-Second Training Cancellation UI
+
+- **`src/components/TrainingPanel.tsx` — Direct Telemetry Stream Slot (`logSlot`)** — Moved the live `Real-time Telemetry & Pipeline Stream` panel directly above the `Registered Architectures & Checkpoint Telemetry` models list via an injected `logSlot` component prop. Operators no longer need to scroll past 20 model cards to monitor streaming training logs.
+- **`src/App.tsx` — Unified Training Tab Layout** — Replaced the bottom-anchored log panel with inline injection into `TrainingPanel`, delivering a cohesive top-down workflow: Training Controls -> Live Telemetry Stream -> Registered Architecture Cards.
+- **`src/components/TrainingPanel.tsx` — Responsive Job Cancellation Handshake** — Connected the `Stop Training` action button to instant minibatch-level cancellation on the sidecar daemon. Polling automatically syncs job status when cancellation completes, reverting the button to `Start Training`.
+
 ### v2.8.0 — SSOT Config-Governed Readonly Parameters & Dynamic Start/Stop Action Toggle
 
 - **`src/components/TrainingPanel.tsx` — Single Source of Truth (SSOT) Parameter Locking** — Locked `Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Spatial Ladder Stage` / `Timeframe Confluence Stage` into read-only controls (`.editor-input-readonly`) for all models. Parameters are strictly governed by canonical manifests (`unified_models_v2.yaml` / `presets.yaml`). Added the prominent `.config-governed-banner` with direct shortcut navigation to the Config Editor Modal (`onOpenConfigEditor`).
