@@ -23,6 +23,46 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
   const [trainStatus, setTrainStatus] = useState<string | null>(null);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
+  const applyModelDefaults = useCallback((modelKey: string, modelList: ModelItem[]) => {
+    const m = modelList.find((item) => item.key === modelKey);
+    if (!m) return;
+
+    if (typeof m.default_epochs === "number" && m.default_epochs > 0) {
+      setEpochs(m.default_epochs);
+    } else if (modelKey === "yolov8n") {
+      setEpochs(300);
+    } else if (m.is_forex) {
+      setEpochs(50);
+    } else {
+      setEpochs(30);
+    }
+
+    if (typeof m.batch_size === "number" && m.batch_size > 0) {
+      setBatchSize(m.batch_size);
+    } else if (modelKey === "yolov8n") {
+      setBatchSize(16);
+    } else if (m.is_forex) {
+      setBatchSize(128);
+    } else {
+      setBatchSize(8);
+    }
+
+    if (typeof m.learning_rate === "number" && m.learning_rate > 0) {
+      setLearningRate(m.learning_rate);
+    } else if (modelKey === "yolov8n") {
+      setLearningRate(0.01);
+    } else if (m.is_forex) {
+      setLearningRate(0.0001);
+    } else {
+      setLearningRate(0.0002);
+    }
+
+    const stages = m.spatial_ladder && m.spatial_ladder.length > 0
+      ? m.spatial_ladder
+      : (m.is_forex ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512, 640]);
+    setSelectedLadderStage(stages[stages.length - 1]);
+  }, []);
+
   const loadTrainingData = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -30,20 +70,27 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
       if (modelList.length > 0) {
         setModels(modelList);
         setSelectedModel((prev) => {
-          if (prev && modelList.some((m) => m.key === prev)) return prev;
-          return modelList[0].key;
+          const nextKey = prev && modelList.some((m) => m.key === prev) ? prev : modelList[0].key;
+          applyModelDefaults(nextKey, modelList);
+          return nextKey;
         });
         setRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
       } else {
         // Fallback default models from unified_models_v2.yaml
-        setModels([
-          { key: "nima_aesthetic_mobile", display_name: "NIMA Perceptual Aesthetics", architecture: "MobileNetV2-NIMA", task_type: "quality_assessment", canonical_format: "webdataset", parameters_m: 2.3, spatial_ladder: [224], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 30, best_metric: 0.65, metric_name: "SRCC" },
-          { key: "upn_v2", display_name: "Unified Perceptual Net V2", architecture: "ConvNeXt-V2-Base", task_type: "multi_modal_perception", canonical_format: "webdataset", parameters_m: 88.5, spatial_ladder: [128, 192, 256], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 45, best_metric: 0.05, metric_name: "MAE" },
-          { key: "film_restorer", display_name: "Film Restorer & Grain Synthesis", architecture: "NAFNet-Restoration", task_type: "image_restoration", canonical_format: "webdataset", parameters_m: 17.1, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 60, best_metric: 24.0, metric_name: "PSNR (dB)" },
-          { key: "mirnet_exposure", display_name: "MIRNet Dual Residual Exposure", architecture: "MIRNet-v2", task_type: "low_light_enhancement", canonical_format: "webdataset", parameters_m: 31.8, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 50, best_metric: 25.5, metric_name: "PSNR (dB)" },
-          { key: "universal_nsfw_classification", display_name: "Universal Safety Classifier", architecture: "EfficientNet-B0", task_type: "classification", canonical_format: "webdataset", parameters_m: 4.1, spatial_ladder: [224, 256], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 25, best_metric: 0.982, metric_name: "AUC-ROC" },
-        ]);
-        setSelectedModel((prev) => prev || "upn_v2");
+        const fallbackList: ModelItem[] = [
+          { key: "nima_aesthetic_mobile", display_name: "NIMA Perceptual Aesthetics", architecture: "MobileNetV2-NIMA", task_type: "quality_assessment", canonical_format: "webdataset", parameters_m: 2.3, spatial_ladder: [224], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 30, best_metric: 0.65, metric_name: "SRCC", learning_rate: 0.0002, batch_size: 16, default_epochs: 30 },
+          { key: "upn_v2", display_name: "Unified Perceptual Net V2", architecture: "ConvNeXt-V2-Base", task_type: "multi_modal_perception", canonical_format: "webdataset", parameters_m: 88.5, spatial_ladder: [128, 192, 256], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 45, best_metric: 0.05, metric_name: "MAE", learning_rate: 0.0001, batch_size: 8, default_epochs: 50 },
+          { key: "film_restorer", display_name: "Film Restorer & Grain Synthesis", architecture: "NAFNet-Restoration", task_type: "image_restoration", canonical_format: "webdataset", parameters_m: 17.1, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 60, best_metric: 24.0, metric_name: "PSNR (dB)", learning_rate: 0.0002, batch_size: 8, default_epochs: 60 },
+          { key: "mirnet_exposure", display_name: "MIRNet Dual Residual Exposure", architecture: "MIRNet-v2", task_type: "low_light_enhancement", canonical_format: "webdataset", parameters_m: 31.8, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 50, best_metric: 25.5, metric_name: "PSNR (dB)", learning_rate: 0.0002, batch_size: 8, default_epochs: 50 },
+          { key: "yolov8n", display_name: "LemGendary YOLOv8n Multi-Task Model", architecture: "YOLOv8n (CSPDarknet53 + PANet)", task_type: "detection", canonical_format: "directory", parameters_m: 3.2, spatial_ladder: [320, 480, 640], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 100, best_metric: 0.54, metric_name: "mAP50", learning_rate: 0.01, batch_size: 16, default_epochs: 300 },
+          { key: "universal_nsfw_classification", display_name: "Universal Safety Classifier", architecture: "EfficientNet-B0", task_type: "classification", canonical_format: "webdataset", parameters_m: 4.1, spatial_ladder: [224, 256], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 25, best_metric: 0.982, metric_name: "AUC-ROC", learning_rate: 0.0002, batch_size: 16, default_epochs: 25 },
+        ];
+        setModels(fallbackList);
+        setSelectedModel((prev) => {
+          const nextKey = prev || "upn_v2";
+          applyModelDefaults(nextKey, fallbackList);
+          return nextKey;
+        });
         setRefreshFeedback("Training sidecar unreachable: showing fallback architectures.");
       }
     } catch {
@@ -52,11 +99,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
       setIsRefreshing(false);
       setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, []);
+  }, [applyModelDefaults]);
 
   useEffect(() => {
     loadTrainingData();
   }, [loadTrainingData]);
+
+  const handleModelChange = (modelKey: string) => {
+    setSelectedModel(modelKey);
+    applyModelDefaults(modelKey, models);
+  };
 
   const handleStartTraining = async () => {
     if (!trainingSuiteOnline) {
@@ -73,6 +125,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
         batch_size: batchSize,
         learning_rate: learningRate,
         env: "local",
+        ladder_stage: selectedLadderStage,
+        enable_sawtooth: sawtoothGovernorActive,
       });
       setTrainStatus(`Training run initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
     } catch {
@@ -130,20 +184,44 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
           real-time Sawtooth Governor memory management and progressive spatial training ladders.
         </p>
 
-        <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+        {/* Hero Row: Target Architecture Selection */}
+        <div style={{ marginBottom: "18px" }}>
           <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-              <label htmlFor="model-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Target Architecture:
-              </label>
-              <HelpTooltip content="Select the neural architecture to train or evaluate. Loads authoritative configuration from unified_models_v2.yaml." />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <label htmlFor="model-select" style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                  Target Architecture:
+                </label>
+                <HelpTooltip content="Select the neural architecture to train or evaluate. Loads authoritative configuration from unified_models_v2.yaml." />
+              </div>
+              {currentModel && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span className="badge badge-info" style={{ fontSize: "11px" }}>{currentModel.task_type}</span>
+                  {currentModel.parameters_m && (
+                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
+                      {currentModel.parameters_m} M params
+                    </span>
+                  )}
+                  {currentModel.canonical_format && (
+                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
+                      {currentModel.canonical_format.toUpperCase()}
+                    </span>
+                  )}
+                  {currentModel.preferred_parallel && (
+                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
+                      {currentModel.preferred_parallel.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <select
               id="model-select"
               className="editor-select"
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={(e) => handleModelChange(e.target.value)}
               disabled={isTraining}
+              style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
             >
               {models.map((m) => (
                 <option key={m.key} value={m.key}>
@@ -152,13 +230,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               ))}
             </select>
           </div>
+        </div>
 
+        {/* Hyperparameters Grid: 4 clean columns */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "18px" }}>
           <div className="form-group">
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
               <label htmlFor="epochs-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
                 Training Epochs:
               </label>
-              <HelpTooltip content="Total training passes over the dataset. Single-epoch diagnostic passes can be run with 1 epoch." />
+              <HelpTooltip content="Total training passes over the dataset. Automatically populated with model default or preset." />
             </div>
             <input
               id="epochs-input"
@@ -230,19 +311,31 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({ trainingSuiteOnlin
               ))}
             </select>
           </div>
+        </div>
 
-          <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "24px" }}>
-            <input
-              id="sawtooth-check"
-              type="checkbox"
-              checked={sawtoothGovernorActive}
-              onChange={(e) => setSawtoothGovernorActive(e.target.checked)}
-              disabled={isTraining}
-            />
-            <label htmlFor="sawtooth-check" style={{ fontSize: "13px", color: "var(--text-primary)", cursor: "pointer" }}>
-              Enable Sawtooth VRAM Governor
-            </label>
-            <HelpTooltip content="Monitors GPU VRAM allocation every 50 iterations. If VRAM exceeds 92%, dynamically halves batch size and adds gradient accumulation to prevent CUDA Out-Of-Memory exceptions." />
+        {/* Governor Sentinel Card */}
+        <div style={{ marginBottom: "20px" }}>
+          <div className="governor-toggle-card">
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <input
+                id="sawtooth-check"
+                type="checkbox"
+                checked={sawtoothGovernorActive}
+                onChange={(e) => setSawtoothGovernorActive(e.target.checked)}
+                disabled={isTraining}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="sawtooth-check" style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)", cursor: "pointer" }}>
+                Enable Sawtooth VRAM Governor
+              </label>
+              <HelpTooltip content="Monitors GPU VRAM allocation every 50 iterations. If VRAM exceeds 92%, dynamically halves batch size and adds gradient accumulation to prevent CUDA Out-Of-Memory exceptions." />
+            </div>
+            <span
+              className={`badge ${sawtoothGovernorActive ? "badge-success" : "badge-secondary"}`}
+              style={{ fontSize: "11px", fontWeight: 600 }}
+            >
+              {sawtoothGovernorActive ? "ACTIVE (92% VRAM Sentinel)" : "DISABLED"}
+            </span>
           </div>
         </div>
 

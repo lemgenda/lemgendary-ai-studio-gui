@@ -256,6 +256,9 @@ export interface ModelItem {
   sota_all_met?: boolean;
   sota_details?: SotaMetricDetail[];
   training_status?: "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | string;
+  learning_rate?: number;
+  batch_size?: number;
+  default_epochs?: number;
 }
 
 export interface SotaMetricDetail {
@@ -275,6 +278,8 @@ export interface QuickTrainPayload {
   batch_size?: number;
   learning_rate?: number;
   env?: string;
+  ladder_stage?: number;
+  enable_sawtooth?: boolean;
 }
 
 export interface SidecarNodeStatus {

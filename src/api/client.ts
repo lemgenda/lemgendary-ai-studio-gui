@@ -373,6 +373,9 @@ interface RawModelData {
   sota_all_met?: boolean;
   sota_details?: import("./types").SotaMetricDetail[];
   training_status?: string;
+  learning_rate?: number;
+  batch_size?: number;
+  default_epochs?: number;
 }
 
 export async function fetchModels(): Promise<ModelItem[]> {
@@ -446,6 +449,9 @@ export async function fetchModels(): Promise<ModelItem[]> {
         sota_all_met: item.sota_all_met,
         sota_details: item.sota_details,
         training_status: status,
+        learning_rate: typeof item.learning_rate === "number" ? item.learning_rate : undefined,
+        batch_size: typeof item.batch_size === "number" ? item.batch_size : undefined,
+        default_epochs: typeof item.default_epochs === "number" ? item.default_epochs : undefined,
       };
     });
   } catch {

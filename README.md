@@ -83,6 +83,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.7.0 — Training Orchestration Form Stabilization & Dynamic Model Defaults
+
+- **`src/components/TrainingPanel.tsx` — Layout Collision Resolution** — Separated `Target Architecture` into a dedicated hero selector row with real-time architectural metadata badges (task category, parameter count, canonical format, preferred parallel mode). Restructured training parameters (`Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Ladder Stage`) into a dedicated 4-column responsive grid with `min-width: 0` constraints, eliminating horizontal overlap and input clipping.
+- **`src/components/TrainingPanel.tsx` — Dynamic Hyperparameter Synchronization** — Implemented `applyModelDefaults` to automatically populate model-specific defaults when switching architectures (e.g., YOLOv8n sets 300 epochs, 0.01 learning rate, 16 batch size, and 640px stage; Forex Predictor sets 50 epochs, 0.0001 learning rate, 128 batch size, and D1 macro horizon).
+- **`src/components/TrainingPanel.tsx` — Governor Toggle Card & Dispatch Wiring** — Upgraded the Sawtooth VRAM Governor into a dedicated glassmorphic card with live active sentinel status badge. Forwarded `ladder_stage` and `enable_sawtooth` parameters through `triggerQuickTrain` to the training suite sidecar.
+- **`src/index.css` — Form Control Hardening** — Added `.form-group` and `.form-group .editor-select, .editor-input` width constraints (`box-sizing: border-box; width: 100%; min-width: 0`) preventing select boxes with long option titles from blowing out grid layouts.
+
 ### v2.1.0 — Tripartite Sidecar Mesh Status Integration (GUI Remediation Phase A1)
 
 - **`src/api/types.ts` — `MeshStatus` Interface** — Added shared `MeshStatus` interface (`{ envManager: boolean; datasetCompiler: boolean; trainingSuite: boolean }`) used across `App`, `Sidebar`, and `StatusBar` for unified per-port awareness.
