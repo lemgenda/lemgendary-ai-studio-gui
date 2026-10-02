@@ -124,7 +124,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
                 <span className={tagClass}>
                   [{ev.step_number > 0 ? `Step ${ev.step_number}` : "SYS"}] [{ev.step_name.toUpperCase()}]:
                 </span>
-                <span>{ev.message}</span>
+                <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{ev.message}</span>
               </div>
             );
           })

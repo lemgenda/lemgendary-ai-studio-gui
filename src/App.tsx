@@ -20,6 +20,7 @@ import {
   probeSidecarPort,
   triggerPipeline,
   createLogWebSocket,
+  isProgressLine,
   startService,
   startAllServices,
 } from "./api/client";
@@ -120,7 +121,19 @@ export const App: React.FC = () => {
 
     const cleanupWs = createLogWebSocket(
       (ev) => {
-        setEvents((prev) => [...prev.slice(-199), ev]);
+        setEvents((prev) => {
+          if (prev.length > 0) {
+            const last = prev[prev.length - 1];
+            const isCurrProgress = Boolean(ev.is_progress || isProgressLine(ev.message));
+            const wasLastProgress = Boolean(last.is_progress || isProgressLine(last.message));
+            if (isCurrProgress && wasLastProgress && last.step_name === ev.step_name) {
+              const next = [...prev];
+              next[next.length - 1] = ev;
+              return next;
+            }
+          }
+          return [...prev.slice(-199), ev];
+        });
         if (ev.step_name === "Health Matrix" && ev.status === "success") {
           loadData();
         }
@@ -395,9 +408,27 @@ export const App: React.FC = () => {
             </>
           )}
 
-          {currentTab === "datasets" && <CompilerPanel datasetCompilerOnline={meshStatus.datasetCompiler} />}
+          {currentTab === "datasets" && (
+            <>
+              <CompilerPanel datasetCompilerOnline={meshStatus.datasetCompiler} />
+              <LogPanel
+                events={events}
+                onClear={() => setEvents([])}
+                isConnected={wsConnected}
+              />
+            </>
+          )}
 
-          {currentTab === "training" && <TrainingPanel trainingSuiteOnline={meshStatus.trainingSuite} />}
+          {currentTab === "training" && (
+            <>
+              <TrainingPanel trainingSuiteOnline={meshStatus.trainingSuite} />
+              <LogPanel
+                events={events}
+                onClear={() => setEvents([])}
+                isConnected={wsConnected}
+              />
+            </>
+          )}
 
           {currentTab === "pipeline" && (
             <>

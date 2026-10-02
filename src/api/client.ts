@@ -36,8 +36,6 @@ export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
 export const TRAINING_BASE = "http://127.0.0.1:8200";
 
-const WS_URL = "ws://127.0.0.1:8000/ws/log";
-
 // ─── Environment Manager (Port 8000) ─────────────────────────────────────────
 
 export async function fetchHardware(): Promise<HardwareProfile> {
@@ -471,57 +469,186 @@ export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ s
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────
 
+const MESH_WEBSOCKET_URLS = [
+  { id: "env-manager", url: "ws://127.0.0.1:8000/ws/log", defaultStep: "EnvManager" },
+  { id: "training-suite", url: "ws://127.0.0.1:8200/api/ws/logs", defaultStep: "Training" },
+  { id: "dataset-compiler", url: "ws://127.0.0.1:8100/api/ws/events", defaultStep: "Compiler" },
+];
+
+export function cleanAnsiAndControlChars(text: string): string {
+  if (!text) return "";
+  // If text contains carriage return(s), take the latest line segment
+  if (text.includes("\r")) {
+    const segments = text.split("\r").map((s) => s.trim()).filter(Boolean);
+    if (segments.length > 0) {
+      text = segments[segments.length - 1];
+    }
+  }
+  // Strip ANSI escape sequences (\x1b[...] or \u001b[...)
+  // eslint-disable-next-line no-control-regex
+  let cleaned = text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+  // Strip leftover control characters like leading [K or cursor controls
+  cleaned = cleaned.replace(/^\s*\[K\s*/, "").replace(/^\[[0-9;]*[a-zA-Z]/, "");
+  return cleaned.trim();
+}
+
+export function isProgressLine(msg: string): boolean {
+  if (!msg) return false;
+  // Progress bar glyphs (e.g. 92% ──────── or ████ or |===|)
+  const hasBar = /[\u2580-\u259F\u2500-\u257F━█─\-=]{3,}/.test(msg) && /\d+%/.test(msg);
+  // Iteration rate indicators (e.g. 7875/8479 3.7it/s or 500/1000 [00:10<00:05, 10.2it/s])
+  const hasRate = /\b\d+\/\d+\b\s+.*\b(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)\b/.test(msg);
+  // Estimated completion timer pattern (e.g. 48:05<2:43 or 00:01<00:00)
+  const hasEta = /\d+:\d+<\d+:\d+/.test(msg);
+  // Classic tqdm formatting: 92%|████████  | 7875/8479
+  const hasTqdm = /\d+%\s*\|.*\|\s*\d+\/\d+/.test(msg);
+  return hasBar || hasRate || hasEta || hasTqdm;
+}
+
+function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEvent | null {
+  if (!data || typeof data !== "object") return null;
+
+  const raw = data as Record<string, unknown>;
+
+  // 1. Native PipelineEvent from env-manager
+  if (typeof raw.step_name === "string" && typeof raw.message === "string") {
+    const cleanMsg = cleanAnsiAndControlChars(raw.message);
+    const isProgress = Boolean(raw.is_progress || isProgressLine(cleanMsg));
+    const rawStatus = String(raw.status || "info").toLowerCase();
+    const status: PipelineEvent["status"] =
+      rawStatus === "success" || rawStatus === "warning" || rawStatus === "error"
+        ? rawStatus
+        : "info";
+
+    return {
+      step_number: typeof raw.step_number === "number" ? raw.step_number : 0,
+      total_steps: typeof raw.total_steps === "number" ? raw.total_steps : 1,
+      step_name: raw.step_name,
+      status,
+      message: cleanMsg,
+      is_progress: isProgress,
+      timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
+      data: (raw.data as Record<string, unknown>) || undefined,
+    };
+  }
+
+  // 2. Training Suite daemon broadcast ({"job_id": ..., "message": ...})
+  if (typeof raw.message === "string") {
+    const cleanMsg = cleanAnsiAndControlChars(raw.message);
+    const isProgress = Boolean(raw.is_progress || isProgressLine(cleanMsg));
+    let status: PipelineEvent["status"] = "info";
+    const msgLower = cleanMsg.toLowerCase();
+    if (msgLower.includes("[error]") || msgLower.includes("failed") || msgLower.includes("exception")) {
+      status = "error";
+    } else if (msgLower.includes("[success]") || msgLower.includes("complete")) {
+      status = "success";
+    } else if (msgLower.includes("[warn")) {
+      status = "warning";
+    }
+
+    return {
+      step_number: 0,
+      total_steps: 1,
+      step_name: typeof raw.step_name === "string" ? raw.step_name : defaultStep,
+      status,
+      message: cleanMsg,
+      is_progress: isProgress,
+      timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
+      data: raw.job_id ? { job_id: raw.job_id } : undefined,
+    };
+  }
+
+  // 3. Dataset Compiler chunk broadcast ({"chunk": ...})
+  if (typeof raw.chunk === "string") {
+    const cleanMsg = cleanAnsiAndControlChars(raw.chunk);
+    const isProgress = Boolean(isProgressLine(cleanMsg));
+    return {
+      step_number: 0,
+      total_steps: 1,
+      step_name: defaultStep,
+      status: "info",
+      message: cleanMsg,
+      is_progress: isProgress,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  return null;
+}
+
 export function createLogWebSocket(
   onEvent: (event: PipelineEvent) => void,
   onStatusChange: (connected: boolean) => void
 ): () => void {
-  let ws: WebSocket | null = null;
-  let retryTimer: number | null = null;
   let active = true;
+  const sockets = new Map<string, WebSocket>();
+  const retryTimers = new Map<string, number>();
+  const connectionStates = new Map<string, boolean>();
 
-  function connect() {
+  const updateAggregatedStatus = () => {
+    const isAnyConnected = Array.from(connectionStates.values()).some(Boolean);
+    onStatusChange(isAnyConnected);
+  };
+
+  const connectEndpoint = (endpoint: (typeof MESH_WEBSOCKET_URLS)[number]) => {
     if (!active) return;
+
     try {
-      ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(endpoint.url);
+      sockets.set(endpoint.id, ws);
 
       ws.onopen = () => {
-        onStatusChange(true);
+        connectionStates.set(endpoint.id, true);
+        updateAggregatedStatus();
       };
 
       ws.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          if (parsed && parsed.step_name) {
-            onEvent(parsed as PipelineEvent);
+          const normalized = normalizeSocketMessage(parsed, endpoint.defaultStep);
+          if (normalized) {
+            onEvent(normalized);
           }
         } catch {
-          // Ignore non-JSON ping
+          // Ignore non-JSON heartbeat
         }
       };
 
       ws.onclose = () => {
-        onStatusChange(false);
+        connectionStates.set(endpoint.id, false);
+        updateAggregatedStatus();
         if (active) {
-          retryTimer = window.setTimeout(connect, 3000);
+          const timer = window.setTimeout(() => connectEndpoint(endpoint), 3000);
+          retryTimers.set(endpoint.id, timer);
         }
       };
 
       ws.onerror = () => {
-        ws?.close();
+        ws.close();
       };
     } catch {
-      onStatusChange(false);
+      connectionStates.set(endpoint.id, false);
+      updateAggregatedStatus();
       if (active) {
-        retryTimer = window.setTimeout(connect, 3000);
+        const timer = window.setTimeout(() => connectEndpoint(endpoint), 3000);
+        retryTimers.set(endpoint.id, timer);
       }
     }
-  }
+  };
 
-  connect();
+  for (const ep of MESH_WEBSOCKET_URLS) {
+    connectEndpoint(ep);
+  }
 
   return () => {
     active = false;
-    if (retryTimer) clearTimeout(retryTimer);
-    if (ws) ws.close();
+    for (const timer of retryTimers.values()) {
+      clearTimeout(timer);
+    }
+    retryTimers.clear();
+    for (const ws of sockets.values()) {
+      ws.close();
+    }
+    sockets.clear();
   };
 }
