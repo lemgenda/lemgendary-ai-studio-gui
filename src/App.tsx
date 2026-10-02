@@ -424,6 +424,7 @@ export const App: React.FC = () => {
               <TrainingPanel
                 trainingSuiteOnline={meshStatus.trainingSuite}
                 onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+                recentEvents={events}
               />
               <LogPanel
                 events={events}

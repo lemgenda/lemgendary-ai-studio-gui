@@ -6,23 +6,25 @@ import {
   fetchRunningTrainingJobs,
   cancelTrainingJob,
 } from "../api/client";
-import { ModelItem } from "../api/types";
+import { ModelItem, PipelineEvent } from "../api/types";
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
   onOpenConfigEditor?: () => void;
+  recentEvents?: PipelineEvent[];
 }
 
 export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   trainingSuiteOnline,
   onOpenConfigEditor,
+  recentEvents,
 }) => {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [epochs, setEpochs] = useState<number>(30);
   const [batchSize, setBatchSize] = useState<number>(8);
   const [learningRate, setLearningRate] = useState<number>(0.0002);
-  const [selectedLadderStage, setSelectedLadderStage] = useState<number>(512);
+  const [selectedLadderStage, setSelectedLadderStage] = useState<number>(320);
   const [sawtoothGovernorActive, setSawtoothGovernorActive] = useState<boolean>(true);
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [isStopping, setIsStopping] = useState<boolean>(false);
@@ -229,6 +231,59 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       setSelectedLadderStage(ladderStages[0]);
     }
   }, [ladderStages, selectedLadderStage]);
+
+  // Synchronize active ladder stage dynamically from real-time training events
+  useEffect(() => {
+    if (!recentEvents || recentEvents.length === 0) return;
+    const tail = recentEvents.slice(-15);
+    for (let i = tail.length - 1; i >= 0; i--) {
+      const msg = tail[i].message;
+      if (!msg) continue;
+
+      // Match YOLO governor stage announcement: [GOVERNOR] [STAGE X/Y] Launching 480px rung
+      const stageMatch = msg.match(/Launching\s+(\d+)px\s+rung/i);
+      if (stageMatch) {
+        const res = parseInt(stageMatch[1], 10);
+        if (ladderStages.includes(res)) {
+          setSelectedLadderStage(res);
+          break;
+        }
+      }
+
+      // Match governor commencing stage: Commencing Stage X: 480x480
+      const commMatch = msg.match(/Commencing Stage.*?(\d+)x(\d+)/i);
+      if (commMatch) {
+        const res = parseInt(commMatch[1], 10);
+        if (ladderStages.includes(res)) {
+          setSelectedLadderStage(res);
+          break;
+        }
+      }
+
+      // Match resolution indicator: (imgsz=480) or imgsz=480
+      const imgszMatch = msg.match(/imgsz[=:]\s*(\d+)/i);
+      if (imgszMatch) {
+        const res = parseInt(imgszMatch[1], 10);
+        if (ladderStages.includes(res)) {
+          setSelectedLadderStage(res);
+          break;
+        }
+      }
+
+      // Match Forex multi-timeframe indicator
+      if (isForexModel) {
+        const tfMatch = msg.match(/\b(M1|M5|M15|H1|H4|D1)\b/i);
+        if (tfMatch) {
+          const tfMap: Record<string, number> = { m1: 1, m5: 5, m15: 15, h1: 60, h4: 240, d1: 1440 };
+          const stageVal = tfMap[tfMatch[1].toLowerCase()];
+          if (stageVal && ladderStages.includes(stageVal)) {
+            setSelectedLadderStage(stageVal);
+            break;
+          }
+        }
+      }
+    }
+  }, [recentEvents, ladderStages, isForexModel]);
 
   return (
     <div className="panel-container">
