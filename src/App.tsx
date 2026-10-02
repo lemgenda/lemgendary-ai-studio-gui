@@ -420,18 +420,18 @@ export const App: React.FC = () => {
           )}
 
           {currentTab === "training" && (
-            <>
-              <TrainingPanel
-                trainingSuiteOnline={meshStatus.trainingSuite}
-                onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
-                recentEvents={events}
-              />
-              <LogPanel
-                events={events}
-                onClear={() => setEvents([])}
-                isConnected={wsConnected}
-              />
-            </>
+            <TrainingPanel
+              trainingSuiteOnline={meshStatus.trainingSuite}
+              onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+              recentEvents={events}
+              logSlot={
+                <LogPanel
+                  events={events}
+                  onClear={() => setEvents([])}
+                  isConnected={wsConnected}
+                />
+              }
+            />
           )}
 
           {currentTab === "pipeline" && (

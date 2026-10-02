@@ -12,12 +12,14 @@ interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
   onOpenConfigEditor?: () => void;
   recentEvents?: PipelineEvent[];
+  logSlot?: React.ReactNode;
 }
 
 export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   trainingSuiteOnline,
   onOpenConfigEditor,
   recentEvents,
+  logSlot,
 }) => {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>("");
@@ -530,6 +532,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           </div>
         )}
       </div>
+
+      {logSlot && <div style={{ marginTop: "24px" }}>{logSlot}</div>}
 
       <div style={{ marginTop: "24px" }}>
         <h4 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "16px" }}>
