@@ -401,18 +401,26 @@ code, pre {
 
 .log-tag-info {
   color: var(--accent-cyan);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .log-tag-success {
   color: var(--accent-emerald);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .log-tag-warning {
   color: var(--accent-amber);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .log-tag-error {
   color: var(--accent-rose);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Status Bar */

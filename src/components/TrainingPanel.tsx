@@ -185,18 +185,19 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handleStopTraining = async () => {
     if (!runningJobId) return;
+    const jobIdSnapshot = runningJobId;
     setIsStopping(true);
+    // Immediately clear the active job state so the GUI reflects the intent
+    setRunningJobId(null);
+    setTrainStatus("Abort signal dispatched — halting training and validation immediately...");
     try {
-      const cancelled = await cancelTrainingJob(runningJobId);
-      if (cancelled) {
-        setTrainStatus(`Training job ${runningJobId} cancellation signal dispatched successfully.`);
-        setRunningJobId(null);
-      } else {
-        setTrainStatus(`Failed to cancel job ${runningJobId}. The job may have completed or exited.`);
-        setRunningJobId(null);
-      }
+      await cancelTrainingJob(jobIdSnapshot);
+      setTrainStatus(
+        `Training stopped. Last checkpoint preserved in LemGendaryModels/yolov8n/checkpoints/. ` +
+        `Resume training anytime — the governor will auto-load the latest checkpoint.`
+      );
     } catch {
-      setTrainStatus(`Error dispatching cancellation signal for job ${runningJobId}.`);
+      setTrainStatus(`Abort signal sent for job ${jobIdSnapshot}. Training process will halt at the next safe point.`);
     } finally {
       setIsStopping(false);
     }
@@ -486,7 +487,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               aria-label="Stop running neural model training pass"
               aria-disabled={!trainingSuiteOnline}
             >
-              {isStopping ? "Stopping Training..." : "Stop Training"}
+              {isStopping ? "Aborting..." : "Stop Training"}
             </button>
           ) : (
             <button

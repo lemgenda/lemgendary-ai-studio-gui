@@ -83,6 +83,11 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.8.6 — Telemetry Control Sequence Sanitation & Tag Flex Hardening
+
+- **`src/api/client.ts` — ANSI Sequence Cleanser Precision (`cleanAnsiAndControlChars`)** — Hardened regex replacement to require at least one numerical digit/parameter (`^\[[0-9;]+[a-zA-Z]`) when stripping remnant ANSI CSI sequences. Prevented zero-length match corruption that erroneously stripped the leading bracket and character from logging tags like `[PROGRESS]` and `[GOVERNOR]`.
+- **`src/components/LogPanel.tsx` & `src/index.css` — Log Tag Squeeze Prevention** — Applied `flex-shrink: 0` and `white-space: nowrap` to `.log-tag-*` indicators within `.log-line` flex layouts, ensuring step and system indicators (`[SYS] [TRAINING]:`) remain unclipped across long monospace telemetry payloads.
+
 ### v2.8.5 — Telemetry Stream Positioning & Sub-Second Training Cancellation UI
 
 - **`src/components/TrainingPanel.tsx` — Direct Telemetry Stream Slot (`logSlot`)** — Moved the live `Real-time Telemetry & Pipeline Stream` panel directly above the `Registered Architectures & Checkpoint Telemetry` models list via an injected `logSlot` component prop. Operators no longer need to scroll past 20 model cards to monitor streaming training logs.

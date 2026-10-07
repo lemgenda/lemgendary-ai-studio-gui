@@ -121,7 +121,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
             return (
               <div key={index} className="log-line" style={{ userSelect: "text" }}>
                 <span className="log-time">[{timeStr}]</span>
-                <span className={tagClass}>
+                <span className={tagClass} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
                   [{ev.step_number > 0 ? `Step ${ev.step_number}` : "SYS"}] [{ev.step_name.toUpperCase()}]:
                 </span>
                 <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{ev.message}</span>

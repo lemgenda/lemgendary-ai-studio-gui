@@ -511,8 +511,12 @@ export function cleanAnsiAndControlChars(text: string): string {
   // Strip ANSI escape sequences (\x1b[...] or \u001b[...)
   // eslint-disable-next-line no-control-regex
   let cleaned = text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
-  // Strip leftover control characters like leading [K or cursor controls
-  cleaned = cleaned.replace(/^\s*\[K\s*/, "").replace(/^\[[0-9;]*[a-zA-Z]/, "");
+  // Strip leftover control characters like leading [K or cursor controls with parameter numbers (e.g. [2K, [0m)
+  // Require at least one digit or semicolon so bracketed tags like [PROGRESS] or [GOVERNOR] are never truncated
+  cleaned = cleaned
+    .replace(/^\s*\[K\s*/, "")
+    .replace(/^\[[0-9;]+[a-zA-Z]/, "")
+    .replace(/^\[\?[0-9]+[a-zA-Z]/, "");
   return cleaned.trim();
 }
 
