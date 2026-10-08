@@ -333,6 +333,25 @@ export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise
   return res.json();
 }
 
+export interface KaggleMetadataPayload {
+  manifold?: string;
+  kaggle_ref?: string;
+  all_datasets?: boolean;
+}
+
+export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<{ status: string; job_id?: string }> {
+  const res = await fetch(`${DATASETS_BASE}/api/kaggle/update-metadata`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to trigger metadata update: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 // ─── Training Suite Sidecar (Port 8200) ─────────────────────────────────────
 
 interface RawModelData {

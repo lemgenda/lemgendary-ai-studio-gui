@@ -9,6 +9,7 @@ import {
   fetchKaggleRegistryDatasets,
   downloadKaggleDataset,
   uploadKaggleDataset,
+  updateKaggleMetadata,
 } from "../api/client";
 import {
   CompilerPreset,
@@ -49,7 +50,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Kaggle Sync Hub State
   const [kaggleStatus, setKaggleStatus] = useState<KaggleStatusResponse | null>(null);
   const [kaggleRegistry, setKaggleRegistry] = useState<KaggleDatasetRegistryItem[]>([]);
-  const [kaggleActiveTab, setKaggleActiveTab] = useState<"download" | "upload">("download");
+  const [kaggleActiveTab, setKaggleActiveTab] = useState<"download" | "upload" | "metadata">("download");
   const [kaggleDownloadMode, setKaggleDownloadMode] = useState<"registry" | "custom">("registry");
   const [selectedRegistryKey, setSelectedRegistryKey] = useState<string>("");
   const [customKaggleRef, setCustomKaggleRef] = useState<string>("");
@@ -62,6 +63,13 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [uploadKaggleRef, setUploadKaggleRef] = useState<string>("");
   const [isUploadingKaggle, setIsUploadingKaggle] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+
+  // Metadata update state
+  const [metaUpdateMode, setMetaUpdateMode] = useState<"single" | "all">("single");
+  const [metaUpdateManifold, setMetaUpdateManifold] = useState<string>("");
+  const [metaUpdateRef, setMetaUpdateRef] = useState<string>("");
+  const [isUpdatingMeta, setIsUpdatingMeta] = useState<boolean>(false);
+  const [metaUpdateStatus, setMetaUpdateStatus] = useState<string | null>(null);
 
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
@@ -78,6 +86,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setDatasets(dsList);
         setSelectedManifold((prev) => prev || dsList[0].key);
         setUploadManifold((prev) => prev || dsList[0].key);
+        setMetaUpdateManifold((prev) => prev || dsList[0].key);
         setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
         // Fallback default manifolds from unified_data.yaml
@@ -258,6 +267,37 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       setUploadStatus(`Upload failed: ${msg}`);
     } finally {
       setIsUploadingKaggle(false);
+    }
+  };
+
+  // Kaggle Metadata Update Handler
+  const handleKaggleMetadataUpdate = async () => {
+    if (!datasetCompilerOnline) {
+      setMetaUpdateStatus("Metadata update failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      return;
+    }
+    setIsUpdatingMeta(true);
+    setMetaUpdateStatus(null);
+    try {
+      if (metaUpdateMode === "all") {
+        const res = await updateKaggleMetadata({ all_datasets: true });
+        setMetaUpdateStatus(`Metadata update initiated for ALL datasets (Job ID: ${res.job_id || "Active"}). Updating Kaggle descriptions, licenses and column schemas.`);
+      } else {
+        if (!metaUpdateManifold) {
+          setMetaUpdateStatus("Please select a manifold to update.");
+          return;
+        }
+        const res = await updateKaggleMetadata({
+          manifold: metaUpdateManifold,
+          kaggle_ref: metaUpdateRef.trim() || undefined,
+        });
+        setMetaUpdateStatus(`Metadata update initiated for ${metaUpdateManifold} (Job ID: ${res.job_id || "Active"}). Pushing title, description, license and column descriptors to Kaggle.`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setMetaUpdateStatus(`Metadata update failed: ${msg}`);
+    } finally {
+      setIsUpdatingMeta(false);
     }
   };
 
@@ -621,7 +661,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           manifolds or upload local models directly using official Kaggle API integration.
         </p>
 
-        {/* Subtabs: Download vs Upload */}
+        {/* Subtabs: Download vs Upload vs Update Metadata */}
         <div className="subtab-nav">
           <button
             type="button"
@@ -636,6 +676,13 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
             onClick={() => setKaggleActiveTab("upload")}
           >
             Upload to Kaggle
+          </button>
+          <button
+            type="button"
+            className={`subtab-btn ${kaggleActiveTab === "metadata" ? "active" : ""}`}
+            onClick={() => setKaggleActiveTab("metadata")}
+          >
+            Update Metadata Only
           </button>
         </div>
 
@@ -825,6 +872,109 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                 role="status"
               >
                 <span>{uploadStatus}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Metadata Update Section */}
+        {kaggleActiveTab === "metadata" && (
+          <div>
+            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
+              <div className="form-group" style={{ gridColumn: "span 2" }}>
+                <div className="segmented-control" style={{ maxWidth: "480px", marginBottom: "16px" }}>
+                  <button
+                    type="button"
+                    className={`segmented-btn ${metaUpdateMode === "single" ? "active" : ""}`}
+                    onClick={() => setMetaUpdateMode("single")}
+                    disabled={isUpdatingMeta}
+                  >
+                    Single Dataset
+                  </button>
+                  <button
+                    type="button"
+                    className={`segmented-btn ${metaUpdateMode === "all" ? "active" : ""}`}
+                    onClick={() => setMetaUpdateMode("all")}
+                    disabled={isUpdatingMeta}
+                  >
+                    All Datasets (unified_data.yaml)
+                  </button>
+                </div>
+              </div>
+
+              {metaUpdateMode === "single" && (
+                <>
+                  <div className="form-group">
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                      <label htmlFor="meta-manifold-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                        Local Manifold:
+                      </label>
+                      <HelpTooltip content="Select the manifold whose dataset-metadata.json will be pushed to Kaggle." />
+                    </div>
+                    <select
+                      id="meta-manifold-select"
+                      className="editor-select"
+                      value={metaUpdateManifold}
+                      onChange={(e) => setMetaUpdateManifold(e.target.value)}
+                      disabled={isUpdatingMeta}
+                    >
+                      {datasets.map((d) => (
+                        <option key={d.key} value={d.modernized_folder || d.key}>
+                          {d.display_name} ({d.modernized_folder || d.key})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                      <label htmlFor="meta-kaggle-ref" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                        Kaggle Repository Slug (Optional):
+                      </label>
+                      <HelpTooltip content="Leave blank to auto-resolve from unified_data.yaml. Format: owner/dataset-slug" />
+                    </div>
+                    <input
+                      id="meta-kaggle-ref"
+                      type="text"
+                      className="editor-input"
+                      placeholder="e.g. lemgenda/lemgendized-upn-v2 (or auto from registry)"
+                      value={metaUpdateRef}
+                      onChange={(e) => setMetaUpdateRef(e.target.value)}
+                      disabled={isUpdatingMeta}
+                    />
+                  </div>
+                </>
+              )}
+
+              {metaUpdateMode === "all" && (
+                <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                    Updates Kaggle metadata (title, description, license, column descriptors) for
+                    <strong> every dataset</strong> in <code>unified_data.yaml</code> that has a local
+                    <code> dataset-metadata.json</code>. No data is re-uploaded.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleKaggleMetadataUpdate}
+                disabled={isUpdatingMeta || !datasetCompilerOnline}
+              >
+                {isUpdatingMeta ? "Initiating Metadata Update..." : "Update Metadata on Kaggle"}
+              </button>
+            </div>
+
+            {metaUpdateStatus && (
+              <div
+                className={`validation-banner ${metaUpdateStatus.includes("failed") ? "banner-error" : "banner-success"}`}
+                style={{ marginTop: "16px" }}
+                role="status"
+              >
+                <span>{metaUpdateStatus}</span>
               </div>
             )}
           </div>
