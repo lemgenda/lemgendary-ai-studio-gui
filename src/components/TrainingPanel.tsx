@@ -361,14 +361,17 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             </span>
           </div>
           {onOpenConfigEditor && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onOpenConfigEditor}
-              style={{ padding: "4px 10px", fontSize: "11px" }}
-            >
-              Adjust via Config Editor
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onOpenConfigEditor}
+                style={{ padding: "4px 10px", fontSize: "11px" }}
+              >
+                Adjust via Config Editor
+              </button>
+              <HelpTooltip content="Opens the YAML Config Editor to modify training hyperparameters (epochs, batch size, learning rate, spatial ladder stages) in unified_models_v2.yaml or presets.yaml directly." />
+            </div>
           )}
         </div>
 
@@ -643,6 +646,114 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ─── KAGGLE CLOUD TRAINING NOTEBOOKS ──────────────────────────────────── */}
+      <div style={{ marginTop: "32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+          <h4 style={{ fontSize: "15px", fontWeight: 600 }}>Kaggle Cloud Training Notebooks</h4>
+          <HelpTooltip content="Each model has a dedicated Kaggle training notebook that handles environment sync, dataset attachment, checkpoint recovery, and the Nuclear Training Matrix launch. Open the notebook on Kaggle, attach the required dataset from the sidebar, and run all cells." />
+        </div>
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px" }}>
+          Production-hardened Kaggle notebooks for cloud GPU training. Each notebook auto-resolves
+          datasets from <code>/kaggle/input</code>, recovers checkpoints from Kaggle Models, and launches
+          the Nuclear Training Matrix. Attach the required dataset via the Kaggle sidebar before running.
+        </p>
+
+        {/* How-to strip */}
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "20px" }}>
+          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "10px" }}>How to Run a Kaggle Training Notebook</div>
+          <ol style={{ fontSize: "12px", color: "var(--text-secondary)", paddingLeft: "16px", lineHeight: "2", margin: 0 }}>
+            <li>Click <strong>Open on Kaggle</strong> below, then click <strong>Edit</strong> in the top-right corner</li>
+            <li>Right sidebar → <strong>Add Input</strong> → <strong>Your Datasets</strong> → attach the LemGendized dataset shown below</li>
+            <li>Right sidebar → <strong>Add Input</strong> → <strong>Your Models</strong> → attach the model checkpoint if resuming training</li>
+            <li>Right sidebar → <strong>Session Options</strong> → <strong>Accelerator: GPU T4 x2</strong> (30 GB VRAM recommended)</li>
+            <li>Top bar → <strong>Add-ons</strong> → <strong>Secrets</strong> → ensure <code>SUITE_PAT</code>, <code>KAGGLE_KEY</code>, <code>KAGGLE_USERNAME</code> are set</li>
+            <li>Click <strong>Run All</strong> — training progress streams to the Kaggle output panel in real-time</li>
+          </ol>
+        </div>
+
+        <div className="card-grid">
+          {models.map((m) => {
+            const notebookSlug = `${m.key}_training`;
+            const kaggleUrl = `https://www.kaggle.com/code/lemtreursi/${m.key.replace(/_/g, "-")}-training`;
+            const datasetSlug = `LemGendized${m.key.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
+            const datasetSearchSlug = m.key.replace(/_/g, "-");
+            const isForex = m.is_forex || m.task_type === "forex";
+
+            return (
+              <div key={m.key} className="card" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {/* Header */}
+                <div className="card-title" style={{ flexWrap: "wrap", gap: "6px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <h5 style={{ fontSize: "13px", fontWeight: 600 }}>{m.display_name}</h5>
+                  </div>
+                  <span className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px" }}>
+                    {m.checkpoint_exists ? "Checkpoint Ready" : "No Checkpoint"}
+                  </span>
+                </div>
+
+                {/* Notebook filename */}
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", background: "rgba(0,0,0,0.2)", padding: "6px 10px", borderRadius: "4px" }}>
+                  {notebookSlug}.ipynb
+                </div>
+
+                {/* Required dataset attachment */}
+                <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "6px", padding: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#60a5fa", marginBottom: "6px" }}>Attach Dataset (Add Input → Your Datasets)</div>
+                  {isForex ? (
+                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                      <div style={{ color: "var(--accent-emerald)" }}>→ ForexUniverse (2019–2026 annual .parquet files)</div>
+                      <div style={{ color: "var(--text-muted)", marginTop: "3px" }}>Search: <code>lemtreursi/forexuniverse</code></div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                      <div style={{ color: "var(--accent-emerald)" }}>→ {datasetSlug}</div>
+                      <div style={{ color: "var(--text-muted)", marginTop: "3px" }}>Search: <code>lemtreursi/{datasetSearchSlug}</code></div>
+                      <div style={{ color: "var(--text-muted)" }}>Format: <span style={{ color: "var(--text-secondary)" }}>{m.canonical_format || "webdataset"}</span></div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkpoint attachment when available */}
+                {m.checkpoint_exists && (
+                  <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "6px", padding: "10px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--accent-emerald)", marginBottom: "4px" }}>Also Attach Checkpoint (Add Input → Your Models)</div>
+                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                      <code>lemtreursi/lemgendary-{m.key.replace(/_/g, "-")}-checkpoints</code>
+                    </div>
+                  </div>
+                )}
+
+                {/* Training progress summary */}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", borderTop: "1px solid var(--border-color)", paddingTop: "8px" }}>
+                  <span>Epochs: <strong style={{ color: "var(--text-secondary)" }}>{m.epochs_completed ?? 0}</strong></span>
+                  <span>
+                    {m.metric_name || "Metric"}: <strong style={{ color: m.sota_reached ? "var(--accent-emerald)" : "var(--text-secondary)" }}>
+                      {m.best_metric !== undefined ? m.best_metric : "—"}
+                    </strong>
+                  </span>
+                  <span>
+                    {m.is_forex || m.ladder_type === "timeframe"
+                      ? (m.ladder_passed ? "D1" : "⏳ Partial")
+                      : (m.ladder_passed ? `${m.target_res ?? 512}px` : `${m.max_res_completed ?? 0}px`)}
+                  </span>
+                </div>
+
+                {/* Kaggle link */}
+                <a
+                  href={kaggleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", marginTop: "auto" }}
+                >
+                  Open on Kaggle
+                </a>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

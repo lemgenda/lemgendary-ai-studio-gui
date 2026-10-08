@@ -36,6 +36,10 @@ const FALLBACK_PROJECTS: ProjectHealth[] = [
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>("dashboard");
+
+  useEffect(() => {
+    window.__setCurrentTab = (tab: string) => setCurrentTab(tab);
+  }, []);
   const [hardware, setHardware] = useState<HardwareProfile | null>(null);
   const [health, setHealth] = useState<HealthAuditReport | null>(null);
   const [events, setEvents] = useState<PipelineEvent[]>([]);

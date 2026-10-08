@@ -36,19 +36,21 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       </div>
 
       <div className="metric-row">
-        <span className="metric-label">Virtual Environment</span>
+        <span className="metric-label">{project.name.includes("gui") ? "Package Manager" : "Virtual Environment"}</span>
         <span className="metric-value">
-          {project.venv_exists ? "Operational (.venv)" : "Missing"}
+          {project.name.includes("gui")
+            ? (project.venv_exists ? "Operational (node_modules)" : "Missing")
+            : (project.venv_exists ? "Operational (.venv)" : "Missing")}
         </span>
       </div>
 
       <div className="metric-row">
-        <span className="metric-label">Python Environment</span>
-        <span className="metric-value">{project.python_version || "N/A"}</span>
+        <span className="metric-label">{project.name.includes("gui") ? "Runtime Environment" : "Python Environment"}</span>
+        <span className="metric-value">{project.python_version || (project.name.includes("gui") ? "Node.js (npm)" : "N/A")}</span>
       </div>
 
       <div className="metric-row">
-        <span className="metric-label">Installed / Required</span>
+        <span className="metric-label">{project.name.includes("gui") ? "Installed / Direct Deps" : "Installed / Required"}</span>
         <span className="metric-value">
           {isOffline ? "-- / --" : `${project.total_installed} / ${project.total_required}`}
         </span>

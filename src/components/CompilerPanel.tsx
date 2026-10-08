@@ -50,7 +50,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Kaggle Sync Hub State
   const [kaggleStatus, setKaggleStatus] = useState<KaggleStatusResponse | null>(null);
   const [kaggleRegistry, setKaggleRegistry] = useState<KaggleDatasetRegistryItem[]>([]);
-  const [kaggleActiveTab, setKaggleActiveTab] = useState<"download" | "upload" | "metadata">("download");
+  const [kaggleActiveTab, setKaggleActiveTab] = useState<"download" | "upload" | "metadata" | "notebooks">("download");
+
+  useEffect(() => {
+    window.__setKaggleActiveTab = (tab: "download" | "upload" | "metadata" | "notebooks") => setKaggleActiveTab(tab);
+  }, []);
   const [kaggleDownloadMode, setKaggleDownloadMode] = useState<"registry" | "custom">("registry");
   const [selectedRegistryKey, setSelectedRegistryKey] = useState<string>("");
   const [customKaggleRef, setCustomKaggleRef] = useState<string>("");
@@ -318,23 +322,25 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           automatic directory flattening, aspect-ratio quantization, and zero NTFS block overhead.
         </p>
 
-        {/* Mode Selector: Standard vs Custom Multi-Source */}
         <div style={{ marginBottom: "20px" }}>
-          <div className="segmented-control" style={{ maxWidth: "480px" }}>
-            <button
-              type="button"
-              className={`segmented-btn ${compileMode === "standard" ? "active" : ""}`}
-              onClick={() => setCompileMode("standard")}
-            >
-              Standard Manifold Compilation
-            </button>
-            <button
-              type="button"
-              className={`segmented-btn ${compileMode === "custom" ? "active" : ""}`}
-              onClick={() => setCompileMode("custom")}
-            >
-              Custom Multi-Source Compilation
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div className="segmented-control" style={{ maxWidth: "480px" }}>
+              <button
+                type="button"
+                className={`segmented-btn ${compileMode === "standard" ? "active" : ""}`}
+                onClick={() => setCompileMode("standard")}
+              >
+                Standard Manifold Compilation
+              </button>
+              <button
+                type="button"
+                className={`segmented-btn ${compileMode === "custom" ? "active" : ""}`}
+                onClick={() => setCompileMode("custom")}
+              >
+                Custom Multi-Source Compilation
+              </button>
+            </div>
+            <HelpTooltip content="Standard Manifold Compilation compiles datasets registered in unified_data.yaml using official registry bindings. Custom Multi-Source Compilation allows ingesting from Kaggle, HuggingFace, Google Drive, or GitHub URLs into a new named manifold." />
           </div>
         </div>
 
@@ -662,37 +668,44 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         </p>
 
         {/* Subtabs: Download vs Upload vs Update Metadata */}
-        <div className="subtab-nav">
-          <button
-            type="button"
-            className={`subtab-btn ${kaggleActiveTab === "download" ? "active" : ""}`}
-            onClick={() => setKaggleActiveTab("download")}
-          >
-            Download from Kaggle
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${kaggleActiveTab === "upload" ? "active" : ""}`}
-            onClick={() => setKaggleActiveTab("upload")}
-          >
-            Upload to Kaggle
-          </button>
-          <button
-            type="button"
-            className={`subtab-btn ${kaggleActiveTab === "metadata" ? "active" : ""}`}
-            onClick={() => setKaggleActiveTab("metadata")}
-          >
-            Update Metadata Only
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="subtab-nav">
+            <button
+              type="button"
+              className={`subtab-btn ${kaggleActiveTab === "download" ? "active" : ""}`}
+              onClick={() => setKaggleActiveTab("download")}
+            >
+              Download from Kaggle
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${kaggleActiveTab === "upload" ? "active" : ""}`}
+              onClick={() => setKaggleActiveTab("upload")}
+            >
+              Upload to Kaggle
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${kaggleActiveTab === "metadata" ? "active" : ""}`}
+              onClick={() => setKaggleActiveTab("metadata")}
+            >
+              Update Metadata Only
+            </button>
+            <button
+              type="button"
+              className={`subtab-btn ${kaggleActiveTab === "notebooks" ? "active" : ""}`}
+              onClick={() => setKaggleActiveTab("notebooks")}
+            >
+              Audit Notebooks
+            </button>
+          </div>
+          <HelpTooltip content="Download: Pull pre-compiled streaming manifolds from Kaggle into LemGendaryDatasets. Upload: Package and publish a local compiled manifold to Kaggle cloud storage. Update Metadata Only: Push dataset-metadata.json title/description/license updates to Kaggle without re-uploading data. Audit Notebooks: Kaggle notebooks for registry metadata synchronization and dataset verification." />
         </div>
 
         {/* Download Section */}
         {kaggleActiveTab === "download" && (
           <div>
-            <div style={{ marginBottom: "16px" }}>
-              <span style={{ fontSize: "12px", color: "var(--text-muted)", display: "block", marginBottom: "8px", fontWeight: 500 }}>
-                Download Source Mode:
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
               <div className="segmented-control" style={{ maxWidth: "420px" }}>
                 <button
                   type="button"
@@ -709,6 +722,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   Custom Kaggle Link / Slug
                 </button>
               </div>
+              <HelpTooltip content="Registry Datasets: Select from production datasets declared in unified_data.yaml with official Kaggle bindings. Custom Link: Download any public Kaggle dataset by pasting its URL or slug directly." />
             </div>
 
             <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
@@ -783,6 +797,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                 <label htmlFor="download-force-check" style={{ fontSize: "13px", color: "var(--text-primary)", cursor: "pointer" }}>
                   Force redownload / overwrite existing files
                 </label>
+                <HelpTooltip content="When checked, re-downloads and overwrites any locally present dataset files. Use if a dataset was partially downloaded or a newer version was published." />
               </div>
             </div>
 
@@ -795,6 +810,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               >
                 {isDownloadingKaggle ? "Initiating Download..." : "Download from Kaggle"}
               </button>
+              <HelpTooltip content="Initiates Kaggle API download. Packages dataset ZIP/tar into LemGendaryDatasets folder using official kaggle-python client. Requires valid ~/.kaggle/kaggle.json credentials." />
             </div>
 
             {downloadStatus && (
@@ -863,6 +879,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               >
                 {isUploadingKaggle ? "Initiating Upload..." : "Upload to Kaggle"}
               </button>
+              <HelpTooltip content="Packages the selected local manifold into a Kaggle dataset archive and uploads it to your Kaggle account. Requires valid kaggle.json credentials and the target slug to be pre-created or auto-resolved from unified_data.yaml." />
             </div>
 
             {uploadStatus && (
@@ -882,23 +899,26 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <div>
             <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
               <div className="form-group" style={{ gridColumn: "span 2" }}>
-                <div className="segmented-control" style={{ maxWidth: "480px", marginBottom: "16px" }}>
-                  <button
-                    type="button"
-                    className={`segmented-btn ${metaUpdateMode === "single" ? "active" : ""}`}
-                    onClick={() => setMetaUpdateMode("single")}
-                    disabled={isUpdatingMeta}
-                  >
-                    Single Dataset
-                  </button>
-                  <button
-                    type="button"
-                    className={`segmented-btn ${metaUpdateMode === "all" ? "active" : ""}`}
-                    onClick={() => setMetaUpdateMode("all")}
-                    disabled={isUpdatingMeta}
-                  >
-                    All Datasets (unified_data.yaml)
-                  </button>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div className="segmented-control" style={{ maxWidth: "480px", marginBottom: "16px" }}>
+                    <button
+                      type="button"
+                      className={`segmented-btn ${metaUpdateMode === "single" ? "active" : ""}`}
+                      onClick={() => setMetaUpdateMode("single")}
+                      disabled={isUpdatingMeta}
+                    >
+                      Single Dataset
+                    </button>
+                    <button
+                      type="button"
+                      className={`segmented-btn ${metaUpdateMode === "all" ? "active" : ""}`}
+                      onClick={() => setMetaUpdateMode("all")}
+                      disabled={isUpdatingMeta}
+                    >
+                      All Datasets (unified_data.yaml)
+                    </button>
+                  </div>
+                  <HelpTooltip content="Single Dataset: Push metadata for one specific manifold to Kaggle. All Datasets: Batch-update metadata for every dataset in unified_data.yaml that has a local dataset-metadata.json file. No data is re-uploaded in either mode." />
                 </div>
               </div>
 
@@ -966,6 +986,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               >
                 {isUpdatingMeta ? "Initiating Metadata Update..." : "Update Metadata on Kaggle"}
               </button>
+              <HelpTooltip content="Pushes dataset-metadata.json (title, subtitle, description, license, column descriptors) to Kaggle for the selected dataset(s). No data transfer occurs — only metadata records are updated via the Kaggle API." />
             </div>
 
             {metaUpdateStatus && (
@@ -977,6 +998,95 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                 <span>{metaUpdateStatus}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Audit Notebooks Section */}
+        {kaggleActiveTab === "notebooks" && (
+          <div>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+              Kaggle notebooks for registry metadata synchronization and dataset health auditing.
+              Run these notebooks on Kaggle to validate dataset integrity, update metadata, and
+              synchronize the production registry.
+            </p>
+
+            {/* Registry Metadata Audit Notebook */}
+            <div className="card" style={{ marginBottom: "16px", border: "1px solid var(--border-color)" }}>
+              <div className="card-title">
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div>
+                    <h5 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "2px" }}>Registry Metadata Training Audit</h5>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                      _registry_metadata_training.ipynb
+                    </span>
+                  </div>
+                </div>
+                <span className="badge badge-info">Kaggle Notebook</span>
+              </div>
+
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+                Audits and synchronizes dataset-metadata.json files across all production manifolds.
+                Validates Kaggle registry bindings, regenerates column descriptors, and pushes
+                updated metadata to Kaggle without re-uploading dataset files.
+              </p>
+
+              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "#60a5fa", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  Required Dataset Attachments (Kaggle Sidebar → Add Input → Your Datasets)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {datasets.slice(0, 8).map((d) => (
+                    <div key={d.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                      <span style={{ color: "var(--accent-emerald)" }}>→</span>
+                      <span style={{ flex: 1, marginLeft: "8px" }}>{d.display_name}</span>
+                      <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{(d.total_size_mb / 1024).toFixed(1)} GB</span>
+                    </div>
+                  ))}
+                  {datasets.length > 8 && (
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
+                      + {datasets.length - 8} more datasets from unified_data.yaml
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--accent-emerald)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  Required Kaggle Secrets (Add-ons → Secrets)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
+                  <div><span style={{ color: "#f59e0b" }}>SUITE_PAT</span> — GitHub Personal Access Token (repo read)</div>
+                  <div><span style={{ color: "#f59e0b" }}>KAGGLE_KEY</span> — Kaggle API token (JSON key value)</div>
+                  <div><span style={{ color: "#f59e0b" }}>KAGGLE_USERNAME</span> — Kaggle username (lemtreursi)</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <a
+                  href="https://www.kaggle.com/code/lemtreursi/registry-metadata-training"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  Open on Kaggle
+                </a>
+                <HelpTooltip content="Opens the registry metadata audit notebook on Kaggle. Ensure all required datasets are attached via the right sidebar before running all cells." />
+              </div>
+            </div>
+
+            {/* Dataset attachment how-to */}
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "10px" }}>How to Attach Datasets in Kaggle</div>
+              <ol style={{ fontSize: "12px", color: "var(--text-secondary)", paddingLeft: "16px", lineHeight: "2" }}>
+                <li>Open the notebook on Kaggle and click <strong>Edit</strong> (top right)</li>
+                <li>In the right sidebar, click <strong>Add Input</strong> → <strong>Your Datasets</strong></li>
+                <li>Search for <code>LemGendized</code> and attach each production dataset</li>
+                <li>Also attach model checkpoints from <strong>Your Models</strong> if needed</li>
+                <li>Under <strong>Session Options</strong> → set <strong>Accelerator: GPU T4 x2</strong></li>
+                <li>Click <strong>Run All</strong> — the notebook auto-resolves all paths in <code>/kaggle/input</code></li>
+              </ol>
+            </div>
           </div>
         )}
       </div>
