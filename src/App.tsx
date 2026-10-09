@@ -373,7 +373,7 @@ export const App: React.FC = () => {
                 startingServiceId={startingServiceId}
               />
 
-              <div className="card-grid">
+              <div className="card-grid card-grid-dashboard">
                 <HardwareCard
                   hardware={hardware}
                   onStartEnvManager={() => handleStartService("env-manager")}
