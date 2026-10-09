@@ -730,7 +730,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                 </div>
 
                 {/* 4. Action Buttons Toolbar on each card */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "auto", paddingTop: "8px", borderTop: "1px solid var(--border-color)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
                   {/* Local Training */}
                   {isCurrentlyTrainingThis ? (
                     <button
@@ -740,7 +740,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                       disabled={isBusy}
                       style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
                     >
-                      Stop Training
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                      </svg>
+                      <span>Stop Training</span>
                     </button>
                   ) : (
                     <button
@@ -751,7 +754,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                       style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
                       title="Starts local GPU training pass and focuses telemetry terminal below"
                     >
-                      Local Training
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+                        <polygon points="6 4 20 12 6 20 6 4" />
+                      </svg>
+                      <span>Local Training</span>
                     </button>
                   )}
 
@@ -764,31 +770,44 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                     style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
                     title="Opens Cloud Training dialog to pre-validate URLs, attached datasets, and launch on Kaggle GPU"
                   >
-                    Cloud Training
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                    </svg>
+                    <span>Cloud Training</span>
                   </button>
 
                   {/* Push Checkpoint */}
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-vault-push"
                     onClick={() => handlePushArtifacts(m.key)}
                     disabled={isBusy}
-                    style={{ fontSize: "11px", padding: "6px 8px" }}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
                     title="Pushes latest checkpoint to Cloud Checkpoint Vault"
                   >
-                    Push Checkpoint
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span>Push Checkpoint</span>
                   </button>
 
                   {/* Pull Checkpoint */}
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-vault-pull"
                     onClick={() => handlePullArtifacts(m.key)}
                     disabled={isBusy}
-                    style={{ fontSize: "11px", padding: "6px 8px" }}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
                     title="Pulls latest checkpoint from Kaggle Models repository into local LemGendaryModels"
                   >
-                    Pull Checkpoint
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Pull Checkpoint</span>
                   </button>
                 </div>
               </div>
