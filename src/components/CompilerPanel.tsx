@@ -1154,7 +1154,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   {/* Top Row: Update Metadata & Audit Notebooks */}
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-primary"
                     onClick={() => handleUpdateMetadataSingle(d)}
                     disabled={isBusy || !datasetCompilerOnline}
                     style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
@@ -1171,7 +1171,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                     href="https://www.kaggle.com/code/lemtreursi/registry-metadata-training"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary"
+                    className="btn btn-cloud"
                     style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
                     title="Open Kaggle Registry Metadata Training Audit notebook"
                   >
@@ -1202,7 +1202,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
                   <button
                     type="button"
-                    className="btn btn-vault-pull"
+                    className="btn btn-vault-push"
                     onClick={() => handleUploadManifold(d)}
                     disabled={isBusy || !datasetCompilerOnline}
                     style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
