@@ -241,10 +241,14 @@ export interface ModelItem {
   ladder_type?: "spatial" | "timeframe";
   is_forex?: boolean;
   ladder_passed?: boolean;
+  active_res?: number | null;
   max_res_completed?: number | null;
   target_res?: number | null;
+  active_data_fraction?: number | null;
   data_fraction_completed?: number;
   data_fraction_passed?: boolean;
+  kaggle_ref?: string;
+  kaggle_dataset_urls?: string[];
   checkpoint_exists?: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
@@ -257,6 +261,8 @@ export interface ModelItem {
   sota_all_met?: boolean;
   sota_details?: SotaMetricDetail[];
   training_status?: "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | string;
+  status?: "PLANNED" | "SPECIFICATION" | "DATASET_READY" | "TRAINING" | "TRAINED" | "VALIDATED" | "PRODUCTION" | "DEPRECATED" | string;
+  authoritative_status?: string;
   learning_rate?: number;
   batch_size?: number;
   default_epochs?: number;
@@ -318,5 +324,32 @@ export interface TrainingJobInfo {
   created_at?: string;
   started_at?: string;
   params?: Record<string, unknown>;
+}
+
+export interface KaggleKernelItem {
+  ref: string;
+  title: string;
+  status: string;
+  failure_message?: string | null;
+}
+
+export interface KaggleTrainPayload {
+  model: string;
+  gpu?: string;
+  auto_pull?: boolean;
+  poll_interval?: number;
+}
+
+export interface KaggleMonitorPayload {
+  kernel_slug: string;
+  model?: string;
+  auto_pull?: boolean;
+  poll_interval?: number;
+}
+
+export interface KaggleSuiteStatus {
+  authenticated: boolean;
+  username: string;
+  token_configured: boolean;
 }
 

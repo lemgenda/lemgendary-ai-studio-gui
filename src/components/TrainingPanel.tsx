@@ -1,12 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { CloudTrainModal } from "./CloudTrainModal";
 import {
   fetchModels,
   triggerQuickTrain,
   fetchRunningTrainingJobs,
   cancelTrainingJob,
+  fetchKaggleSuiteStatus,
+  fetchKaggleKernels,
+  launchKaggleTrain,
+  monitorKaggleKernel,
+  pullKaggleModelArtifacts,
 } from "../api/client";
-import { ModelItem, PipelineEvent } from "../api/types";
+import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
@@ -17,65 +23,40 @@ interface TrainingPanelProps {
 
 export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   trainingSuiteOnline,
-  onOpenConfigEditor,
-  recentEvents,
+  recentEvents: _recentEvents,
   logSlot,
 }) => {
   const [models, setModels] = useState<ModelItem[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [epochs, setEpochs] = useState<number>(30);
-  const [batchSize, setBatchSize] = useState<number>(8);
-  const [learningRate, setLearningRate] = useState<number>(0.0002);
-  const [selectedLadderStage, setSelectedLadderStage] = useState<number>(320);
-  const [sawtoothGovernorActive, setSawtoothGovernorActive] = useState<boolean>(true);
-  const [isStarting, setIsStarting] = useState<boolean>(false);
-  const [isStopping, setIsStopping] = useState<boolean>(false);
-  const [runningJobId, setRunningJobId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [trainStatus, setTrainStatus] = useState<string | null>(null);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
-  const isJobActive = Boolean(runningJobId);
+  // Active training job state
+  const [runningJobId, setRunningJobId] = useState<string | null>(null);
+  const [runningJobModel, setRunningJobModel] = useState<string | null>(null);
+  const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
-  const applyModelDefaults = useCallback((modelKey: string, modelList: ModelItem[]) => {
-    const m = modelList.find((item) => item.key === modelKey);
-    if (!m) return;
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [archFilter, setArchFilter] = useState<string>("ALL");
 
-    if (typeof m.default_epochs === "number" && m.default_epochs > 0) {
-      setEpochs(m.default_epochs);
-    } else if (modelKey === "yolov8n") {
-      setEpochs(300);
-    } else if (m.is_forex) {
-      setEpochs(50);
-    } else {
-      setEpochs(30);
-    }
+  // Pinned/hovered SOTA target details
+  const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
+  const [hoveredTargetModel, setHoveredTargetModel] = useState<string | null>(null);
 
-    if (typeof m.batch_size === "number" && m.batch_size > 0) {
-      setBatchSize(m.batch_size);
-    } else if (modelKey === "yolov8n") {
-      setBatchSize(16);
-    } else if (m.is_forex) {
-      setBatchSize(128);
-    } else {
-      setBatchSize(8);
-    }
+  // Cloud modal state
+  const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
+  const [kaggleAuthStatus, setKaggleAuthStatus] = useState<KaggleSuiteStatus | null>(null);
+  const [kaggleKernels, setKaggleKernels] = useState<KaggleKernelItem[]>([]);
+  const [showCloudDrawer, setShowCloudDrawer] = useState<boolean>(false);
 
-    if (typeof m.learning_rate === "number" && m.learning_rate > 0) {
-      setLearningRate(m.learning_rate);
-    } else if (modelKey === "yolov8n") {
-      setLearningRate(0.01);
-    } else if (m.is_forex) {
-      setLearningRate(0.0001);
-    } else {
-      setLearningRate(0.0002);
-    }
+  // Active telemetry tab filter ("all" or active model key)
+  const [activeTelemetryTab, setActiveTelemetryTab] = useState<string>("all");
 
-    const stages = m.spatial_ladder && m.spatial_ladder.length > 0
-      ? m.spatial_ladder
-      : (m.is_forex ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512, 640]);
-    setSelectedLadderStage(stages[0]);
-  }, []);
+  const telemetryRef = useRef<HTMLDivElement>(null);
 
   const loadTrainingData = useCallback(async () => {
     setIsRefreshing(true);
@@ -83,48 +64,43 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       const modelList = await fetchModels();
       if (modelList.length > 0) {
         setModels(modelList);
-        setSelectedModel((prev) => {
-          const nextKey = prev && modelList.some((m) => m.key === prev) ? prev : modelList[0].key;
-          applyModelDefaults(nextKey, modelList);
-          return nextKey;
-        });
         setRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
-      } else {
-        // Fallback default models from unified_models_v2.yaml
-        const fallbackList: ModelItem[] = [
-          { key: "nima_aesthetic_mobile", display_name: "NIMA Perceptual Aesthetics", architecture: "MobileNetV2-NIMA", task_type: "quality_assessment", canonical_format: "webdataset", parameters_m: 2.3, spatial_ladder: [224], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 30, best_metric: 0.65, metric_name: "SRCC", learning_rate: 0.0002, batch_size: 16, default_epochs: 30 },
-          { key: "upn_v2", display_name: "Unified Perceptual Net V2", architecture: "ConvNeXt-V2-Base", task_type: "multi_modal_perception", canonical_format: "webdataset", parameters_m: 88.5, spatial_ladder: [128, 192, 256], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 45, best_metric: 0.05, metric_name: "MAE", learning_rate: 0.0001, batch_size: 8, default_epochs: 50 },
-          { key: "film_restorer", display_name: "Film Restorer & Grain Synthesis", architecture: "NAFNet-Restoration", task_type: "image_restoration", canonical_format: "webdataset", parameters_m: 17.1, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 60, best_metric: 24.0, metric_name: "PSNR (dB)", learning_rate: 0.0002, batch_size: 8, default_epochs: 60 },
-          { key: "mirnet_exposure", display_name: "MIRNet Dual Residual Exposure", architecture: "MIRNet-v2", task_type: "low_light_enhancement", canonical_format: "webdataset", parameters_m: 31.8, spatial_ladder: [256, 384, 512], checkpoint_exists: true, preferred_parallel: "ddp", epochs_completed: 50, best_metric: 25.5, metric_name: "PSNR (dB)", learning_rate: 0.0002, batch_size: 8, default_epochs: 50 },
-          { key: "yolov8n", display_name: "LemGendary YOLOv8n Multi-Task Model", architecture: "YOLOv8n (CSPDarknet53 + PANet)", task_type: "detection", canonical_format: "directory", parameters_m: 3.2, spatial_ladder: [320, 480, 640], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 100, best_metric: 0.54, metric_name: "mAP50", learning_rate: 0.01, batch_size: 16, default_epochs: 300 },
-          { key: "universal_nsfw_classification", display_name: "Universal Safety Classifier", architecture: "EfficientNet-B0", task_type: "classification", canonical_format: "webdataset", parameters_m: 4.1, spatial_ladder: [224, 256], checkpoint_exists: true, preferred_parallel: "single", epochs_completed: 25, best_metric: 0.982, metric_name: "AUC-ROC", learning_rate: 0.0002, batch_size: 16, default_epochs: 25 },
-        ];
-        setModels(fallbackList);
-        setSelectedModel((prev) => {
-          const nextKey = prev || "upn_v2";
-          applyModelDefaults(nextKey, fallbackList);
-          return nextKey;
-        });
-        setRefreshFeedback("Training sidecar unreachable: showing fallback architectures.");
       }
     } catch {
-      setRefreshFeedback("Error loading models from training sidecar.");
+      setRefreshFeedback("Failed to refresh models from training sidecar.");
     } finally {
       setIsRefreshing(false);
       setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, [applyModelDefaults]);
+  }, []);
+
+  const loadKaggleData = useCallback(async () => {
+    try {
+      const [kStatus, kKernels] = await Promise.all([
+        fetchKaggleSuiteStatus(),
+        fetchKaggleKernels(),
+      ]);
+      setKaggleAuthStatus(kStatus);
+      setKaggleKernels(kKernels);
+    } catch {
+      // Offline mode
+    }
+  }, []);
 
   useEffect(() => {
     loadTrainingData();
-  }, [loadTrainingData]);
+    loadKaggleData();
+  }, [loadTrainingData, loadKaggleData]);
 
   // Periodic polling for active running training jobs
   useEffect(() => {
     let isMounted = true;
     const pollRunningJobs = async () => {
       if (!trainingSuiteOnline) {
-        if (isMounted) setRunningJobId(null);
+        if (isMounted) {
+          setRunningJobId(null);
+          setRunningJobModel(null);
+        }
         return;
       }
       try {
@@ -133,8 +109,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         if (jobs && jobs.length > 0) {
           const active = jobs.find((j) => j.status === "running") || jobs[0];
           setRunningJobId(active.id);
+          setRunningJobModel(active.model_key || (active.params?.model as string) || null);
         } else {
           setRunningJobId(null);
+          setRunningJobModel(null);
         }
       } catch {
         // Training suite sidecar temporarily unreachable
@@ -149,613 +127,711 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     };
   }, [trainingSuiteOnline]);
 
-  const handleModelChange = (modelKey: string) => {
-    setSelectedModel(modelKey);
-    applyModelDefaults(modelKey, models);
+  const scrollToTelemetry = () => {
+    if (telemetryRef.current) {
+      telemetryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
-  const handleStartTraining = async () => {
+  const handleStartLocalTrain = async (model: ModelItem) => {
     if (!trainingSuiteOnline) {
-      setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
+      setStatusNotice("Training failed: Training Suite Sidecar (Port 8200) is offline.");
       return;
     }
-    setIsStarting(true);
-    setTrainStatus(null);
+    setActionBusyKey(`local_${model.key}`);
+    setStatusNotice(null);
     try {
       const res = await triggerQuickTrain({
-        model_key: selectedModel,
+        model_key: model.key,
         preset: "quick-sota",
-        epochs,
-        batch_size: batchSize,
-        learning_rate: learningRate,
+        epochs: model.default_epochs || 30,
+        batch_size: model.batch_size || 8,
+        learning_rate: model.learning_rate || 0.0002,
         env: "local",
-        ladder_stage: selectedLadderStage,
-        enable_sawtooth: sawtoothGovernorActive,
+        ladder_stage: model.spatial_ladder && model.spatial_ladder.length > 0 ? model.spatial_ladder[0] : 320,
+        enable_sawtooth: true,
       });
       if (res.job_id) {
         setRunningJobId(res.job_id);
+        setRunningJobModel(model.key);
       }
-      setTrainStatus(`Training run initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
-    } catch {
-      setTrainStatus("Training failed: Training Suite Sidecar (Port 8200) is not reachable. Launch lemgendary-training-suite to train.");
+      setStatusNotice(`Training dispatched for ${model.display_name} (Job ID: ${res.job_id || "Active"}). Telemetry streaming below.`);
+      scrollToTelemetry();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to start training for ${model.display_name}: ${msg}`);
     } finally {
-      setIsStarting(false);
+      setActionBusyKey(null);
     }
   };
 
-  const handleStopTraining = async () => {
+  const handleStopLocalTrain = async () => {
     if (!runningJobId) return;
-    const jobIdSnapshot = runningJobId;
-    setIsStopping(true);
-    // Immediately clear the active job state so the GUI reflects the intent
-    setRunningJobId(null);
-    setTrainStatus("Abort signal dispatched — halting training and validation immediately...");
+    const jobId = runningJobId;
+    setActionBusyKey("stopping");
+    setStatusNotice("Dispatched abort signal — halting training process cleanly...");
     try {
-      await cancelTrainingJob(jobIdSnapshot);
-      setTrainStatus(
-        `Training stopped. Last checkpoint preserved in LemGendaryModels/yolov8n/checkpoints/. ` +
-        `Resume training anytime — the governor will auto-load the latest checkpoint.`
-      );
+      await cancelTrainingJob(jobId);
+      setRunningJobId(null);
+      setRunningJobModel(null);
+      setStatusNotice("Training process halted. Checkpoints safely preserved in LemGendaryModels.");
     } catch {
-      setTrainStatus(`Abort signal sent for job ${jobIdSnapshot}. Training process will halt at the next safe point.`);
+      setStatusNotice(`Abort signal dispatched for job ${jobId}. Process will terminate safely.`);
     } finally {
-      setIsStopping(false);
+      setActionBusyKey(null);
     }
   };
 
-  const currentModel = models.find((m) => m.key === selectedModel);
-  const isForexModel = Boolean(currentModel?.is_forex || currentModel?.category === "forex" || currentModel?.task_type === "forex");
-
-  const ladderStages = useMemo(() => {
-    if (currentModel?.spatial_ladder && currentModel.spatial_ladder.length > 0) {
-      return currentModel.spatial_ladder;
-    }
-    return isForexModel ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512, 640];
-  }, [currentModel, isForexModel]);
-
-  const formatLadderLabel = (stageValue: number, idx: number, total: number, isForex: boolean) => {
-    if (isForex) {
-      const tfLabels: Record<number, string> = {
-        1: "M1 (1-min) Scalping",
-        5: "M5 (5-min) Order Flow",
-        15: "M15 (15-min) Trigger Timing",
-        60: "H1 (1-hour) Intraday Trend",
-        240: "H4 (4-hour) Swing Momentum",
-        1440: "D1 (Daily) Macro Regime",
-      };
-      const label = tfLabels[stageValue] || `${stageValue}m Timeframe`;
-      return `Stage ${idx + 1}: ${label} (${idx === 0 ? "Base" : idx === total - 1 ? "Target Confluence" : "Intermediate"})`;
-    }
-    return `Stage ${idx + 1}: ${stageValue} x ${stageValue} (${idx === 0 ? "Base" : idx === total - 1 ? "Target" : "Progressive"})`;
+  const handleOpenCloudModal = (model: ModelItem) => {
+    setCloudModalModel(model);
+    setIsCloudModalOpen(true);
   };
 
-  useEffect(() => {
-    if (ladderStages.length > 0 && !ladderStages.includes(selectedLadderStage)) {
-      setSelectedLadderStage(ladderStages[0]);
+  const handleLaunchKaggle = async (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => {
+    setActionBusyKey(`cloud_${modelKey}`);
+    try {
+      const res = await launchKaggleTrain({
+        model: modelKey,
+        gpu,
+        auto_pull: autoPull,
+      });
+      if (res.job_id) {
+        setRunningJobId(res.job_id);
+        setRunningJobModel(modelKey);
+      }
+      setStatusNotice(`Kaggle Cloud training queued for ${modelKey}. Job ID: ${res.job_id || "Active"}.`);
+      scrollToTelemetry();
+      loadKaggleData();
+    } finally {
+      setActionBusyKey(null);
     }
-  }, [ladderStages, selectedLadderStage]);
+  };
 
-  // Synchronize active ladder stage dynamically from real-time training events
-  useEffect(() => {
-    if (!recentEvents || recentEvents.length === 0) return;
-    const tail = recentEvents.slice(-15);
-    for (let i = tail.length - 1; i >= 0; i--) {
-      const msg = tail[i].message;
-      if (!msg) continue;
-
-      // Match YOLO governor stage announcement: [GOVERNOR] [STAGE X/Y] Launching 480px rung
-      const stageMatch = msg.match(/Launching\s+(\d+)px\s+rung/i);
-      if (stageMatch) {
-        const res = parseInt(stageMatch[1], 10);
-        if (ladderStages.includes(res)) {
-          setSelectedLadderStage(res);
-          break;
-        }
-      }
-
-      // Match governor commencing stage: Commencing Stage X: 480x480
-      const commMatch = msg.match(/Commencing Stage.*?(\d+)x(\d+)/i);
-      if (commMatch) {
-        const res = parseInt(commMatch[1], 10);
-        if (ladderStages.includes(res)) {
-          setSelectedLadderStage(res);
-          break;
-        }
-      }
-
-      // Match resolution indicator: (imgsz=480) or imgsz=480
-      const imgszMatch = msg.match(/imgsz[=:]\s*(\d+)/i);
-      if (imgszMatch) {
-        const res = parseInt(imgszMatch[1], 10);
-        if (ladderStages.includes(res)) {
-          setSelectedLadderStage(res);
-          break;
-        }
-      }
-
-      // Match Forex multi-timeframe indicator
-      if (isForexModel) {
-        const tfMatch = msg.match(/\b(M1|M5|M15|H1|H4|D1)\b/i);
-        if (tfMatch) {
-          const tfMap: Record<string, number> = { m1: 1, m5: 5, m15: 15, h1: 60, h4: 240, d1: 1440 };
-          const stageVal = tfMap[tfMatch[1].toLowerCase()];
-          if (stageVal && ladderStages.includes(stageVal)) {
-            setSelectedLadderStage(stageVal);
-            break;
-          }
-        }
-      }
+  const handlePullArtifacts = async (modelKey: string) => {
+    setActionBusyKey(`pull_${modelKey}`);
+    setStatusNotice(null);
+    try {
+      const res = await pullKaggleModelArtifacts(modelKey);
+      setStatusNotice(res.message || `Checkpoints pulled to LemGendaryModels/${modelKey}`);
+      loadTrainingData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Pull failed: ${msg}`);
+    } finally {
+      setActionBusyKey(null);
     }
-  }, [recentEvents, ladderStages, isForexModel]);
+  };
+
+  const handlePushArtifacts = async (modelKey: string) => {
+    setActionBusyKey(`push_${modelKey}`);
+    setStatusNotice(`Packaging and pushing ${modelKey} checkpoints to Cloud Vault...`);
+    try {
+      await launchKaggleTrain({
+        model: modelKey,
+        gpu: "T4",
+        auto_pull: true,
+      });
+      setStatusNotice(`Successfully pushed checkpoints for ${modelKey} to Cloud Vault.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Push failed: ${msg}`);
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  // Distinct architectures and categories for filters
+  const uniqueCategories = useMemo(() => {
+    const set = new Set<string>();
+    models.forEach((m) => {
+      if (m.task_type) set.add(m.task_type);
+      if (m.category) set.add(m.category);
+    });
+    return Array.from(set).sort();
+  }, [models]);
+
+  const uniqueArchitectures = useMemo(() => {
+    const set = new Set<string>();
+    models.forEach((m) => {
+      if (m.architecture) set.add(m.architecture);
+    });
+    return Array.from(set).sort();
+  }, [models]);
+
+  // Filtered models
+  const filteredModels = useMemo(() => {
+    return models.filter((m) => {
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = m.display_name.toLowerCase().includes(q);
+        const matchesKey = m.key.toLowerCase().includes(q);
+        const matchesArch = m.architecture.toLowerCase().includes(q);
+        const matchesTask = (m.task_type || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesKey && !matchesArch && !matchesTask) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (statusFilter !== "ALL") {
+        const mStatus = m.training_status || (m.checkpoint_exists ? "weights_ready" : "initializing");
+        if (statusFilter === "FULLY_TRAINED" && mStatus !== "fully_trained") return false;
+        if (statusFilter === "PARTIALLY_TRAINED" && mStatus !== "partially_trained") return false;
+        if (statusFilter === "WEIGHTS_READY" && mStatus !== "weights_ready") return false;
+        if (statusFilter === "INITIALIZING" && mStatus !== "initializing") return false;
+      }
+
+      // Category filter
+      if (categoryFilter !== "ALL") {
+        const cat = (m.task_type || m.category || "").toLowerCase();
+        if (!cat.includes(categoryFilter.toLowerCase())) return false;
+      }
+
+      // Architecture filter
+      if (archFilter !== "ALL") {
+        if (m.architecture !== archFilter) return false;
+      }
+
+      return true;
+    });
+  }, [models, searchQuery, statusFilter, categoryFilter, archFilter]);
+
+  const toggleTargetPin = (modelKey: string) => {
+    setPinnedTargetModel((prev) => (prev === modelKey ? null : modelKey));
+  };
 
   return (
     <div className="panel-container">
-      <div className="card">
-        <div className="card-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Master Training Suite &amp; Model Orchestration</h3>
-            <HelpTooltip content="Master Deep Learning Training Suite. Dispatches multi-GPU DDP training jobs, controls dynamic spatial ladder progression, enforces Sawtooth VRAM protection, and automates ONNX checkpoint export." />
-          </div>
-          <span className="badge badge-info">Port 8200 Sidecar</span>
-        </div>
-
-        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px" }}>
-          Train vision, restoration, and time-series neural architectures from unified_models_v2.yaml with
-          real-time Sawtooth Governor memory management and progressive spatial training ladders.
-        </p>
-
-        {/* Hero Row: Target Architecture Selection */}
-        <div style={{ marginBottom: "18px" }}>
-          <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <label htmlFor="model-select" style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
-                  Target Architecture:
-                </label>
-                <HelpTooltip content="Select the neural architecture to train or evaluate. Loads authoritative configuration from unified_models_v2.yaml." />
-              </div>
-              {currentModel && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <span className="badge badge-info" style={{ fontSize: "11px" }}>{currentModel.task_type}</span>
-                  {currentModel.parameters_m && (
-                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
-                      {currentModel.parameters_m} M params
-                    </span>
-                  )}
-                  {currentModel.canonical_format && (
-                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
-                      {currentModel.canonical_format.toUpperCase()}
-                    </span>
-                  )}
-                  {currentModel.preferred_parallel && (
-                    <span className="badge" style={{ fontSize: "11px", backgroundColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }}>
-                      {currentModel.preferred_parallel.toUpperCase()}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            <select
-              id="model-select"
-              className="editor-select"
-              value={selectedModel}
-              onChange={(e) => handleModelChange(e.target.value)}
-              disabled={isJobActive || isStarting || isStopping}
-              style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-            >
-              {models.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.display_name} ({m.architecture})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Config Governed Parameters Banner */}
-        <div className="config-governed-banner">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span className="badge badge-info" style={{ fontSize: "11px", fontWeight: 600 }}>CONFIG GOVERNED</span>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-              Training parameters are locked to canonical specifications (unified_models_v2.yaml / presets.yaml).
-            </span>
-          </div>
-          {onOpenConfigEditor && (
+      {/* ─── REGISTERED ARCHITECTURES & CHECKPOINT TELEMETRY SECTION ───────────── */}
+      <div className="card" style={{ padding: "20px" }}>
+        {/* Header & Controls Toolbar */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+          <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                Registered Architectures &amp; Checkpoint Telemetry
+              </h3>
+              <HelpTooltip content="Unified telemetry registry for all neural architectures defined in unified_models_v2.yaml. Displays authoritative checkpoint status, SOTA convergence, resolution ladders, and dispatches local or cloud training passes." />
+              <span className="badge badge-info" style={{ fontSize: "11px" }}>
+                {filteredModels.length} of {models.length} Models
+              </span>
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+              Comprehensive model manifold cards with integrated local training, headless Kaggle/Colab cloud orchestration, and checkpoint vaults.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            {runningJobId && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "rgba(16, 185, 129, 0.12)", border: "1px solid rgba(16, 185, 129, 0.3)", borderRadius: "6px", padding: "4px 10px" }}>
+                <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "var(--accent-emerald)", animation: "pulse 1.5s infinite" }} />
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--accent-emerald)" }}>
+                  Running: {runningJobModel || "Job " + runningJobId}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleStopLocalTrain}
+                  disabled={actionBusyKey === "stopping"}
+                  style={{ fontSize: "11px", padding: "2px 8px" }}
+                >
+                  {actionBusyKey === "stopping" ? "Halting..." : "Stop"}
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={loadTrainingData}
+              disabled={isRefreshing}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              aria-label="Refresh model checkpoints and telemetry from sidecar"
+            >
+              <span>{isRefreshing ? "Refreshing..." : "Refresh Models"}</span>
+            </button>
+            <HelpTooltip content="Poll port 8200 sidecar to update model weights status, metrics.csv progress, and resolution ladder completion." />
+          </div>
+        </div>
+
+        {/* Search & Filter Toolbar */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px", marginBottom: "20px" }}>
+          {/* Live Search Input */}
+          <div style={{ flex: "1 1 220px", position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Filter by model name, architecture, category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="editor-input"
+              style={{ width: "100%", padding: "6px 10px", fontSize: "12px" }}
+            />
+            {searchQuery && (
               <button
                 type="button"
-                className="btn btn-secondary"
-                onClick={onOpenConfigEditor}
-                style={{ padding: "4px 10px", fontSize: "11px" }}
+                onClick={() => setSearchQuery("")}
+                style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "12px" }}
               >
-                Adjust via Config Editor
+                X
               </button>
-              <HelpTooltip content="Opens the YAML Config Editor to modify training hyperparameters (epochs, batch size, learning rate, spatial ladder stages) in unified_models_v2.yaml or presets.yaml directly." />
-            </div>
-          )}
-        </div>
-
-        {/* Hyperparameters Grid: 4 clean read-only columns */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "18px" }}>
-          <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-              <label htmlFor="epochs-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Training Epochs:
-              </label>
-              <HelpTooltip content="Total training passes over the dataset. Governed by model specification in unified_models_v2.yaml; adjustable via Config Editor." />
-            </div>
-            <input
-              id="epochs-input"
-              type="number"
-              className="editor-input editor-input-readonly"
-              value={epochs}
-              readOnly
-              disabled
-              title="Governed by unified_models_v2.yaml specification"
-            />
+            )}
           </div>
 
-          <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-              <label htmlFor="batch-size-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Minibatch Size:
-              </label>
-              <HelpTooltip content="Number of samples per training forward pass per GPU worker. Governed by model specification in unified_models_v2.yaml and dynamically adjusted by Sawtooth Governor." />
-            </div>
-            <input
-              id="batch-size-input"
-              type="number"
-              className="editor-input editor-input-readonly"
-              value={batchSize}
-              readOnly
-              disabled
-              title="Governed by unified_models_v2.yaml specification"
-            />
-          </div>
-
-          <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-              <label htmlFor="learning-rate-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                Initial Learning Rate:
-              </label>
-              <HelpTooltip content="Base learning rate for AdamW/Lion optimizer with cosine annealing. Governed by model specification in unified_models_v2.yaml; adjustable via Config Editor." />
-            </div>
-            <input
-              id="learning-rate-input"
-              type="number"
-              className="editor-input editor-input-readonly"
-              value={learningRate}
-              readOnly
-              disabled
-              title="Governed by unified_models_v2.yaml specification"
-            />
-          </div>
-
-          <div className="form-group">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-              <label htmlFor="spatial-ladder-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                {isForexModel ? "Timeframe Confluence Stage:" : "Spatial Ladder Stage:"}
-              </label>
-              <HelpTooltip content={isForexModel ? "Multi-timeframe confluence horizon for causal TCN. Governed by model specification in unified_models_v2.yaml." : "Spatial training resolution stage. Governed by model specification in unified_models_v2.yaml; progressive ladders accelerate convergence."} />
-            </div>
+          {/* Status Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Status:</span>
             <select
-              id="spatial-ladder-select"
-              className="editor-select editor-input-readonly"
-              value={selectedLadderStage}
-              disabled
-              title="Governed by unified_models_v2.yaml specification"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
             >
-              {ladderStages.map((res, idx) => (
-                <option key={res} value={res}>
-                  {formatLadderLabel(res, idx, ladderStages.length, isForexModel)}
-                </option>
+              <option value="ALL">All Statuses</option>
+              <option value="FULLY_TRAINED">Fully Trained</option>
+              <option value="PARTIALLY_TRAINED">Partially Trained</option>
+              <option value="WEIGHTS_READY">Weights Ready</option>
+              <option value="INITIALIZING">Initializing</option>
+            </select>
+          </div>
+
+          {/* Category Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Category:</span>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
+            >
+              <option value="ALL">All Categories</option>
+              {uniqueCategories.map((c) => (
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
-        </div>
 
-        {/* Governor Sentinel Card */}
-        <div style={{ marginBottom: "20px" }}>
-          <div className="governor-toggle-card">
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <input
-                id="sawtooth-check"
-                type="checkbox"
-                checked={sawtoothGovernorActive}
-                onChange={(e) => setSawtoothGovernorActive(e.target.checked)}
-                disabled={isJobActive || isStarting || isStopping}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
-              />
-              <label htmlFor="sawtooth-check" style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)", cursor: "pointer" }}>
-                Enable Sawtooth VRAM Governor
-              </label>
-              <HelpTooltip content="Monitors GPU VRAM allocation every 50 iterations. If VRAM exceeds 92%, dynamically halves batch size and adds gradient accumulation to prevent CUDA Out-Of-Memory exceptions." />
-            </div>
-            <span
-              className={`badge ${sawtoothGovernorActive ? "badge-success" : "badge-secondary"}`}
-              style={{ fontSize: "11px", fontWeight: 600 }}
+          {/* Architecture Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Architecture:</span>
+            <select
+              value={archFilter}
+              onChange={(e) => setArchFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
             >
-              {sawtoothGovernorActive ? "ACTIVE (92% VRAM Sentinel)" : "DISABLED"}
-            </span>
+              <option value="ALL">All Architectures</option>
+              {uniqueArchitectures.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {isJobActive ? (
+          {(searchQuery || statusFilter !== "ALL" || categoryFilter !== "ALL" || archFilter !== "ALL") && (
             <button
               type="button"
-              className="btn btn-danger"
-              onClick={handleStopTraining}
-              disabled={isStopping || !trainingSuiteOnline}
-              aria-label="Stop running neural model training pass"
-              aria-disabled={!trainingSuiteOnline}
+              className="btn btn-secondary"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("ALL");
+                setCategoryFilter("ALL");
+                setArchFilter("ALL");
+              }}
+              style={{ fontSize: "11px", padding: "4px 8px" }}
             >
-              {isStopping ? "Aborting..." : "Stop Training"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleStartTraining}
-              disabled={isStarting || !trainingSuiteOnline}
-              aria-label={!trainingSuiteOnline ? "Training unavailable: Training Suite Sidecar offline" : "Initiate neural model training pass"}
-              aria-disabled={!trainingSuiteOnline}
-            >
-              {isStarting ? "Dispatching Job..." : "Start Training"}
+              Reset Filters
             </button>
           )}
-          <HelpTooltip content={isJobActive ? "Abort active training job in-flight and flush checkpoint state." : "Launch the training execution loop. Spawns background worker process, records checkpoint artifacts, and streams telemetry to the local console."} />
-
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={loadTrainingData}
-            disabled={isStarting || isStopping || isRefreshing}
-            aria-label="Refresh models and metrics from training sidecar"
-          >
-            {isRefreshing ? "Refreshing Models..." : "Refresh Models"}
-          </button>
-          <HelpTooltip content="Poll port 8200 sidecar to update model weights status, best validation metrics, and active training telemetry from unified_models_v2.yaml." />
         </div>
 
+        {/* Banners */}
         {refreshFeedback && (
-          <div className="validation-banner banner-info" style={{ marginTop: "12px" }} role="status">
+          <div className="validation-banner banner-info" style={{ marginBottom: "16px" }} role="status">
             <span>{refreshFeedback}</span>
           </div>
         )}
 
         {!trainingSuiteOnline && (
-          <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
+          <div className="validation-banner banner-error" style={{ marginBottom: "16px" }} role="alert">
             <span>Training Suite Sidecar (Port 8200) is offline. Launch lemgendary-training-suite to enable training dispatch.</span>
           </div>
         )}
 
-        {trainStatus && (
-          <div className="validation-banner banner-success" style={{ marginTop: "16px" }} role="status">
-            <span>{trainStatus}</span>
+        {statusNotice && (
+          <div className="validation-banner banner-success" style={{ marginBottom: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }} role="status">
+            <span>{statusNotice}</span>
+            <button type="button" onClick={() => setStatusNotice(null)} style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 700 }}>X</button>
           </div>
         )}
-      </div>
 
-      {logSlot && <div style={{ marginTop: "24px" }}>{logSlot}</div>}
-
-      <div style={{ marginTop: "24px" }}>
-        <h4 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "16px" }}>
-          Registered Architectures &amp; Checkpoint Telemetry
-        </h4>
+        {/* ─── MODEL CARDS GRID ────────────────────────────────────────────── */}
         <div className="card-grid">
-          {models.map((m) => (
-            <div key={m.key} className="card">
-              <div className="card-title">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <h5 style={{ fontSize: "14px", fontWeight: 600 }}>{m.display_name}</h5>
-                  <HelpTooltip content={`Architecture specs for ${m.key}. Parallel execution mode: ${m.preferred_parallel?.toUpperCase() || "SINGLE"}.`} />
-                </div>
-                {m.training_status === "fully_trained" ? (
-                  <span className="badge badge-success">FULLY TRAINED</span>
-                ) : m.training_status === "partially_trained" || (m.epochs_completed ?? 0) > 0 ? (
-                  <span className="badge badge-info">PARTIALLY TRAINED</span>
-                ) : m.checkpoint_exists ? (
-                  <span className="badge badge-success">WEIGHTS READY</span>
-                ) : (
-                  <span className="badge badge-warning">INITIALIZING</span>
-                )}
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Neural Architecture</span>
-                <span className="metric-value">{m.architecture}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Parameters</span>
-                <span className="metric-value">{m.parameters_m ? `${m.parameters_m} M` : "N/A"}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Task Category</span>
-                <span className="metric-value">{m.task_type}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Completed Epochs</span>
-                <span className="metric-value">{m.epochs_completed ?? 0}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Best {m.metric_name || "Metric"}</span>
-                <span className="metric-value" style={{ color: "var(--accent-emerald)" }}>
-                  {m.best_metric !== undefined ? m.best_metric : "N/A"}
-                </span>
-              </div>
-
-              {m.sota_targets_total !== undefined && m.sota_targets_total > 0 && (
-                <div className="metric-row">
-                  <span className="metric-label">SOTA Targets</span>
-                  <span
-                    className="metric-value"
-                    style={{
-                      color: m.sota_reached ? "var(--accent-emerald)" : (m.sota_targets_met ?? 0) > 0 ? "#38bdf8" : "var(--text-muted)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {m.sota_targets_met ?? 0} / {m.sota_targets_total} Met {m.sota_reached ? "(All Passed)" : ""}
-                  </span>
-                </div>
-              )}
-
-              {m.sota_target !== undefined && (
-                <div className="metric-row">
-                  <span className="metric-label">Primary Target</span>
-                  <span
-                    className="metric-value"
-                    style={{
-                      color: "var(--text-muted)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {m.sota_target}
-                  </span>
-                </div>
-              )}
-
-              <div className="metric-row">
-                <span className="metric-label">{m.is_forex || m.ladder_type === "timeframe" ? "Confluence Ladder" : "Resolution Ladder"}</span>
-                <span
-                  className="metric-value"
-                  style={{
-                    color: m.ladder_passed ? "var(--accent-emerald)" : undefined,
-                  }}
-                >
-                  {m.ladder_passed
-                    ? (m.is_forex || m.ladder_type === "timeframe" ? "Full Confluence (D1)" : `Full (${m.target_res ?? m.max_res_completed ?? 512}px)`)
-                    : (m.is_forex || m.ladder_type === "timeframe" ? "Partial Confluence" : `${m.max_res_completed ?? 0}px / ${m.target_res ?? 512}px`)}
-                </span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Data Fraction</span>
-                <span
-                  className="metric-value"
-                  style={{
-                    color: m.data_fraction_passed ? "var(--accent-emerald)" : undefined,
-                  }}
-                >
-                  {m.data_fraction_completed ? `${Math.round(m.data_fraction_completed * 100)}%` : "0%"} {m.data_fraction_passed ? "(100% Passed)" : ""}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── KAGGLE CLOUD TRAINING NOTEBOOKS ──────────────────────────────────── */}
-      <div style={{ marginTop: "32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-          <h4 style={{ fontSize: "15px", fontWeight: 600 }}>Kaggle Cloud Training Notebooks</h4>
-          <HelpTooltip content="Each model has a dedicated Kaggle training notebook that handles environment sync, dataset attachment, checkpoint recovery, and the Nuclear Training Matrix launch. Open the notebook on Kaggle, attach the required dataset from the sidebar, and run all cells." />
-        </div>
-        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px" }}>
-          Production-hardened Kaggle notebooks for cloud GPU training. Each notebook auto-resolves
-          datasets from <code>/kaggle/input</code>, recovers checkpoints from Kaggle Models, and launches
-          the Nuclear Training Matrix. Attach the required dataset via the Kaggle sidebar before running.
-        </p>
-
-        {/* How-to strip */}
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "20px" }}>
-          <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "10px" }}>How to Run a Kaggle Training Notebook</div>
-          <ol style={{ fontSize: "12px", color: "var(--text-secondary)", paddingLeft: "16px", lineHeight: "2", margin: 0 }}>
-            <li>Click <strong>Open on Kaggle</strong> below, then click <strong>Edit</strong> in the top-right corner</li>
-            <li>Right sidebar → <strong>Add Input</strong> → <strong>Your Datasets</strong> → attach the LemGendized dataset shown below</li>
-            <li>Right sidebar → <strong>Add Input</strong> → <strong>Your Models</strong> → attach the model checkpoint if resuming training</li>
-            <li>Right sidebar → <strong>Session Options</strong> → <strong>Accelerator: GPU T4 x2</strong> (30 GB VRAM recommended)</li>
-            <li>Top bar → <strong>Add-ons</strong> → <strong>Secrets</strong> → ensure <code>SUITE_PAT</code>, <code>KAGGLE_KEY</code>, <code>KAGGLE_USERNAME</code> are set</li>
-            <li>Click <strong>Run All</strong> — training progress streams to the Kaggle output panel in real-time</li>
-          </ol>
-        </div>
-
-        <div className="card-grid">
-          {models.map((m) => {
-            const notebookSlug = `${m.key}_training`;
-            const kaggleUrl = `https://www.kaggle.com/code/lemtreursi/${m.key.replace(/_/g, "-")}-training`;
-            const datasetSlug = `LemGendized${m.key.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
-            const datasetSearchSlug = m.key.replace(/_/g, "-");
-            const isForex = m.is_forex || m.task_type === "forex";
+          {filteredModels.map((m) => {
+            const isTargetOpen = pinnedTargetModel === m.key || hoveredTargetModel === m.key;
+            const isCurrentlyTrainingThis = runningJobModel === m.key;
+            const isBusy = actionBusyKey === `local_${m.key}` || actionBusyKey === `cloud_${m.key}` || actionBusyKey === `pull_${m.key}` || actionBusyKey === `push_${m.key}`;
 
             return (
-              <div key={m.key} className="card" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {/* Header */}
-                <div className="card-title" style={{ flexWrap: "wrap", gap: "6px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <h5 style={{ fontSize: "13px", fontWeight: 600 }}>{m.display_name}</h5>
-                  </div>
-                  <span className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px" }}>
-                    {m.checkpoint_exists ? "Checkpoint Ready" : "No Checkpoint"}
+              <div
+                key={m.key}
+                className="card"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  padding: "16px",
+                  border: isCurrentlyTrainingThis ? "1px solid var(--accent-emerald)" : undefined,
+                  background: isCurrentlyTrainingThis ? "rgba(16, 185, 129, 0.03)" : undefined,
+                }}
+              >
+                {/* 1. Model Name: Full-width at the very top */}
+                <div style={{ width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                  <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3, flex: 1 }}>
+                    {m.display_name}
+                  </h4>
+                  <HelpTooltip content={`Authoritative model key: ${m.key}. Parallel execution mode: ${m.preferred_parallel?.toUpperCase() || "SINGLE"}.`} />
+                </div>
+
+                {/* 2. Training Progress / Status: Full-width directly below Model Name */}
+                <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                    Training Progress:
                   </span>
+                  <div>
+                    {m.training_status === "fully_trained" ? (
+                      <span className="badge badge-success" style={{ fontWeight: 700 }}>FULLY TRAINED</span>
+                    ) : m.training_status === "partially_trained" || (m.epochs_completed ?? 0) > 0 ? (
+                      <span className="badge badge-info" style={{ fontWeight: 700 }}>PARTIALLY TRAINED</span>
+                    ) : m.checkpoint_exists ? (
+                      <span className="badge badge-success" style={{ fontWeight: 700 }}>WEIGHTS READY</span>
+                    ) : (
+                      <span className="badge badge-warning" style={{ fontWeight: 700 }}>INITIALIZING</span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Notebook filename */}
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", background: "rgba(0,0,0,0.2)", padding: "6px 10px", borderRadius: "4px" }}>
-                  {notebookSlug}.ipynb
-                </div>
+                {/* 3. Metric Specs Rows */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
+                  <div className="metric-row">
+                    <span className="metric-label">Neural Architecture</span>
+                    <span className="metric-value">{m.architecture}</span>
+                  </div>
 
-                {/* Required dataset attachment */}
-                <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "6px", padding: "10px" }}>
-                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#60a5fa", marginBottom: "6px" }}>Attach Dataset (Add Input → Your Datasets)</div>
-                  {isForex ? (
-                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-                      <div style={{ color: "var(--accent-emerald)" }}>→ ForexUniverse (2019–2026 annual .parquet files)</div>
-                      <div style={{ color: "var(--text-muted)", marginTop: "3px" }}>Search: <code>lemtreursi/forexuniverse</code></div>
+                  <div className="metric-row">
+                    <span className="metric-label">Parameters</span>
+                    <span className="metric-value">{m.parameters_m ? `${m.parameters_m} M` : "N/A"}</span>
+                  </div>
+
+                  <div className="metric-row">
+                    <span className="metric-label">Task Category</span>
+                    <span className="metric-value">{m.task_type}</span>
+                  </div>
+
+                  <div className="metric-row">
+                    <span className="metric-label">Completed Epochs</span>
+                    <span className="metric-value">{m.epochs_completed ?? 0}</span>
+                  </div>
+
+                  <div className="metric-row">
+                    <span className="metric-label">Best {m.metric_name || "Metric"}</span>
+                    <span className="metric-value" style={{ color: "var(--accent-emerald)", fontWeight: 600 }}>
+                      {m.best_metric !== undefined ? m.best_metric : "N/A"}
+                    </span>
+                  </div>
+
+                  {/* 4. Target Metrics Card (SOTA) - Hover or Click to Expand/Pin */}
+                  <div
+                    style={{
+                      background: isTargetOpen ? "rgba(59, 130, 246, 0.08)" : "rgba(255,255,255,0.02)",
+                      border: isTargetOpen ? "1px solid rgba(59, 130, 246, 0.4)" : "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    onClick={() => toggleTargetPin(m.key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleTargetPin(m.key);
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredTargetModel(m.key)}
+                    onMouseLeave={() => setHoveredTargetModel((prev) => (prev === m.key ? null : prev))}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isTargetOpen}
+                    aria-label={`Target metrics details for ${m.display_name}. Click to pin open.`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                          Target Metrics (SOTA)
+                        </span>
+                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                          {pinnedTargetModel === m.key ? "(Pinned)" : "(Click to pin)"}
+                        </span>
+                      </div>
+                      <span
+                        className="metric-value"
+                        style={{
+                          color: m.sota_reached ? "var(--accent-emerald)" : (m.sota_targets_met ?? 0) > 0 ? "#38bdf8" : "var(--text-muted)",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                        }}
+                      >
+                        {m.sota_targets_total ? `${m.sota_targets_met ?? 0} / ${m.sota_targets_total} Met` : (m.sota_reached ? "Target Reached" : "Pending")}
+                      </span>
                     </div>
+
+                    {/* Expanded Target Details */}
+                    {isTargetOpen && m.sota_details && m.sota_details.length > 0 && (
+                      <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {m.sota_details.map((s) => (
+                          <div key={s.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
+                            <span style={{ color: "var(--text-secondary)" }}>{s.label}:</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ color: "var(--text-muted)" }}>Goal: {s.target}</span>
+                              <span style={{ fontWeight: 600, color: s.passed ? "var(--accent-emerald)" : s.achieved !== null ? "var(--accent-rose)" : "var(--text-muted)" }}>
+                                {s.achieved !== null ? s.achieved : "—"}
+                              </span>
+                              <span className={`badge ${s.passed ? "badge-success" : "badge-secondary"}`} style={{ fontSize: "9px", padding: "1px 5px" }}>
+                                {s.passed ? "PASS" : "PENDING"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 5. Resolution Ladder: Fixed 0/512 bug */}
+                  <div className="metric-row">
+                    <span className="metric-label">{m.is_forex || m.ladder_type === "timeframe" ? "Confluence Ladder" : "Resolution Ladder"}</span>
+                    <span
+                      className="metric-value"
+                      style={{
+                        color: m.ladder_passed ? "var(--accent-emerald)" : undefined,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {m.ladder_passed
+                        ? (m.is_forex || m.ladder_type === "timeframe" ? "Full Confluence (D1)" : `Full (${m.target_res ?? 512}px)`)
+                        : (m.is_forex || m.ladder_type === "timeframe"
+                            ? "Partial Confluence"
+                            : `${m.active_res ?? (m.spatial_ladder && m.spatial_ladder.length > 0 ? m.spatial_ladder[0] : 256)}px / ${m.target_res ?? 512}px`)}
+                    </span>
+                  </div>
+
+                  {/* 6. Data Fraction */}
+                  <div className="metric-row">
+                    <span className="metric-label">Data Fraction</span>
+                    <span
+                      className="metric-value"
+                      style={{
+                        color: m.data_fraction_passed ? "var(--accent-emerald)" : undefined,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {m.data_fraction_passed ? "100% (Passed)" : `${Math.round((m.data_fraction_completed ?? 0) * 100)}%`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Action Buttons Toolbar on each card */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "auto", paddingTop: "8px", borderTop: "1px solid var(--border-color)" }}>
+                  {/* Local Training */}
+                  {isCurrentlyTrainingThis ? (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleStopLocalTrain}
+                      disabled={isBusy}
+                      style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    >
+                      Stop Training
+                    </button>
                   ) : (
-                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-                      <div style={{ color: "var(--accent-emerald)" }}>→ {datasetSlug}</div>
-                      <div style={{ color: "var(--text-muted)", marginTop: "3px" }}>Search: <code>lemtreursi/{datasetSearchSlug}</code></div>
-                      <div style={{ color: "var(--text-muted)" }}>Format: <span style={{ color: "var(--text-secondary)" }}>{m.canonical_format || "webdataset"}</span></div>
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleStartLocalTrain(m)}
+                      disabled={isBusy || !trainingSuiteOnline}
+                      style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                      title="Starts local GPU training pass and focuses telemetry terminal below"
+                    >
+                      Local Training
+                    </button>
                   )}
+
+                  {/* Cloud Training */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleOpenCloudModal(m)}
+                    disabled={isBusy}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Opens Cloud Training dialog to pre-validate URLs, attached datasets, and launch on Kaggle GPU"
+                  >
+                    Cloud Training
+                  </button>
+
+                  {/* Push Checkpoint */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handlePushArtifacts(m.key)}
+                    disabled={isBusy}
+                    style={{ fontSize: "11px", padding: "6px 8px" }}
+                    title="Pushes latest checkpoint to Cloud Checkpoint Vault"
+                  >
+                    Push Checkpoint
+                  </button>
+
+                  {/* Pull Checkpoint */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handlePullArtifacts(m.key)}
+                    disabled={isBusy}
+                    style={{ fontSize: "11px", padding: "6px 8px" }}
+                    title="Pulls latest checkpoint from Kaggle Models repository into local LemGendaryModels"
+                  >
+                    Pull Checkpoint
+                  </button>
                 </div>
-
-                {/* Checkpoint attachment when available */}
-                {m.checkpoint_exists && (
-                  <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "6px", padding: "10px" }}>
-                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--accent-emerald)", marginBottom: "4px" }}>Also Attach Checkpoint (Add Input → Your Models)</div>
-                    <div style={{ fontSize: "11px", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-                      <code>lemtreursi/lemgendary-{m.key.replace(/_/g, "-")}-checkpoints</code>
-                    </div>
-                  </div>
-                )}
-
-                {/* Training progress summary */}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", borderTop: "1px solid var(--border-color)", paddingTop: "8px" }}>
-                  <span>Epochs: <strong style={{ color: "var(--text-secondary)" }}>{m.epochs_completed ?? 0}</strong></span>
-                  <span>
-                    {m.metric_name || "Metric"}: <strong style={{ color: m.sota_reached ? "var(--accent-emerald)" : "var(--text-secondary)" }}>
-                      {m.best_metric !== undefined ? m.best_metric : "—"}
-                    </strong>
-                  </span>
-                  <span>
-                    {m.is_forex || m.ladder_type === "timeframe"
-                      ? (m.ladder_passed ? "D1" : "⏳ Partial")
-                      : (m.ladder_passed ? `${m.target_res ?? 512}px` : `${m.max_res_completed ?? 0}px`)}
-                  </span>
-                </div>
-
-                {/* Kaggle link */}
-                <a
-                  href={kaggleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-secondary"
-                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", marginTop: "auto" }}
-                >
-                  Open on Kaggle
-                </a>
               </div>
             );
           })}
         </div>
+
+        {filteredModels.length === 0 && (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
+            <p style={{ fontSize: "14px", marginBottom: "8px" }}>No architectures matched your search or filter criteria.</p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("ALL");
+                setCategoryFilter("ALL");
+                setArchFilter("ALL");
+              }}
+              style={{ fontSize: "12px" }}
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ─── TELEMETRY & RUNNING PROCESS SWITCHER SECTION ──────────────────────── */}
+      <div id="telemetry-panel-anchor" ref={telemetryRef} style={{ marginTop: "28px" }}>
+        {/* Running Process Switcher Tabs Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "12px", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
+              Process Stream:
+            </span>
+
+            {/* All Telemetry Tab */}
+            <button
+              type="button"
+              className={`btn ${activeTelemetryTab === "all" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setActiveTelemetryTab("all")}
+              style={{ fontSize: "11px", padding: "4px 10px" }}
+            >
+              All Processes &amp; System Stream
+            </button>
+
+            {/* Active Running Job Tab */}
+            {runningJobId && (
+              <button
+                type="button"
+                className={`btn ${activeTelemetryTab === runningJobModel ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setActiveTelemetryTab(runningJobModel || "active")}
+                style={{ fontSize: "11px", padding: "4px 10px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-emerald)", animation: "pulse 1.5s infinite" }} />
+                <span>Active: {runningJobModel || runningJobId}</span>
+              </button>
+            )}
+
+            {/* Kaggle Monitor Jobs Drawer Toggle */}
+            <button
+              type="button"
+              className={`btn ${showCloudDrawer ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setShowCloudDrawer(!showCloudDrawer)}
+              style={{ fontSize: "11px", padding: "4px 10px" }}
+            >
+              Cloud Jobs {kaggleKernels.length > 0 && `(${kaggleKernels.length})`}
+            </button>
+          </div>
+
+          {runningJobId && (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={handleStopLocalTrain}
+              disabled={actionBusyKey === "stopping"}
+              style={{ fontSize: "11px", padding: "4px 12px" }}
+            >
+              {actionBusyKey === "stopping" ? "Halting Job..." : "Halt Active Job"}
+            </button>
+          )}
+        </div>
+
+        {/* Cloud Jobs Drawer if toggled */}
+        {showCloudDrawer && kaggleKernels.length > 0 && (
+          <div style={{ background: "rgba(17, 24, 39, 0.8)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "14px" }}>
+            <div style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", marginBottom: "8px" }}>
+              Active Cloud Kernels (Kaggle):
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto" }}>
+              {kaggleKernels.map((k) => (
+                <div key={k.ref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "4px", fontSize: "11px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span className="badge badge-info">{k.status}</span>
+                    <span>{k.title || k.ref}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => monitorKaggleKernel({ kernel_slug: k.ref, model: k.title })}
+                      style={{ fontSize: "10px", padding: "2px 6px" }}
+                    >
+                      Attach Stream
+                    </button>
+                    <a
+                      href={`https://www.kaggle.com/code/${k.ref}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{ fontSize: "10px", padding: "2px 6px", textDecoration: "none" }}
+                    >
+                      Open ↗
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Telemetry Log Terminal */}
+        {logSlot}
+      </div>
+
+      {/* Cloud Training Modal */}
+      <CloudTrainModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+        model={cloudModalModel}
+        onLaunchKaggle={handleLaunchKaggle}
+        kaggleAuthStatus={kaggleAuthStatus}
+        isBusy={Boolean(actionBusyKey && actionBusyKey.startsWith("cloud_"))}
+      />
     </div>
   );
 };

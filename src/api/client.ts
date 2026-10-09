@@ -13,7 +13,11 @@ import {
   HealthAuditReport,
   KaggleDatasetRegistryItem,
   KaggleDownloadPayload,
+  KaggleKernelItem,
+  KaggleMonitorPayload,
   KaggleStatusResponse,
+  KaggleSuiteStatus,
+  KaggleTrainPayload,
   KaggleUploadPayload,
   ManifestItem,
   ManifestReadResponse,
@@ -31,7 +35,7 @@ import {
   TrainingJobInfo,
 } from "./types";
 
-export type { MeshStatus, ServiceOperationResult, TrainingJobInfo };
+export type { KaggleKernelItem, KaggleMonitorPayload, KaggleSuiteStatus, KaggleTrainPayload, MeshStatus, ServiceOperationResult, TrainingJobInfo };
 
 export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
@@ -378,10 +382,14 @@ interface RawModelData {
   ladder_type?: "spatial" | "timeframe";
   is_forex?: boolean;
   ladder_passed?: boolean;
+  active_res?: number | null;
   max_res_completed?: number | null;
   target_res?: number | null;
+  active_data_fraction?: number | null;
   data_fraction_completed?: number;
   data_fraction_passed?: boolean;
+  kaggle_ref?: string;
+  kaggle_dataset_urls?: string[];
   best_metric?: number;
   metric_name?: string;
   sota_target?: number;
@@ -451,10 +459,14 @@ export async function fetchModels(): Promise<ModelItem[]> {
         ladder_type: ladderType,
         is_forex: isForex,
         ladder_passed: ladderPassed,
+        active_res: item.active_res ?? (spatialLadder.length > 0 ? spatialLadder[0] : (item.target_res ?? 512)),
         max_res_completed: item.max_res_completed ?? null,
         target_res: item.target_res ?? (spatialLadder.length > 0 ? spatialLadder[spatialLadder.length - 1] : null),
+        active_data_fraction: item.active_data_fraction ?? null,
         data_fraction_completed: item.data_fraction_completed ?? 0,
         data_fraction_passed: dataFractionPassed,
+        kaggle_ref: item.kaggle_ref,
+        kaggle_dataset_urls: item.kaggle_dataset_urls,
         checkpoint_exists: ckptExists,
         preferred_parallel: parallelMode,
         epochs_completed: completedEpochs,
@@ -508,6 +520,67 @@ export async function cancelTrainingJob(jobId: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ─── Kaggle Cloud Engine Orchestration (Port 8200) ───────────────────────────
+
+export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
+  try {
+    const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/status`);
+    if (!res.ok) return { authenticated: false, username: "", token_configured: false };
+    return res.json();
+  } catch {
+    return { authenticated: false, username: "", token_configured: false };
+  }
+}
+
+export async function fetchKaggleKernels(limit: number = 20): Promise<KaggleKernelItem[]> {
+  try {
+    const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/kernels?limit=${limit}`);
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function launchKaggleTrain(payload: KaggleTrainPayload): Promise<{ job_id: string; status: string; message: string; model: string }> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/train`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to launch Kaggle training: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function monitorKaggleKernel(payload: KaggleMonitorPayload): Promise<{ job_id: string; status: string; message: string; kernel_slug: string }> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/monitor`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to connect to Kaggle kernel: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function pullKaggleModelArtifacts(model: string): Promise<{ status: string; model: string; message: string }> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/pull`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to pull Kaggle artifacts: ${res.statusText}`);
+  }
+  return res.json();
 }
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────

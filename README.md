@@ -39,6 +39,13 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - **Strict 3-Pillar Convergence Badges**: Model cards authoritatively evaluate `FULLY TRAINED` (all SOTA targets met + entire ladder passed + 100% data fraction), `PARTIALLY TRAINED`, `WEIGHTS READY`, and `INITIALIZING`.
   - **Adaptive Domain Controls**: Selecting `forex_predictor` dynamically switches dropdowns from "Spatial Ladder Stage" to **"Timeframe Confluence Stage"** with MetaTrader 5 horizons (`M1 Scalping`, `M5 Order Flow`, `M15 Trigger`, `H1 Trend`, `H4 Momentum`, `D1 Macro Confluence`).
 
+- **Kaggle Cloud Training & Live Monitoring Hub**:
+  - Interactive cloud training cards with detailed operational guidelines, manifold binding indicators, and checkpoint recovery metadata.
+  - Dedicated cloud action triggers: **"Start on Kaggle"** (`POST /api/training/kaggle/train`), **"Monitor Cloud"** (`POST /api/training/kaggle/monitor`), and **"Pull Checkpoints"** (`POST /api/training/kaggle/pull`).
+  - GPU Accelerator selector supporting Kaggle Dual-T4 (`nvidia-tesla-t4-x2`) and P100 (`nvidia-tesla-p100`) hardware clusters.
+  - Automated Cloud Artifact Sync toggle for zero-touch checkpoint recovery upon remote training completion.
+  - Contextual help badges with tooltips across all cloud notebook cards explaining dataset attaching, secret credentials (`SUITE_PAT`, `KAGGLE_KEY`), and execution parameters.
+
 - **Contextual UX Help & Interactive Hover Guidance**:
   - Every interactive UI element (action buttons, navigation menu items, slider governors, toggle switches, form inputs, and status badges) features an inline help icon badge.
   - Hovering over any help icon displays an elevated glassmorphic tooltip card explaining the control's function, associated CLI/API command, and operational side effects.
