@@ -260,6 +260,7 @@ export interface ModelItem {
   sota_targets_met?: number;
   sota_all_met?: boolean;
   sota_details?: SotaMetricDetail[];
+  best_metrics_details?: BestMetricDetail[];
   training_status?: "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | string;
   status?: "PLANNED" | "SPECIFICATION" | "DATASET_READY" | "TRAINING" | "TRAINED" | "VALIDATED" | "PRODUCTION" | "DEPRECATED" | string;
   authoritative_status?: string;
@@ -275,6 +276,15 @@ export interface SotaMetricDetail {
   achieved: number | null;
   lower_is_better: boolean;
   passed: boolean;
+}
+
+export interface BestMetricDetail {
+  key: string;
+  label: string;
+  value: number | null;
+  target?: number | null;
+  lower_is_better?: boolean;
+  passed?: boolean;
 }
 
 export interface QuickTrainPayload {
