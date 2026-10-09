@@ -11,6 +11,7 @@ import {
   launchKaggleTrain,
   monitorKaggleKernel,
   pullKaggleModelArtifacts,
+  fetchLiveModelTelemetry,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 
@@ -109,7 +110,28 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         if (jobs && jobs.length > 0) {
           const active = jobs.find((j) => j.status === "running") || jobs[0];
           setRunningJobId(active.id);
-          setRunningJobModel(active.model_key || (active.params?.model as string) || null);
+          const activeKey = active.model_key || (active.params?.model as string) || null;
+          setRunningJobModel(activeKey);
+          if (activeKey) {
+            const tel = await fetchLiveModelTelemetry(activeKey).catch(() => null);
+            if (tel && (tel.latest_res !== null || tel.latest_data !== null)) {
+              setModels((prev) =>
+                prev.map((m) => {
+                  if (m.key !== activeKey) return m;
+                  const newRes = tel.latest_res ?? m.active_res;
+                  const newDataFraction = tel.latest_data ?? m.data_fraction_completed ?? 0;
+                  const newPassed = (newDataFraction >= 0.99 && m.ladder_passed) || Boolean(m.sota_reached);
+                  return {
+                    ...m,
+                    active_res: newRes,
+                    data_fraction_completed: newDataFraction,
+                    data_fraction_passed: newPassed,
+                    epochs_completed: Math.max(m.epochs_completed ?? 0, tel.latest_epoch ?? 0),
+                  };
+                })
+              );
+            }
+          }
         } else {
           setRunningJobId(null);
           setRunningJobModel(null);
@@ -622,11 +644,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                     <span
                       className="metric-value"
                       style={{
-                        color: m.data_fraction_passed ? "var(--accent-emerald)" : undefined,
+                        color: (m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99) ? "var(--accent-emerald)" : undefined,
                         fontWeight: 600,
                       }}
                     >
-                      {m.data_fraction_passed ? "100% (Passed)" : `${Math.round((m.data_fraction_completed ?? 0) * 100)}%`}
+                      {(m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99) ? "100% (Passed)" : `${Math.round((m.data_fraction_completed ?? 0) * 100)}%`}
                     </span>
                   </div>
                 </div>
