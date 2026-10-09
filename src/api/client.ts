@@ -250,6 +250,9 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
         shards_count: item.shards_count ?? 0,
         is_compiled: isCompiled,
         modernized_folder: item.name,
+        task: item.task || "vision",
+        sources: item.sources || [],
+        kaggle_ref: item.kaggle_ref,
       };
     });
   } catch {

@@ -236,11 +236,11 @@ code, pre {
 
 .card-grid-dashboard {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr 3fr;
   gap: 20px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .card-grid-dashboard {
     grid-template-columns: 1fr;
   }

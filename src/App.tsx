@@ -239,6 +239,28 @@ export const App: React.FC = () => {
     try {
       setStartingServiceId("all");
       setRefreshError(null);
+
+      // If Port 8000 root coordinator is offline, try desktop Tauri bootstrap or guide browser
+      if (!meshStatus.envManager) {
+        const isTauri = typeof window !== "undefined" && Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+        if (isTauri) {
+          try {
+            const { invoke } = await import("@tauri-apps/api/core");
+            await invoke("spawn_sidecar");
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await refreshMeshStatus();
+          } catch (spawnErr) {
+            const msg = spawnErr instanceof Error ? spawnErr.message : String(spawnErr);
+            throw new Error(`Tauri sidecar bootstrap failed: ${msg}`);
+          }
+        } else {
+          setRefreshError(
+            "Root coordinator (Port 8000) is offline. In browser sandbox mode, launch the coordinator in your terminal: powershell -ExecutionPolicy Bypass -File .\\lemgendary_env_manager.ps1 serve (or python -m env_manager.cli serve --port 8000)"
+          );
+          return;
+        }
+      }
+
       await startAllServices();
       for (let i = 0; i < 10; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -351,15 +373,30 @@ export const App: React.FC = () => {
               }}
             >
               <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{refreshError}</span>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: "11px", padding: "2px 10px", flexShrink: 0 }}
-                onClick={() => setRefreshError(null)}
-                aria-label="Dismiss error message"
-              >
-                Dismiss
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                {refreshError.includes("lemgendary_env_manager.ps1") && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ fontSize: "11px", padding: "2px 10px" }}
+                    onClick={() => {
+                      navigator.clipboard.writeText("powershell -ExecutionPolicy Bypass -File .\\lemgendary_env_manager.ps1 serve");
+                    }}
+                    aria-label="Copy server launch command to clipboard"
+                  >
+                    Copy Command
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: "11px", padding: "2px 10px" }}
+                  onClick={() => setRefreshError(null)}
+                  aria-label="Dismiss error message"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
 

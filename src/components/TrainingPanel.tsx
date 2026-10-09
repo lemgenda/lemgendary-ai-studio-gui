@@ -31,9 +31,14 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
-  // Active training job state
-  const [runningJobId, setRunningJobId] = useState<string | null>(null);
-  const [runningJobModel, setRunningJobModel] = useState<string | null>(null);
+  // Local active training job state
+  const [localJobId, setLocalJobId] = useState<string | null>(null);
+  const [localJobModel, setLocalJobModel] = useState<string | null>(null);
+
+  // Remote / Cloud active training job state
+  const [remoteJobId, setRemoteJobId] = useState<string | null>(null);
+  const [remoteJobModel, setRemoteJobModel] = useState<string | null>(null);
+  const [attachedKernelRef, setAttachedKernelRef] = useState<string | null>(null);
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
@@ -47,15 +52,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
   const [hoveredTargetModel, setHoveredTargetModel] = useState<string | null>(null);
 
-  // Cloud modal state
+  // Cloud modal & quick-dispatch state
   const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
+  const [selectedCloudLaunchModel, setSelectedCloudLaunchModel] = useState<string>("");
+  const [cloudGpu, setCloudGpu] = useState<"T4" | "P100">("T4");
   const [kaggleAuthStatus, setKaggleAuthStatus] = useState<KaggleSuiteStatus | null>(null);
   const [kaggleKernels, setKaggleKernels] = useState<KaggleKernelItem[]>([]);
-  const [showCloudDrawer, setShowCloudDrawer] = useState<boolean>(false);
 
-  // Active telemetry tab filter ("all" or active model key)
-  const [activeTelemetryTab, setActiveTelemetryTab] = useState<string>("all");
+  // Active telemetry tab: "local" | "remote" | "mesh"
+  const [activeTelemetryTab, setActiveTelemetryTab] = useState<"local" | "remote" | "mesh">("local");
 
   const telemetryRef = useRef<HTMLDivElement>(null);
 
@@ -93,14 +99,17 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     loadKaggleData();
   }, [loadTrainingData, loadKaggleData]);
 
+  const runningJobId = localJobId;
+  const runningJobModel = localJobModel;
+
   // Periodic polling for active running training jobs
   useEffect(() => {
     let isMounted = true;
     const pollRunningJobs = async () => {
       if (!trainingSuiteOnline) {
         if (isMounted) {
-          setRunningJobId(null);
-          setRunningJobModel(null);
+          setLocalJobId(null);
+          setLocalJobModel(null);
         }
         return;
       }
@@ -109,9 +118,9 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         if (!isMounted) return;
         if (jobs && jobs.length > 0) {
           const active = jobs.find((j) => j.status === "running") || jobs[0];
-          setRunningJobId(active.id);
+          setLocalJobId(active.id);
           const activeKey = active.model_key || (active.params?.model as string) || null;
-          setRunningJobModel(activeKey);
+          setLocalJobModel(activeKey);
           if (activeKey) {
             const tel = await fetchLiveModelTelemetry(activeKey).catch(() => null);
             if (tel && (tel.latest_res !== null || tel.latest_data !== null)) {
@@ -133,8 +142,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             }
           }
         } else {
-          setRunningJobId(null);
-          setRunningJobModel(null);
+          setLocalJobId(null);
+          setLocalJobModel(null);
         }
       } catch {
         // Training suite sidecar temporarily unreachable
@@ -174,10 +183,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         enable_sawtooth: true,
       });
       if (res.job_id) {
-        setRunningJobId(res.job_id);
-        setRunningJobModel(model.key);
+        setLocalJobId(res.job_id);
+        setLocalJobModel(model.key);
       }
-      setStatusNotice(`Training dispatched for ${model.display_name} (Job ID: ${res.job_id || "Active"}). Telemetry streaming below.`);
+      setActiveTelemetryTab("local");
+      setStatusNotice(`Training dispatched for ${model.display_name} (Job ID: ${res.job_id || "Active"}). Local telemetry streaming below.`);
       scrollToTelemetry();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -188,15 +198,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   };
 
   const handleStopLocalTrain = async () => {
-    if (!runningJobId) return;
-    const jobId = runningJobId;
+    if (!localJobId) return;
+    const jobId = localJobId;
     setActionBusyKey("stopping");
-    setStatusNotice("Dispatched abort signal — halting training process cleanly...");
+    setStatusNotice("Dispatched abort signal — halting local training process cleanly...");
     try {
       await cancelTrainingJob(jobId);
-      setRunningJobId(null);
-      setRunningJobModel(null);
-      setStatusNotice("Training process halted. Checkpoints safely preserved in LemGendaryModels.");
+      setLocalJobId(null);
+      setLocalJobModel(null);
+      setStatusNotice("Local training process halted. Checkpoints safely preserved in LemGendaryModels.");
     } catch {
       setStatusNotice(`Abort signal dispatched for job ${jobId}. Process will terminate safely.`);
     } finally {
@@ -218,12 +228,30 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         auto_pull: autoPull,
       });
       if (res.job_id) {
-        setRunningJobId(res.job_id);
-        setRunningJobModel(modelKey);
+        setRemoteJobId(res.job_id);
+        setRemoteJobModel(modelKey);
       }
+      setActiveTelemetryTab("remote");
       setStatusNotice(`Kaggle Cloud training queued for ${modelKey}. Job ID: ${res.job_id || "Active"}.`);
       scrollToTelemetry();
       loadKaggleData();
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  const handleAttachKernelStream = async (k: KaggleKernelItem) => {
+    setActionBusyKey(`attach_${k.ref}`);
+    try {
+      await monitorKaggleKernel({ kernel_slug: k.ref, model: k.title });
+      setAttachedKernelRef(k.ref);
+      setRemoteJobModel(k.title || k.ref);
+      setActiveTelemetryTab("remote");
+      setStatusNotice(`Attached live telemetry stream to remote kernel: ${k.ref}`);
+      scrollToTelemetry();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to attach stream: ${msg}`);
     } finally {
       setActionBusyKey(null);
     }
@@ -771,102 +799,316 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         )}
       </div>
 
-      {/* ─── TELEMETRY & RUNNING PROCESS SWITCHER SECTION ──────────────────────── */}
+      {/* ─── TABBED REAL-TIME TELEMETRY & MULTI-EXECUTION CARD ──────────────── */}
       <div id="telemetry-panel-anchor" ref={telemetryRef} style={{ marginTop: "28px" }}>
-        {/* Running Process Switcher Tabs Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "12px", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase" }}>
-              Process Stream:
-            </span>
+        <section className="card" aria-labelledby="telemetry-card-heading">
+          {/* Telemetry Card Header with Process Tabs */}
+          <div className="card-title" style={{ flexWrap: "wrap", gap: "12px", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <h3 id="telemetry-card-heading" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                Real-Time Telemetry &amp; Execution
+              </h3>
+              <HelpTooltip content="Unified telemetry hub supporting concurrent local GPU training and remote Kaggle/Colab cloud training in isolated streams." />
 
-            {/* All Telemetry Tab */}
-            <button
-              type="button"
-              className={`btn ${activeTelemetryTab === "all" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTelemetryTab("all")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
-            >
-              All Processes &amp; System Stream
-            </button>
+              {/* Tab Switcher */}
+              <div style={{ display: "inline-flex", background: "rgba(0,0,0,0.3)", padding: "3px", borderRadius: "6px", border: "1px solid var(--border-color)", gap: "4px" }}>
+                {/* Tab 1: Local Training */}
+                <button
+                  type="button"
+                  className={`btn ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setActiveTelemetryTab("local")}
+                  style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
+                >
+                  <span
+                    style={{
+                      width: "7px",
+                      height: "7px",
+                      borderRadius: "50%",
+                      background: localJobId ? "var(--accent-emerald, #10b981)" : "#64748b",
+                      animation: localJobId ? "pulse 1.5s infinite" : "none",
+                    }}
+                  />
+                  <span>Local Training {localJobId ? `(${localJobModel || "Active"})` : ""}</span>
+                </button>
 
-            {/* Active Running Job Tab */}
-            {runningJobId && (
-              <button
-                type="button"
-                className={`btn ${activeTelemetryTab === runningJobModel ? "btn-primary" : "btn-secondary"}`}
-                onClick={() => setActiveTelemetryTab(runningJobModel || "active")}
-                style={{ fontSize: "11px", padding: "4px 10px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-emerald)", animation: "pulse 1.5s infinite" }} />
-                <span>Active: {runningJobModel || runningJobId}</span>
-              </button>
-            )}
+                {/* Tab 2: Remote / Cloud Training */}
+                <button
+                  type="button"
+                  className={`btn ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setActiveTelemetryTab("remote")}
+                  style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
+                >
+                  <span
+                    style={{
+                      width: "7px",
+                      height: "7px",
+                      borderRadius: "50%",
+                      background: (remoteJobId || attachedKernelRef) ? "var(--accent-cyan, #06b6d4)" : "#64748b",
+                      animation: (remoteJobId || attachedKernelRef) ? "pulse 1.5s infinite" : "none",
+                    }}
+                  />
+                  <span>Remote Cloud {remoteJobModel ? `(${remoteJobModel})` : kaggleKernels.length > 0 ? `(${kaggleKernels.length})` : ""}</span>
+                </button>
 
-            {/* Kaggle Monitor Jobs Drawer Toggle */}
-            <button
-              type="button"
-              className={`btn ${showCloudDrawer ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setShowCloudDrawer(!showCloudDrawer)}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
-            >
-              Cloud Jobs {kaggleKernels.length > 0 && `(${kaggleKernels.length})`}
-            </button>
+                {/* Tab 3: Mesh Stream */}
+                <button
+                  type="button"
+                  className={`btn ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setActiveTelemetryTab("mesh")}
+                  style={{ fontSize: "11px", padding: "4px 10px" }}
+                >
+                  Ecosystem Mesh
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Context Controls */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {activeTelemetryTab === "local" && localJobId && (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleStopLocalTrain}
+                  disabled={actionBusyKey === "stopping"}
+                  style={{ fontSize: "11px", padding: "4px 12px" }}
+                >
+                  {actionBusyKey === "stopping" ? "Halting Job..." : "Halt Local Job"}
+                </button>
+              )}
+
+              {activeTelemetryTab === "remote" && (
+                <button
+                  type="button"
+                  className="btn btn-cloud"
+                  onClick={() => {
+                    const target = models.find((m) => m.key === selectedCloudLaunchModel) || models[0];
+                    if (target) handleOpenCloudModal(target);
+                  }}
+                  style={{ fontSize: "11px", padding: "4px 12px" }}
+                >
+                  Launch Cloud Run
+                </button>
+              )}
+            </div>
           </div>
 
-          {runningJobId && (
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={handleStopLocalTrain}
-              disabled={actionBusyKey === "stopping"}
-              style={{ fontSize: "11px", padding: "4px 12px" }}
-            >
-              {actionBusyKey === "stopping" ? "Halting Job..." : "Halt Active Job"}
-            </button>
-          )}
-        </div>
+          {/* ─── TAB 1: LOCAL TRAINING TELEMETRY ────────────────────────────── */}
+          {activeTelemetryTab === "local" && (
+            <div>
+              {/* Local Training Status Bar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", marginBottom: "12px", fontSize: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span className={`badge ${localJobId ? "badge-success" : "badge-neutral"}`} style={{ fontWeight: 700 }}>
+                    {localJobId ? "LOCAL TRAINING IN PROGRESS" : "LOCAL WORKER IDLE"}
+                  </span>
+                  {localJobId ? (
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      Active Model: <strong style={{ color: "var(--text-primary)" }}>{localJobModel}</strong> | Job ID: <code>{localJobId}</code>
+                    </span>
+                  ) : (
+                    <span style={{ color: "var(--text-muted)" }}>
+                      Select any model card above and click &quot;Local Training&quot; to begin governed local GPU execution.
+                    </span>
+                  )}
+                </div>
+              </div>
 
-        {/* Cloud Jobs Drawer if toggled */}
-        {showCloudDrawer && kaggleKernels.length > 0 && (
-          <div style={{ background: "rgba(17, 24, 39, 0.8)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "14px" }}>
-            <div style={{ fontSize: "12px", fontWeight: 700, color: "#60a5fa", marginBottom: "8px" }}>
-              Active Cloud Kernels (Kaggle):
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto" }}>
-              {kaggleKernels.map((k) => (
-                <div key={k.ref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "4px", fontSize: "11px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span className="badge badge-info">{k.status}</span>
-                    <span>{k.title || k.ref}</span>
+              {/* Local Training Monospace Stream */}
+              <div className="log-container" role="log" style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}>
+                {(_recentEvents || []).filter((ev) => {
+                  const msg = ev.message.toLowerCase();
+                  const isRemote = msg.includes("[kaggle]") || msg.includes("[cloud]") || msg.includes("kaggle://") || msg.includes("kernel");
+                  return !isRemote && (
+                    ev.step_name.toLowerCase().includes("training") ||
+                    msg.includes("[governor]") ||
+                    msg.includes("[yolo gen]") ||
+                    msg.includes("[training]") ||
+                    msg.includes("[start]") ||
+                    msg.includes("epoch") ||
+                    msg.includes("rung")
+                  );
+                }).length === 0 ? (
+                  <div className="log-empty">
+                    {localJobId ? "Awaiting training stream packets from sidecar..." : "No active local training stream. Launch a local model to monitor live execution."}
                   </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => monitorKaggleKernel({ kernel_slug: k.ref, model: k.title })}
-                      style={{ fontSize: "10px", padding: "2px 6px" }}
-                    >
-                      Attach Stream
-                    </button>
-                    <a
-                      href={`https://www.kaggle.com/code/${k.ref}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      style={{ fontSize: "10px", padding: "2px 6px", textDecoration: "none" }}
-                    >
-                      Open ↗
-                    </a>
+                ) : (
+                  (_recentEvents || []).filter((ev) => {
+                    const msg = ev.message.toLowerCase();
+                    const isRemote = msg.includes("[kaggle]") || msg.includes("[cloud]") || msg.includes("kaggle://") || msg.includes("kernel");
+                    return !isRemote && (
+                      ev.step_name.toLowerCase().includes("training") ||
+                      msg.includes("[governor]") ||
+                      msg.includes("[yolo gen]") ||
+                      msg.includes("[training]") ||
+                      msg.includes("[start]") ||
+                      msg.includes("epoch") ||
+                      msg.includes("rung")
+                    );
+                  }).map((ev, idx) => (
+                    <div key={`local-${ev.timestamp}-${idx}`} className="log-line">
+                      <span className="log-timestamp">{ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}</span>
+                      <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
+                      <span className={`log-message ${ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""}`}>{ev.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── TAB 2: REMOTE / CLOUD TRAINING (KAGGLE & COLAB) ────────────── */}
+          {activeTelemetryTab === "remote" && (
+            <div>
+              {/* Cloud Pre-Flight & Quick Dispatch Bar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", marginBottom: "12px", fontSize: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span className={`badge ${kaggleAuthStatus?.authenticated ? "badge-success" : "badge-error"}`}>
+                    {kaggleAuthStatus?.authenticated ? `KAGGLE: @${kaggleAuthStatus.username}` : "KAGGLE OFFLINE"}
+                  </span>
+                  {attachedKernelRef && (
+                    <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>
+                      Attached: <code>{attachedKernelRef}</code>
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <select
+                    className="select-filter"
+                    value={selectedCloudLaunchModel}
+                    onChange={(e) => setSelectedCloudLaunchModel(e.target.value)}
+                    style={{ fontSize: "11px", padding: "4px 8px" }}
+                  >
+                    <option value="">Select Model for Cloud Dispatch...</option>
+                    {models.map((m) => (
+                      <option key={m.key} value={m.key}>{m.display_name}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="select-filter"
+                    value={cloudGpu}
+                    onChange={(e) => setCloudGpu(e.target.value as "T4" | "P100")}
+                    style={{ fontSize: "11px", padding: "4px 8px" }}
+                  >
+                    <option value="T4">NVIDIA T4 (16GB)</option>
+                    <option value="P100">NVIDIA P100 (16GB)</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    className="btn btn-cloud"
+                    disabled={!selectedCloudLaunchModel || actionBusyKey !== null}
+                    onClick={() => {
+                      if (selectedCloudLaunchModel) {
+                        handleLaunchKaggle(selectedCloudLaunchModel, cloudGpu, true);
+                      }
+                    }}
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                  >
+                    Dispatch to Kaggle
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Kaggle Kernels Table */}
+              {kaggleKernels.length > 0 && (
+                <div style={{ marginBottom: "12px", background: "rgba(17, 24, 39, 0.7)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "8px", textTransform: "uppercase" }}>
+                    Active &amp; Recent Cloud Kernels (Kaggle GPU):
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "150px", overflowY: "auto" }}>
+                    {kaggleKernels.map((k) => (
+                      <div key={k.ref} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "4px", fontSize: "11px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span className={`badge ${k.status === "complete" ? "badge-success" : k.status === "running" ? "badge-info" : "badge-neutral"}`}>
+                            {k.status}
+                          </span>
+                          <span style={{ fontWeight: 600 }}>{k.title || k.ref}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => handleAttachKernelStream(k)}
+                            disabled={actionBusyKey === `attach_${k.ref}`}
+                            style={{ fontSize: "10px", padding: "2px 8px" }}
+                          >
+                            {actionBusyKey === `attach_${k.ref}` ? "Attaching..." : "Attach Stream"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-vault-pull"
+                            onClick={() => handlePullArtifacts(k.title || k.ref)}
+                            disabled={actionBusyKey === `pull_${k.title || k.ref}`}
+                            style={{ fontSize: "10px", padding: "2px 8px" }}
+                          >
+                            Pull Checkpoints
+                          </button>
+                          <a
+                            href={`https://www.kaggle.com/code/${k.ref}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary"
+                            style={{ fontSize: "10px", padding: "2px 8px", textDecoration: "none" }}
+                          >
+                            Open ↗
+                          </a>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              )}
 
-        {/* Telemetry Log Terminal */}
-        {logSlot}
+              {/* Remote Cloud Monospace Stream */}
+              <div className="log-container" role="log" style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}>
+                {(_recentEvents || []).filter((ev) => {
+                  const msg = ev.message.toLowerCase();
+                  return (
+                    msg.includes("[kaggle]") ||
+                    msg.includes("[cloud]") ||
+                    msg.includes("kaggle://") ||
+                    msg.includes("colab") ||
+                    msg.includes("kernel") ||
+                    ev.step_name.toLowerCase().includes("kaggle") ||
+                    ev.step_name.toLowerCase().includes("cloud")
+                  );
+                }).length === 0 ? (
+                  <div className="log-empty">
+                    No remote cloud telemetry received yet. Click &quot;Attach Stream&quot; on an active Kaggle kernel or dispatch a new cloud run above.
+                  </div>
+                ) : (
+                  (_recentEvents || []).filter((ev) => {
+                    const msg = ev.message.toLowerCase();
+                    return (
+                      msg.includes("[kaggle]") ||
+                      msg.includes("[cloud]") ||
+                      msg.includes("kaggle://") ||
+                      msg.includes("colab") ||
+                      msg.includes("kernel") ||
+                      ev.step_name.toLowerCase().includes("kaggle") ||
+                      ev.step_name.toLowerCase().includes("cloud")
+                    );
+                  }).map((ev, idx) => (
+                    <div key={`remote-${ev.timestamp}-${idx}`} className="log-line">
+                      <span className="log-timestamp">{ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}</span>
+                      <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>
+                      <span className={`log-message ${ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""}`}>{ev.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─── TAB 3: ECOSYSTEM PIPELINE STREAM ────────────────────────────── */}
+          {activeTelemetryTab === "mesh" && (
+            <div>
+              {logSlot}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Cloud Training Modal */}

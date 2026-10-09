@@ -137,6 +137,13 @@ export interface DatasetFormatBreakdown {
   other: number;
 }
 
+export interface DatasetSourceItem {
+  name: string;
+  ref?: string;
+  count?: number;
+  type?: string;
+}
+
 export interface DatasetItem {
   key: string;
   display_name: string;
@@ -148,6 +155,9 @@ export interface DatasetItem {
   shards_count?: number;
   is_compiled: boolean;
   modernized_folder?: string;
+  task?: string;
+  sources?: DatasetSourceItem[];
+  kaggle_ref?: string;
 }
 
 export interface BackendDatasetStats {
@@ -166,6 +176,8 @@ export interface BackendDatasetStats {
   is_compiled?: boolean;
   has_hardlinks?: boolean;
   hardlink_ratio?: number;
+  sources?: DatasetSourceItem[];
+  kaggle_ref?: string;
 }
 
 export interface CompilerPreset {

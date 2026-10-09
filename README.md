@@ -34,8 +34,15 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - **Kaggle Cloud Synchronization & Storage Hub**: Bi-directional cloud syncing: download pre-configured manifolds from `unified_data.yaml`, download custom datasets via direct URL or slug, and publish local compiled manifolds.
   - **Production Manifolds Catalog**: Real-time status, format breakdowns, sample counts, and disk metrics across all 22 production manifolds.
 
+- **Revamped 1/4 - 3/4 Training Dashboard Topology**:
+  - **1/4 Left Sidebar**: Unified preset selection (`quick-sota`, `forex-production`, `vision-standard`), runtime hyperparameters, VRAM safety limits, and one-click Sidecar Services management.
+  - **3/4 Main Workspace**: Model Card Grid with top-level metric filters and interactive bottom-docked Telemetry Console.
+
 - **Training Manifold & SOTA Model Cards**:
-  - **Interactive Topology Catalog**: Real-time model cards displaying neural architecture, parameter counts, primary targets, SOTA target progress counters (`X / Y Met`), Resolution Ladder progress, and Data Fraction completion.
+  - **Full-Width Header & Integrated Progress Bar**: Model cards feature a full-width header bar displaying the model title, domain badges, parameter count, and an inline progress bar showing the active spatial ladder progress or SOTA target completion.
+  - **Pinned SOTA Metric Tooltip**: Hovering over SOTA targets reveals all metrics, targets, and actual best scores; clicking pins the tooltip open for persistent comparison during training.
+  - **Dual Local vs. Cloud Execution Triggers**: Card action buttons provide **"Start Training"** (local dispatch) and **"Cloud Training"** (opens the interactive Cloud Training modal). Both triggers automatically scroll down to focus the bottom Telemetry console.
+  - **Interactive Cloud Training Modal**: Dedicated dialog allowing users to choose target cloud notebooks (`Kaggle`, `Colab`, `SageMaker`), verify manifold bindings, review required secrets (`SUITE_PAT`, `KAGGLE_KEY`), and launch cloud runs with zero manual setup.
   - **Strict 3-Pillar Convergence Badges**: Model cards authoritatively evaluate `FULLY TRAINED` (all SOTA targets met + entire ladder passed + 100% data fraction), `PARTIALLY TRAINED`, `WEIGHTS READY`, and `INITIALIZING`.
   - **Adaptive Domain Controls**: Selecting `forex_predictor` dynamically switches dropdowns from "Spatial Ladder Stage" to **"Timeframe Confluence Stage"** with MetaTrader 5 horizons (`M1 Scalping`, `M5 Order Flow`, `M15 Trigger`, `H1 Trend`, `H4 Momentum`, `D1 Macro Confluence`).
 

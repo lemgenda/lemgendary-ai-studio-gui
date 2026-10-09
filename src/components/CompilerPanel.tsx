@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import {
   fetchDatasets,
   fetchCompilerPresets,
   triggerQuickCompile,
   triggerCustomCompile,
-  fetchKaggleStatus,
-  fetchKaggleRegistryDatasets,
   downloadKaggleDataset,
   uploadKaggleDataset,
   updateKaggleMetadata,
@@ -14,8 +12,6 @@ import {
 import {
   CompilerPreset,
   DatasetItem,
-  KaggleDatasetRegistryItem,
-  KaggleStatusResponse,
 } from "../api/types";
 
 interface CompilerPanelProps {
@@ -47,63 +43,190 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [isCustomCompiling, setIsCustomCompiling] = useState<boolean>(false);
   const [customCompileStatus, setCustomCompileStatus] = useState<string | null>(null);
 
-  // Kaggle Sync Hub State
-  const [kaggleStatus, setKaggleStatus] = useState<KaggleStatusResponse | null>(null);
-  const [kaggleRegistry, setKaggleRegistry] = useState<KaggleDatasetRegistryItem[]>([]);
-  const [kaggleActiveTab, setKaggleActiveTab] = useState<"download" | "upload" | "metadata" | "notebooks">("download");
+  // Search & Filter State for Manifolds Catalog (matching Model Matrix)
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [formatFilter, setFormatFilter] = useState<string>("ALL");
+  const [taskFilter, setTaskFilter] = useState<string>("ALL");
 
-  useEffect(() => {
-    window.__setKaggleActiveTab = (tab: "download" | "upload" | "metadata" | "notebooks") => setKaggleActiveTab(tab);
-  }, []);
-  const [kaggleDownloadMode, setKaggleDownloadMode] = useState<"registry" | "custom">("registry");
-  const [selectedRegistryKey, setSelectedRegistryKey] = useState<string>("");
+  // Pinned/hovered Upstream Sources details (matching SOTA targets row on models)
+  const [pinnedSourcesManifold, setPinnedSourcesManifold] = useState<string | null>(null);
+  const [hoveredSourcesManifold, setHoveredSourcesManifold] = useState<string | null>(null);
+
+  // Custom Kaggle Link / Slug Download Bar state
   const [customKaggleRef, setCustomKaggleRef] = useState<string>("");
   const [downloadTargetFolder, setDownloadTargetFolder] = useState<string>("");
   const [downloadForce, setDownloadForce] = useState<boolean>(false);
   const [isDownloadingKaggle, setIsDownloadingKaggle] = useState<boolean>(false);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
-  const [uploadManifold, setUploadManifold] = useState<string>("");
-  const [uploadKaggleRef, setUploadKaggleRef] = useState<string>("");
-  const [isUploadingKaggle, setIsUploadingKaggle] = useState<boolean>(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-
-  // Metadata update state
-  const [metaUpdateMode, setMetaUpdateMode] = useState<"single" | "all">("single");
-  const [metaUpdateManifold, setMetaUpdateManifold] = useState<string>("");
-  const [metaUpdateRef, setMetaUpdateRef] = useState<string>("");
-  const [isUpdatingMeta, setIsUpdatingMeta] = useState<boolean>(false);
-  const [metaUpdateStatus, setMetaUpdateStatus] = useState<string | null>(null);
+  // Card-level action busy states & status notices
+  const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
     setRefreshFeedback(null);
     try {
-      const [dsList, prList, kStatus, kReg] = await Promise.all([
+      const [dsList, prList] = await Promise.all([
         fetchDatasets(),
         fetchCompilerPresets(),
-        fetchKaggleStatus(),
-        fetchKaggleRegistryDatasets(),
       ]);
 
       if (dsList.length > 0) {
         setDatasets(dsList);
         setSelectedManifold((prev) => prev || dsList[0].key);
-        setUploadManifold((prev) => prev || dsList[0].key);
-        setMetaUpdateManifold((prev) => prev || dsList[0].key);
         setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
-        // Fallback default manifolds from unified_data.yaml
+        // Fallback default manifolds from unified_data.yaml with full sources & splits
         const fallbackDatasets: DatasetItem[] = [
-          { key: "mirnet_exposure", display_name: "MIRNet Low-Light & Exposure", format: "webdataset", canonical_format: "webdataset", total_samples: 1416459, total_size_mb: 87840, format_breakdown: { webp: 1416459, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 283, is_compiled: true },
-          { key: "upn_v2", display_name: "Unified Perceptual Net V2", format: "webdataset", canonical_format: "webdataset", total_samples: 1378070, total_size_mb: 53600, format_breakdown: { webp: 1378070, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 285, is_compiled: true },
-          { key: "nima_aesthetic", display_name: "NIMA Perceptual Aesthetics", format: "parquet", canonical_format: "parquet", total_samples: 321369, total_size_mb: 18200, format_breakdown: { webp: 321369, jpg: 0, png: 0, parquet: 65, other: 0 }, shards_count: 65, is_compiled: true },
-          { key: "film_restorer", display_name: "Film Restorer & Scratch Removal", format: "webdataset", canonical_format: "webdataset", total_samples: 67542, total_size_mb: 28500, format_breakdown: { webp: 67542, jpg: 0, png: 0, parquet: 0, other: 0 }, shards_count: 14, is_compiled: true },
-          { key: "yolov8n", display_name: "YOLOv8n Detection & Segmentation", format: "directory", canonical_format: "directory", total_samples: 153972, total_size_mb: 12400, format_breakdown: { webp: 0, jpg: 135659, png: 18313, parquet: 0, other: 0 }, shards_count: 0, is_compiled: true },
+          {
+            key: "upn_v2",
+            display_name: "Unified Perceptual Net V2",
+            format: "webdataset",
+            canonical_format: "webdataset",
+            total_samples: 1378070,
+            total_size_mb: 53600,
+            format_breakdown: { webp: 1378070, jpg: 0, png: 0, parquet: 0, other: 0 },
+            shards_count: 285,
+            is_compiled: true,
+            task: "restoration",
+            modernized_folder: "LemGendizedUpnV2",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedupnv2",
+            sources: [
+              { name: "DPED", count: 344517, type: "SOURCE" },
+              { name: "Adobe FiveK", count: 344517, type: "SOURCE" },
+              { name: "DIV2K", count: 344517, type: "KAGGLE" },
+              { name: "Flickr2K", count: 344519, type: "KAGGLE" },
+            ],
+          },
+          {
+            key: "mirnet_exposure",
+            display_name: "MIRNet Low-Light & Exposure",
+            format: "webdataset",
+            canonical_format: "webdataset",
+            total_samples: 1416459,
+            total_size_mb: 87840,
+            format_breakdown: { webp: 1416459, jpg: 0, png: 0, parquet: 0, other: 0 },
+            shards_count: 283,
+            is_compiled: true,
+            task: "restoration",
+            modernized_folder: "LemGendizedMirNetExposure",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedmirnetexposure",
+            sources: [
+              { name: "SICE Dataset", count: 850000, type: "SOURCE" },
+              { name: "Exposure Correction", count: 566459, type: "KAGGLE" },
+            ],
+          },
+          {
+            key: "nima_aesthetic",
+            display_name: "NIMA Perceptual Aesthetics",
+            format: "parquet",
+            canonical_format: "parquet",
+            total_samples: 321369,
+            total_size_mb: 18200,
+            format_breakdown: { webp: 321369, jpg: 0, png: 0, parquet: 65, other: 0 },
+            shards_count: 65,
+            is_compiled: true,
+            task: "quality",
+            modernized_folder: "LemGendizedNimaAesthetic",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizednimaaesthetic",
+            sources: [
+              { name: "AVA Benchmark", count: 255500, type: "KAGGLE" },
+              { name: "TAD66K", count: 45000, type: "HUGGINGFACE" },
+              { name: "SPAQ", count: 11125, type: "HUGGINGFACE" },
+              { name: "KonIQ-10k", count: 9744, type: "KAGGLE" },
+            ],
+          },
+          {
+            key: "professional_multitask_restoration",
+            display_name: "Multitask Restoration Pro",
+            format: "mds",
+            canonical_format: "mds",
+            total_samples: 343911,
+            total_size_mb: 45200,
+            format_breakdown: { webp: 343911, jpg: 0, png: 0, parquet: 0, other: 0 },
+            shards_count: 85,
+            is_compiled: true,
+            task: "restoration",
+            modernized_folder: "LemGendizedMultitaskRestorationPro",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedmultitaskrestorationpro",
+            sources: [
+              { name: "NAFNet Deblurring", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "NAFNet Denoising", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "MPRNet Deraining", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "FFANet Indoor", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "FFANet Outdoor", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "MIRNet Low-Light", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "MIRNet Exposure", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "UltraZoom", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "Film Restorer", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "CodeFormer", count: 31264, type: "SUB-MANIFOLD" },
+              { name: "ParseNet", count: 31271, type: "SUB-MANIFOLD" },
+            ],
+          },
+          {
+            key: "classification_master_manifold",
+            display_name: "Classification Master Manifold",
+            format: "mds",
+            canonical_format: "mds",
+            total_samples: 788034,
+            total_size_mb: 61800,
+            format_breakdown: { webp: 788034, jpg: 0, png: 0, parquet: 0, other: 0 },
+            shards_count: 136,
+            is_compiled: true,
+            task: "classification",
+            modernized_folder: "LemGendizedClassificationMaster",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedclassificationmaster",
+            sources: [
+              { name: "Anime DB Rating (Danbooru)", count: 262678, type: "HUGGINGFACE" },
+              { name: "General NSFW", count: 262678, type: "HUGGINGFACE" },
+              { name: "Food-101 Baseline", count: 262678, type: "HUGGINGFACE" },
+            ],
+          },
+          {
+            key: "yolov8n",
+            display_name: "YOLOv8n Detection & Segmentation",
+            format: "directory",
+            canonical_format: "directory",
+            total_samples: 153972,
+            total_size_mb: 12400,
+            format_breakdown: { webp: 0, jpg: 135659, png: 18313, parquet: 0, other: 0 },
+            shards_count: 2,
+            is_compiled: true,
+            task: "detection",
+            modernized_folder: "LemGendizedYoloV8n",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedyolov8n",
+            sources: [
+              { name: "COCO 2017", count: 118287, type: "KAGGLE" },
+              { name: "Pascal VOC 2012", count: 17125, type: "KAGGLE" },
+              { name: "CrowdPose Dataset", count: 10000, type: "SOURCE" },
+              { name: "KITTI Benchmark", count: 7481, type: "SOURCE" },
+              { name: "MPII Human Pose", count: 1079, type: "SOURCE" },
+            ],
+          },
+          {
+            key: "film_restorer",
+            display_name: "Film Restorer & Scratch Removal",
+            format: "webdataset",
+            canonical_format: "webdataset",
+            total_samples: 67542,
+            total_size_mb: 28500,
+            format_breakdown: { webp: 67542, jpg: 0, png: 0, parquet: 0, other: 0 },
+            shards_count: 14,
+            is_compiled: true,
+            task: "restoration",
+            modernized_folder: "LemGendizedFilmRestorer",
+            kaggle_ref: "kaggle://lemtreursi/lemgendizedfilmrestorer",
+            sources: [
+              { name: "Old Film Restoration", count: 28000, type: "KAGGLE" },
+              { name: "Vintage Photos", count: 22542, type: "KAGGLE" },
+              { name: "Bringing-Old-Photos-Back-to-Life", count: 17000, type: "HUGGINGFACE" },
+            ],
+          },
         ];
         setDatasets(fallbackDatasets);
         setSelectedManifold((prev) => prev || "upn_v2");
-        setUploadManifold((prev) => prev || "upn_v2");
         if (!datasetCompilerOnline) {
           setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying cached registry catalog.");
         }
@@ -119,16 +242,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           { id: "lightning-litdata", name: "PyTorch Lightning LitData (chunk*.bin)", description: "Optimized direct tensor serialization for distributed cloud storage.", target_format: "litdata", shard_size: 5000, lossless: true },
         ]);
       }
-
-      setKaggleStatus(kStatus);
-      if (kReg.length > 0) {
-        setKaggleRegistry(kReg);
-        setSelectedRegistryKey((prev) => prev || kReg[0].key);
-      }
     } catch {
       setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
     } finally {
       setIsRefreshing(false);
+      setTimeout(() => setRefreshFeedback(null), 4000);
     }
   }, [datasetCompilerOnline]);
 
@@ -139,7 +257,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Standard Compile Handler
   const handleCompile = async () => {
     if (!datasetCompilerOnline) {
-      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable. Launch lemgendary-datasets to compile.");
+      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
       return;
     }
     setIsCompiling(true);
@@ -151,7 +269,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         shard_size: shardSize,
         purge_loose_images: purgeLooseImages,
       });
-      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to console.`);
+      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to monitor below.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setCompileStatus(`Compilation failed: ${msg}`);
@@ -204,30 +322,16 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     }
   };
 
-  // Kaggle Download Handler
-  const handleKaggleDownload = async () => {
+  // Custom Kaggle Slug Download Handler
+  const handleCustomKaggleDownload = async () => {
     if (!datasetCompilerOnline) {
       setDownloadStatus("Kaggle download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
       return;
     }
-
-    let targetRef = "";
-    let defaultFolder = "";
-
-    if (kaggleDownloadMode === "registry") {
-      const item = kaggleRegistry.find((r) => r.key === selectedRegistryKey);
-      if (!item) {
-        setDownloadStatus("Please select a registry dataset to download.");
-        return;
-      }
-      targetRef = item.clean_repo_id || item.kaggle_ref;
-      defaultFolder = item.modernized_folder;
-    } else {
-      targetRef = customKaggleRef.trim();
-      if (!targetRef) {
-        setDownloadStatus("Please enter a Kaggle dataset link or repository slug (e.g. owner/dataset).");
-        return;
-      }
+    const targetRef = customKaggleRef.trim();
+    if (!targetRef) {
+      setDownloadStatus("Please enter a Kaggle dataset link or repository slug (e.g. owner/dataset).");
+      return;
     }
 
     setIsDownloadingKaggle(true);
@@ -235,10 +339,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     try {
       const res = await downloadKaggleDataset({
         kaggle_ref: targetRef,
-        target_folder: downloadTargetFolder.trim() || defaultFolder || undefined,
+        target_folder: downloadTargetFolder.trim() || undefined,
         force: downloadForce,
       });
-      setDownloadStatus(`Kaggle download initiated successfully (Job ID: ${res.job_id || "Active"}). Streaming from Kaggle API.`);
+      setDownloadStatus(`Kaggle download initiated for ${targetRef} (Job ID: ${res.job_id || "Active"}). Streaming to disk.`);
+      loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setDownloadStatus(`Download failed: ${msg}`);
@@ -247,88 +352,162 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     }
   };
 
-  // Kaggle Upload Handler
-  const handleKaggleUpload = async () => {
+  // Per-Dataset Card Actions
+  const handleDownloadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setUploadStatus("Kaggle upload failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice("Download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
       return;
     }
-    if (!uploadManifold) {
-      setUploadStatus("Please select a local manifold to upload.");
-      return;
-    }
-
-    setIsUploadingKaggle(true);
-    setUploadStatus(null);
+    const ref = dataset.kaggle_ref || dataset.key;
+    const folder = dataset.modernized_folder || dataset.key;
+    setActionBusyKey(`dl_${dataset.key}`);
+    setActionNotice(null);
     try {
-      const res = await uploadKaggleDataset({
-        manifold: uploadManifold,
-        kaggle_ref: uploadKaggleRef.trim() || undefined,
+      const res = await downloadKaggleDataset({
+        kaggle_ref: ref,
+        target_folder: folder,
+        force: false,
       });
-      setUploadStatus(`Kaggle upload initiated successfully (Job ID: ${res.job_id || "Active"}). Packaging manifold and pushing to Kaggle.`);
+      setActionNotice(`Kaggle download initiated for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+      loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      setUploadStatus(`Upload failed: ${msg}`);
+      setActionNotice(`Download failed for ${dataset.display_name}: ${msg}`);
     } finally {
-      setIsUploadingKaggle(false);
+      setActionBusyKey(null);
     }
   };
 
-  // Kaggle Metadata Update Handler
-  const handleKaggleMetadataUpdate = async () => {
+  const handleUploadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setMetaUpdateStatus("Metadata update failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice("Upload failed: Dataset Compiler Sidecar (Port 8100) is offline.");
       return;
     }
-    setIsUpdatingMeta(true);
-    setMetaUpdateStatus(null);
+    const manifoldFolder = dataset.modernized_folder || dataset.key;
+    setActionBusyKey(`ul_${dataset.key}`);
+    setActionNotice(`Packaging and uploading ${dataset.display_name} to Kaggle Cloud...`);
     try {
-      if (metaUpdateMode === "all") {
-        const res = await updateKaggleMetadata({ all_datasets: true });
-        setMetaUpdateStatus(`Metadata update initiated for ALL datasets (Job ID: ${res.job_id || "Active"}). Updating Kaggle descriptions, licenses and column schemas.`);
-      } else {
-        if (!metaUpdateManifold) {
-          setMetaUpdateStatus("Please select a manifold to update.");
-          return;
-        }
-        const res = await updateKaggleMetadata({
-          manifold: metaUpdateManifold,
-          kaggle_ref: metaUpdateRef.trim() || undefined,
-        });
-        setMetaUpdateStatus(`Metadata update initiated for ${metaUpdateManifold} (Job ID: ${res.job_id || "Active"}). Pushing title, description, license and column descriptors to Kaggle.`);
-      }
+      const res = await uploadKaggleDataset({
+        manifold: manifoldFolder,
+        kaggle_ref: dataset.kaggle_ref || undefined,
+      });
+      setActionNotice(`Kaggle upload initiated for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
-      setMetaUpdateStatus(`Metadata update failed: ${msg}`);
+      setActionNotice(`Upload failed for ${dataset.display_name}: ${msg}`);
     } finally {
-      setIsUpdatingMeta(false);
+      setActionBusyKey(null);
     }
+  };
+
+  const handleUpdateMetadataSingle = async (dataset: DatasetItem) => {
+    if (!datasetCompilerOnline) {
+      setActionNotice("Metadata update failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      return;
+    }
+    const manifoldFolder = dataset.modernized_folder || dataset.key;
+    setActionBusyKey(`meta_${dataset.key}`);
+    setActionNotice(null);
+    try {
+      const res = await updateKaggleMetadata({
+        manifold: manifoldFolder,
+        kaggle_ref: dataset.kaggle_ref || undefined,
+      });
+      setActionNotice(`Pushed dataset-metadata.json descriptors to Kaggle for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setActionNotice(`Metadata update failed for ${dataset.display_name}: ${msg}`);
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  // Distinct tasks & formats for filtering
+  const uniqueFormats = useMemo(() => {
+    const set = new Set<string>();
+    datasets.forEach((d) => {
+      const f = d.canonical_format || d.format;
+      if (f) set.add(f.toLowerCase());
+    });
+    return Array.from(set).sort();
+  }, [datasets]);
+
+  const uniqueTasks = useMemo(() => {
+    const set = new Set<string>();
+    datasets.forEach((d) => {
+      if (d.task) set.add(d.task.toLowerCase());
+    });
+    return Array.from(set).sort();
+  }, [datasets]);
+
+  // Filtered datasets
+  const filteredDatasets = useMemo(() => {
+    return datasets.filter((d) => {
+      // Text search
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = d.display_name.toLowerCase().includes(q);
+        const matchesKey = d.key.toLowerCase().includes(q);
+        const matchesFormat = (d.canonical_format || d.format || "").toLowerCase().includes(q);
+        const matchesTask = (d.task || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesKey && !matchesFormat && !matchesTask) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "COMPILED" && !d.is_compiled) return false;
+        if (statusFilter === "UNCOMPILED" && d.is_compiled) return false;
+      }
+
+      // Format filter
+      if (formatFilter !== "ALL") {
+        const f = (d.canonical_format || d.format || "").toLowerCase();
+        if (f !== formatFilter.toLowerCase()) return false;
+      }
+
+      // Task filter
+      if (taskFilter !== "ALL") {
+        const t = (d.task || "").toLowerCase();
+        if (t !== taskFilter.toLowerCase()) return false;
+      }
+
+      return true;
+    });
+  }, [datasets, searchQuery, statusFilter, formatFilter, taskFilter]);
+
+  const toggleSourcesPin = (datasetKey: string) => {
+    setPinnedSourcesManifold((prev) => (prev === datasetKey ? null : datasetKey));
   };
 
   return (
     <div className="panel-container">
       {/* ─── SECTION 1: DATASET COMPILER & STORAGE MODERNIZATION ────────────── */}
-      <div className="card">
-        <div className="card-title">
+      <div className="card" style={{ padding: "16px 20px" }}>
+        <div className="card-title" style={{ marginBottom: "8px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Dataset Compiler &amp; Storage Modernization</h3>
-            <HelpTooltip content="Autonomous dataset synthesis engine. Compiles raw multi-source image collections into modern, self-contained streaming manifolds (WebDataset .tar, Parquet, MDS, LitData)." />
+            <h3 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+              Dataset Compiler &amp; Storage Modernization
+            </h3>
+            <HelpTooltip content="Autonomous dataset synthesis engine. Compiles raw multi-source image collections into modern streaming containers (WebDataset .tar, Parquet, MDS, LitData)." />
           </div>
-          <span className="badge badge-info">Port 8100 Sidecar</span>
+          <span className="badge badge-info" style={{ fontSize: "11px" }}>Port 8100 Sidecar</span>
         </div>
 
-        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+        <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 12px 0", lineHeight: 1.4 }}>
           Modernize raw archives into streaming containers with in-flight 12-thread WebP transcoding,
           automatic directory flattening, aspect-ratio quantization, and zero NTFS block overhead.
         </p>
 
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div className="segmented-control" style={{ maxWidth: "480px" }}>
+            <div className="segmented-control" style={{ maxWidth: "440px" }}>
               <button
                 type="button"
                 className={`segmented-btn ${compileMode === "standard" ? "active" : ""}`}
                 onClick={() => setCompileMode("standard")}
+                style={{ fontSize: "12px", padding: "4px 12px" }}
               >
                 Standard Manifold Compilation
               </button>
@@ -336,21 +515,22 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                 type="button"
                 className={`segmented-btn ${compileMode === "custom" ? "active" : ""}`}
                 onClick={() => setCompileMode("custom")}
+                style={{ fontSize: "12px", padding: "4px 12px" }}
               >
                 Custom Multi-Source Compilation
               </button>
             </div>
-            <HelpTooltip content="Standard Manifold Compilation compiles datasets registered in unified_data.yaml using official registry bindings. Custom Multi-Source Compilation allows ingesting from Kaggle, HuggingFace, Google Drive, or GitHub URLs into a new named manifold." />
+            <HelpTooltip content="Standard Manifold Compilation compiles datasets registered in unified_data.yaml. Custom Multi-Source Compilation ingests from Kaggle, HuggingFace, Google Drive, or GitHub into a new named manifold." />
           </div>
         </div>
 
         {/* Standard Mode Form */}
         {compileMode === "standard" && (
           <div>
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "20px" }}>
+            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px", marginBottom: "14px" }}>
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="manifold-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <label htmlFor="manifold-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                     Target Manifold:
                   </label>
                   <HelpTooltip content="Select the dataset manifold to synthesize or modernize. Sourced from unified_data.yaml." />
@@ -361,6 +541,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   value={selectedManifold}
                   onChange={(e) => setSelectedManifold(e.target.value)}
                   disabled={isCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
                   {datasets.map((d) => (
                     <option key={d.key} value={d.key}>
@@ -371,11 +552,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="preset-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <label htmlFor="preset-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                     Storage Format Preset:
                   </label>
-                  <HelpTooltip content="Canonical storage architecture: WebDataset for sequential streaming, Parquet for metadata tables, MDS for fast random access, or LitData for tensor tensors." />
+                  <HelpTooltip content="Canonical storage architecture: WebDataset for sequential streaming, Parquet for metadata tables, MDS for fast random access, or LitData for tensor storage." />
                 </div>
                 <select
                   id="preset-select"
@@ -383,6 +564,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   value={selectedPreset}
                   onChange={(e) => setSelectedPreset(e.target.value)}
                   disabled={isCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
                   {presets.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -393,11 +575,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="shard-size-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <label htmlFor="shard-size-input" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                     Samples Per Shard:
                   </label>
-                  <HelpTooltip content="Number of paired input/target samples serialized per container shard chunk. 5,000 samples typically produces 300-400MB shards, optimal for web streaming and memory mapping." />
+                  <HelpTooltip content="Number of paired input/target samples serialized per container chunk. 5,000 samples typically produces 300-400MB shards, optimal for web streaming." />
                 </div>
                 <input
                   id="shard-size-input"
@@ -408,10 +590,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   disabled={isCompiling}
                   min={100}
                   max={50000}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 />
               </div>
 
-              <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "24px" }}>
+              <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "22px" }}>
                 <input
                   id="purge-loose-check"
                   type="checkbox"
@@ -419,102 +602,90 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   onChange={(e) => setPurgeLooseImages(e.target.checked)}
                   disabled={isCompiling}
                 />
-                <label htmlFor="purge-loose-check" style={{ fontSize: "13px", color: "var(--text-primary)", cursor: "pointer" }}>
+                <label htmlFor="purge-loose-check" style={{ fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
                   Purge loose images post-compilation
                 </label>
-                <HelpTooltip content="When enabled, deletes redundant uncompressed loose image files (images/, targets/) after writing shards to eliminate dual-storage disk amplification." />
+                <HelpTooltip content="When enabled, deletes redundant uncompressed loose image files after writing shards to eliminate dual-storage disk amplification." />
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleCompile}
                 disabled={isCompiling || !datasetCompilerOnline}
+                style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
                 aria-label={!datasetCompilerOnline ? "Compile unavailable: Dataset Compiler Sidecar offline" : "Start dataset manifold compilation"}
-                aria-disabled={!datasetCompilerOnline}
               >
                 {isCompiling ? "Compiling Manifold..." : "Compile Manifold"}
               </button>
-              <HelpTooltip content="Launch the high-throughput multi-threaded compilation process. Compiles samples, encodes WebP, builds indexes, and cleans up loose files." />
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={loadCompilerData}
-                disabled={isCompiling || isRefreshing}
-                aria-label="Refresh datasets list and format breakdown"
-              >
-                {isRefreshing ? "Refreshing Catalog..." : "Refresh Catalog"}
-              </button>
+              <HelpTooltip content="Launch multi-threaded compilation. Transcodes samples to lossless WebP, builds container indexes, and purges redundant loose images." />
             </div>
 
             {compileStatus && (
-              <div className="validation-banner banner-success" style={{ marginTop: "16px" }} role="status">
+              <div
+                className={`validation-banner ${compileStatus.includes("failed") ? "banner-error" : "banner-success"}`}
+                style={{ marginTop: "12px", fontSize: "12px" }}
+                role="status"
+              >
                 <span>{compileStatus}</span>
               </div>
             )}
           </div>
         )}
 
-        {/* Custom Multi-Source Mode Form */}
+        {/* Custom Mode Form */}
         {compileMode === "custom" && (
           <div>
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "16px" }}>
+            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginBottom: "14px" }}>
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="custom-name-input" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Custom Manifold Name:
-                  </label>
-                  <HelpTooltip content="Unique identifier for your custom compiled manifold (e.g. SuperResMaster, AnimeDiffusion, FaceRestorationPro)." />
-                </div>
+                <label htmlFor="custom-name-input" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                  Manifold Name:
+                </label>
                 <input
                   id="custom-name-input"
                   type="text"
                   className="editor-input"
-                  placeholder="e.g. SuperResMaster"
+                  placeholder="e.g. FineArtPortraitsV1"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   disabled={isCustomCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 />
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="custom-task-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Domain Task:
-                  </label>
-                  <HelpTooltip content="Machine learning target domain for schema and vetting policies." />
-                </div>
+                <label htmlFor="custom-task-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                  Task Category:
+                </label>
                 <select
                   id="custom-task-select"
                   className="editor-select"
                   value={customTask}
                   onChange={(e) => setCustomTask(e.target.value)}
                   disabled={isCustomCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
-                  <option value="restoration">Restoration (Super-Resolution, Denoising, Deblurring)</option>
-                  <option value="detection">Object Detection &amp; Bounding Boxes</option>
-                  <option value="segmentation">Instance &amp; Semantic Segmentation</option>
+                  <option value="restoration">Restoration &amp; Enhancement</option>
+                  <option value="detection">Detection &amp; Localization</option>
+                  <option value="classification">Classification &amp; Filtering</option>
                   <option value="quality">Aesthetic &amp; Quality Scoring</option>
                   <option value="vision">General Computer Vision</option>
                 </select>
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="custom-format-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Container Architecture:
-                  </label>
-                  <HelpTooltip content="Storage container format: WebDataset (.tar shards), Parquet, MosaicML (.mds), or LitData." />
-                </div>
+                <label htmlFor="custom-format-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                  Container Format:
+                </label>
                 <select
                   id="custom-format-select"
                   className="editor-select"
                   value={customCanonicalFormat}
                   onChange={(e) => setCustomCanonicalFormat(e.target.value as "webdataset" | "parquet" | "mds" | "litdata")}
                   disabled={isCustomCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
                   <option value="webdataset">WebDataset Streaming (.tar shards)</option>
                   <option value="parquet">Columnar Parquet (.parquet)</option>
@@ -524,18 +695,16 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="custom-preset-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Compression Preset:
-                  </label>
-                  <HelpTooltip content="Predefined compression profile for image encoding and quality bounds." />
-                </div>
+                <label htmlFor="custom-preset-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                  Compression Profile:
+                </label>
                 <select
                   id="custom-preset-select"
                   className="editor-select"
                   value={customPreset}
                   onChange={(e) => setCustomPreset(e.target.value)}
                   disabled={isCustomCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
                   {presets.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -546,12 +715,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="custom-shard-size" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Samples Per Shard:
-                  </label>
-                  <HelpTooltip content="Target samples packed per container chunk." />
-                </div>
+                <label htmlFor="custom-shard-size" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+                  Samples Per Shard:
+                </label>
                 <input
                   id="custom-shard-size"
                   type="number"
@@ -561,10 +727,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   disabled={isCustomCompiling}
                   min={100}
                   max={50000}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 />
               </div>
 
-              <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "24px" }}>
+              <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "22px" }}>
                 <input
                   id="custom-purge-check"
                   type="checkbox"
@@ -572,21 +739,17 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   onChange={(e) => setCustomPurgeLoose(e.target.checked)}
                   disabled={isCustomCompiling}
                 />
-                <label htmlFor="custom-purge-check" style={{ fontSize: "13px", color: "var(--text-primary)", cursor: "pointer" }}>
-                  Purge loose source images post-compilation
+                <label htmlFor="custom-purge-check" style={{ fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+                  Purge loose source images
                 </label>
               </div>
             </div>
 
-            {/* Multi-Source Input Textarea */}
-            <div className="form-group" style={{ marginBottom: "16px" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <label htmlFor="custom-sources-area" style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 500 }}>
-                    Source Repositories &amp; Dataset URLs (One per line):
-                  </label>
-                  <HelpTooltip content="Supports Kaggle (kaggle://slug or https://kaggle.com/datasets/...), HuggingFace (hf://repo or https://huggingface.co/datasets/...), Google Drive (gd://id or link), and GitHub (gh://repo or git link)." />
-                </div>
+            <div className="form-group" style={{ marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                <label htmlFor="custom-sources-area" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                  Source Repositories &amp; URLs (One per line):
+                </label>
                 <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
                   Prefixes: kaggle:// | hf:// | gd:// | gh:// or raw URLs
                 </span>
@@ -594,37 +757,31 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
               <textarea
                 id="custom-sources-area"
                 className="editor-textarea"
-                rows={5}
-                placeholder={"# Enter source repositories or direct links, one per line:\nkaggle://username/dataset-slug\nhttps://huggingface.co/datasets/org/dataset-name\nhttps://github.com/owner/repository\ngd://1A2b3C4d5E6F_google_drive_folder_id"}
+                rows={3}
+                placeholder={"# Enter source repositories or direct links, one per line:\nkaggle://username/dataset-slug\nhttps://huggingface.co/datasets/org/dataset-name\nhttps://github.com/owner/repository"}
                 value={customSourcesText}
                 onChange={(e) => setCustomSourcesText(e.target.value)}
                 disabled={isCustomCompiling}
+                style={{ fontSize: "12px", padding: "8px" }}
               />
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={handleCustomCompile}
                 disabled={isCustomCompiling || !datasetCompilerOnline}
+                style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
               >
                 {isCustomCompiling ? "Compiling Custom Manifold..." : "Compile Custom Dataset"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={loadCompilerData}
-                disabled={isCustomCompiling || isRefreshing}
-              >
-                {isRefreshing ? "Refreshing Catalog..." : "Refresh Catalog"}
               </button>
             </div>
 
             {customCompileStatus && (
               <div
                 className={`validation-banner ${customCompileStatus.includes("failed") ? "banner-error" : "banner-success"}`}
-                style={{ marginTop: "16px" }}
+                style={{ marginTop: "12px", fontSize: "12px" }}
                 role="status"
               >
                 <span>{customCompileStatus}</span>
@@ -634,514 +791,434 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         )}
 
         {!datasetCompilerOnline && (
-          <div className="validation-banner banner-error" style={{ marginTop: "12px" }} role="alert">
+          <div className="validation-banner banner-error" style={{ marginTop: "12px", fontSize: "12px" }} role="alert">
             <span>Dataset Compiler Sidecar (Port 8100) is offline. Launch lemgendary-datasets to enable compilation.</span>
           </div>
         )}
+      </div>
 
+      {/* ─── SECTION 2: PRODUCTION MANIFOLDS CATALOG (REVAMPED UX & STYLING) ── */}
+      <div className="card" style={{ marginTop: "20px", padding: "20px" }}>
+        {/* Header & Controls Toolbar */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                Production Manifolds Catalog &amp; Storage Hub
+              </h3>
+              <HelpTooltip content="Authoritative catalog of compiled and raw dataset manifolds defined in unified_data.yaml. Features real-time shard validation, upstream source provenance tracking, direct Kaggle cloud bidirectional sync, and notebook audits." />
+              <span className="badge badge-info" style={{ fontSize: "11px" }}>
+                {filteredDatasets.length} of {datasets.length} Manifolds
+              </span>
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+              Modern streaming containers with verified split telemetry, expandable source provenance, and integrated cloud synchronization.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={loadCompilerData}
+              disabled={isRefreshing}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              aria-label="Refresh datasets list and format breakdown from sidecar"
+            >
+              <span>{isRefreshing ? "Refreshing Catalog..." : "Refresh Catalog"}</span>
+            </button>
+            <HelpTooltip content="Poll Port 8100 sidecar to rescan storage roots, refresh container shard allocations, verify hardlink ratios, and audit metadata." />
+          </div>
+        </div>
+
+        {/* Search & Filter Toolbar (Identical to Model Matrix) */}
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px", marginBottom: "16px" }}>
+          {/* Live Search Input */}
+          <div style={{ flex: "1 1 220px", position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Filter by manifold name, format, task category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="editor-input"
+              style={{ width: "100%", padding: "6px 10px", fontSize: "12px" }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "12px" }}
+              >
+                X
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="COMPILED">Compiled Only</option>
+              <option value="UNCOMPILED">Uncompiled</option>
+            </select>
+          </div>
+
+          {/* Format Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Format:</span>
+            <select
+              value={formatFilter}
+              onChange={(e) => setFormatFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
+            >
+              <option value="ALL">All Formats</option>
+              {uniqueFormats.map((f) => (
+                <option key={f} value={f}>{f.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Task Category Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Category:</span>
+            <select
+              value={taskFilter}
+              onChange={(e) => setTaskFilter(e.target.value)}
+              className="editor-select"
+              style={{ padding: "6px 8px", fontSize: "12px" }}
+            >
+              <option value="ALL">All Categories</option>
+              {uniqueTasks.map((t) => (
+                <option key={t} value={t}>{t.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+
+          {(searchQuery || statusFilter !== "ALL" || formatFilter !== "ALL" || taskFilter !== "ALL") && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("ALL");
+                setFormatFilter("ALL");
+                setTaskFilter("ALL");
+              }}
+              style={{ fontSize: "11px", padding: "4px 8px" }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* Custom Kaggle Link / Slug Download Bar (Directly below headers, above individual manifold cards) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", padding: "10px 14px", background: "rgba(59, 130, 246, 0.04)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "#60a5fa" }}>Custom Kaggle Download:</span>
+            <HelpTooltip content="Download any Kaggle dataset directly into LemGendaryDatasets by providing its repository slug (owner/dataset-name) or direct link." />
+          </div>
+
+          <div style={{ flex: "1 1 240px" }}>
+            <input
+              type="text"
+              placeholder="e.g. owner/dataset-slug or https://www.kaggle.com/datasets/..."
+              value={customKaggleRef}
+              onChange={(e) => setCustomKaggleRef(e.target.value)}
+              className="editor-input"
+              style={{ width: "100%", padding: "5px 10px", fontSize: "12px" }}
+              disabled={isDownloadingKaggle}
+            />
+          </div>
+
+          <div style={{ flex: "0 1 180px" }}>
+            <input
+              type="text"
+              placeholder="Target Folder (Optional)"
+              value={downloadTargetFolder}
+              onChange={(e) => setDownloadTargetFolder(e.target.value)}
+              className="editor-input"
+              style={{ width: "100%", padding: "5px 10px", fontSize: "12px" }}
+              disabled={isDownloadingKaggle}
+            />
+          </div>
+
+          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)", cursor: "pointer", userSelect: "none" }}>
+            <input
+              type="checkbox"
+              checked={downloadForce}
+              onChange={(e) => setDownloadForce(e.target.checked)}
+              disabled={isDownloadingKaggle}
+            />
+            Overwrite Existing
+          </label>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleCustomKaggleDownload}
+            disabled={isDownloadingKaggle || !datasetCompilerOnline || !customKaggleRef.trim()}
+            style={{ fontSize: "11px", padding: "5px 12px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{isDownloadingKaggle ? "Downloading..." : "Download Slug"}</span>
+          </button>
+        </div>
+
+        {/* Global Feedback Banners */}
         {refreshFeedback && (
-          <div className="validation-banner banner-info" style={{ marginTop: "12px" }} role="status">
+          <div className="validation-banner banner-info" style={{ marginBottom: "16px", fontSize: "12px" }} role="status">
             <span>{refreshFeedback}</span>
           </div>
         )}
-      </div>
 
-      {/* ─── SECTION 2: KAGGLE CLOUD SYNCHRONIZATION & STORAGE HUB ───────── */}
-      <div className="card" style={{ marginTop: "20px" }}>
-        <div className="card-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Kaggle Cloud Synchronization &amp; Storage Hub</h3>
-            <HelpTooltip content="Bidirectional cloud synchronization with Kaggle Datasets Hub. Pull official registry manifolds defined in unified_data.yaml, download custom datasets via direct links, or publish local compiled manifolds to Kaggle." />
-          </div>
-          <div>
-            {kaggleStatus?.authenticated ? (
-              <span className="badge badge-success">Kaggle Authenticated</span>
-            ) : (
-              <span className="badge badge-warning">Kaggle Credentials Required</span>
-            )}
-          </div>
-        </div>
-
-        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-          Synchronize production datasets with Kaggle Cloud Storage. Download pre-compiled streaming
-          manifolds or upload local models directly using official Kaggle API integration.
-        </p>
-
-        {/* Subtabs: Download vs Upload vs Update Metadata */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div className="subtab-nav">
-            <button
-              type="button"
-              className={`subtab-btn ${kaggleActiveTab === "download" ? "active" : ""}`}
-              onClick={() => setKaggleActiveTab("download")}
-            >
-              Download from Kaggle
-            </button>
-            <button
-              type="button"
-              className={`subtab-btn ${kaggleActiveTab === "upload" ? "active" : ""}`}
-              onClick={() => setKaggleActiveTab("upload")}
-            >
-              Upload to Kaggle
-            </button>
-            <button
-              type="button"
-              className={`subtab-btn ${kaggleActiveTab === "metadata" ? "active" : ""}`}
-              onClick={() => setKaggleActiveTab("metadata")}
-            >
-              Update Metadata Only
-            </button>
-            <button
-              type="button"
-              className={`subtab-btn ${kaggleActiveTab === "notebooks" ? "active" : ""}`}
-              onClick={() => setKaggleActiveTab("notebooks")}
-            >
-              Audit Notebooks
-            </button>
-          </div>
-          <HelpTooltip content="Download: Pull pre-compiled streaming manifolds from Kaggle into LemGendaryDatasets. Upload: Package and publish a local compiled manifold to Kaggle cloud storage. Update Metadata Only: Push dataset-metadata.json title/description/license updates to Kaggle without re-uploading data. Audit Notebooks: Kaggle notebooks for registry metadata synchronization and dataset verification." />
-        </div>
-
-        {/* Download Section */}
-        {kaggleActiveTab === "download" && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div className="segmented-control" style={{ maxWidth: "420px" }}>
-                <button
-                  type="button"
-                  className={`segmented-btn ${kaggleDownloadMode === "registry" ? "active" : ""}`}
-                  onClick={() => setKaggleDownloadMode("registry")}
-                >
-                  Registry Datasets (unified_data.yaml)
-                </button>
-                <button
-                  type="button"
-                  className={`segmented-btn ${kaggleDownloadMode === "custom" ? "active" : ""}`}
-                  onClick={() => setKaggleDownloadMode("custom")}
-                >
-                  Custom Kaggle Link / Slug
-                </button>
-              </div>
-              <HelpTooltip content="Registry Datasets: Select from production datasets declared in unified_data.yaml with official Kaggle bindings. Custom Link: Download any public Kaggle dataset by pasting its URL or slug directly." />
-            </div>
-
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
-              {kaggleDownloadMode === "registry" ? (
-                <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                    <label htmlFor="kaggle-reg-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Select Registry Dataset:
-                    </label>
-                    <HelpTooltip content="Production datasets defined in unified_data.yaml with official Kaggle repository bindings." />
-                  </div>
-                  <select
-                    id="kaggle-reg-select"
-                    className="editor-select"
-                    value={selectedRegistryKey}
-                    onChange={(e) => setSelectedRegistryKey(e.target.value)}
-                    disabled={isDownloadingKaggle}
-                  >
-                    {kaggleRegistry.map((reg) => (
-                      <option key={reg.key} value={reg.key}>
-                        {reg.title} [{reg.clean_repo_id}] {reg.is_local_present ? "- (Present Locally)" : "- (Not Downloaded)"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                    <label htmlFor="kaggle-custom-ref" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      Kaggle Dataset Link or Slug:
-                    </label>
-                    <HelpTooltip content="Paste direct Kaggle URL (e.g. https://www.kaggle.com/datasets/username/dataset-name) or repository slug (username/dataset-name)." />
-                  </div>
-                  <input
-                    id="kaggle-custom-ref"
-                    type="text"
-                    className="editor-input"
-                    placeholder="e.g. https://www.kaggle.com/datasets/lemgenda/lemgendized-upn-v2 or owner/dataset"
-                    value={customKaggleRef}
-                    onChange={(e) => setCustomKaggleRef(e.target.value)}
-                    disabled={isDownloadingKaggle}
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="download-dest-folder" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Target Folder Name (Optional):
-                  </label>
-                  <HelpTooltip content="Destination subfolder inside LemGendaryDatasets. Defaults to manifold name." />
-                </div>
-                <input
-                  id="download-dest-folder"
-                  type="text"
-                  className="editor-input"
-                  placeholder="Defaults to LemGendized folder name"
-                  value={downloadTargetFolder}
-                  onChange={(e) => setDownloadTargetFolder(e.target.value)}
-                  disabled={isDownloadingKaggle}
-                />
-              </div>
-
-              <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "24px" }}>
-                <input
-                  id="download-force-check"
-                  type="checkbox"
-                  checked={downloadForce}
-                  onChange={(e) => setDownloadForce(e.target.checked)}
-                  disabled={isDownloadingKaggle}
-                />
-                <label htmlFor="download-force-check" style={{ fontSize: "13px", color: "var(--text-primary)", cursor: "pointer" }}>
-                  Force redownload / overwrite existing files
-                </label>
-                <HelpTooltip content="When checked, re-downloads and overwrites any locally present dataset files. Use if a dataset was partially downloaded or a newer version was published." />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleKaggleDownload}
-                disabled={isDownloadingKaggle || !datasetCompilerOnline}
-              >
-                {isDownloadingKaggle ? "Initiating Download..." : "Download from Kaggle"}
-              </button>
-              <HelpTooltip content="Initiates Kaggle API download. Packages dataset ZIP/tar into LemGendaryDatasets folder using official kaggle-python client. Requires valid ~/.kaggle/kaggle.json credentials." />
-            </div>
-
-            {downloadStatus && (
-              <div
-                className={`validation-banner ${downloadStatus.includes("failed") ? "banner-error" : "banner-success"}`}
-                style={{ marginTop: "16px" }}
-                role="status"
-              >
-                <span>{downloadStatus}</span>
-              </div>
-            )}
+        {downloadStatus && (
+          <div
+            className={`validation-banner ${downloadStatus.includes("failed") ? "banner-error" : "banner-success"}`}
+            style={{ marginBottom: "16px", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+            role="status"
+          >
+            <span>{downloadStatus}</span>
+            <button type="button" onClick={() => setDownloadStatus(null)} style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 700 }}>X</button>
           </div>
         )}
 
-        {/* Upload Section */}
-        {kaggleActiveTab === "upload" && (
-          <div>
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
-              <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="upload-manifold-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Local Compiled Manifold:
-                  </label>
-                  <HelpTooltip content="Select the local compiled dataset to package and upload to Kaggle." />
-                </div>
-                <select
-                  id="upload-manifold-select"
-                  className="editor-select"
-                  value={uploadManifold}
-                  onChange={(e) => setUploadManifold(e.target.value)}
-                  disabled={isUploadingKaggle}
-                >
-                  {datasets.map((d) => (
-                    <option key={d.key} value={d.modernized_folder || d.key}>
-                      {d.display_name} ({d.modernized_folder || d.key})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="upload-kaggle-slug" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Target Kaggle Repository Slug (Optional):
-                  </label>
-                  <HelpTooltip content="Kaggle repository identifier (e.g. owner/dataset-slug). If left blank, looked up from unified_data.yaml." />
-                </div>
-                <input
-                  id="upload-kaggle-slug"
-                  type="text"
-                  className="editor-input"
-                  placeholder="e.g. lemgenda/lemgendized-upn-v2 (or auto from registry)"
-                  value={uploadKaggleRef}
-                  onChange={(e) => setUploadKaggleRef(e.target.value)}
-                  disabled={isUploadingKaggle}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleKaggleUpload}
-                disabled={isUploadingKaggle || !datasetCompilerOnline}
-              >
-                {isUploadingKaggle ? "Initiating Upload..." : "Upload to Kaggle"}
-              </button>
-              <HelpTooltip content="Packages the selected local manifold into a Kaggle dataset archive and uploads it to your Kaggle account. Requires valid kaggle.json credentials and the target slug to be pre-created or auto-resolved from unified_data.yaml." />
-            </div>
-
-            {uploadStatus && (
-              <div
-                className={`validation-banner ${uploadStatus.includes("failed") ? "banner-error" : "banner-success"}`}
-                style={{ marginTop: "16px" }}
-                role="status"
-              >
-                <span>{uploadStatus}</span>
-              </div>
-            )}
+        {actionNotice && (
+          <div
+            className={`validation-banner ${actionNotice.includes("failed") ? "banner-error" : "banner-success"}`}
+            style={{ marginBottom: "16px", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+            role="status"
+          >
+            <span>{actionNotice}</span>
+            <button type="button" onClick={() => setActionNotice(null)} style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 700 }}>X</button>
           </div>
         )}
 
-        {/* Metadata Update Section */}
-        {kaggleActiveTab === "metadata" && (
-          <div>
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "16px" }}>
-              <div className="form-group" style={{ gridColumn: "span 2" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div className="segmented-control" style={{ maxWidth: "480px", marginBottom: "16px" }}>
-                    <button
-                      type="button"
-                      className={`segmented-btn ${metaUpdateMode === "single" ? "active" : ""}`}
-                      onClick={() => setMetaUpdateMode("single")}
-                      disabled={isUpdatingMeta}
-                    >
-                      Single Dataset
-                    </button>
-                    <button
-                      type="button"
-                      className={`segmented-btn ${metaUpdateMode === "all" ? "active" : ""}`}
-                      onClick={() => setMetaUpdateMode("all")}
-                      disabled={isUpdatingMeta}
-                    >
-                      All Datasets (unified_data.yaml)
-                    </button>
-                  </div>
-                  <HelpTooltip content="Single Dataset: Push metadata for one specific manifold to Kaggle. All Datasets: Batch-update metadata for every dataset in unified_data.yaml that has a local dataset-metadata.json file. No data is re-uploaded in either mode." />
-                </div>
-              </div>
+        {/* ─── INDIVIDUAL MANIFOLD CARDS GRID ─────────────────────────────── */}
+        <div className="card-grid card-grid-models">
+          {filteredDatasets.map((d) => {
+            const isSourcesOpen = pinnedSourcesManifold === d.key || hoveredSourcesManifold === d.key;
+            const isBusy = actionBusyKey === `dl_${d.key}` || actionBusyKey === `ul_${d.key}` || actionBusyKey === `meta_${d.key}`;
+            const isDirectoryFormat = d.canonical_format === "directory" || d.format === "directory";
 
-              {metaUpdateMode === "single" && (
-                <>
-                  <div className="form-group">
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                      <label htmlFor="meta-manifold-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                        Local Manifold:
-                      </label>
-                      <HelpTooltip content="Select the manifold whose dataset-metadata.json will be pushed to Kaggle." />
-                    </div>
-                    <select
-                      id="meta-manifold-select"
-                      className="editor-select"
-                      value={metaUpdateManifold}
-                      onChange={(e) => setMetaUpdateManifold(e.target.value)}
-                      disabled={isUpdatingMeta}
-                    >
-                      {datasets.map((d) => (
-                        <option key={d.key} value={d.modernized_folder || d.key}>
-                          {d.display_name} ({d.modernized_folder || d.key})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                      <label htmlFor="meta-kaggle-ref" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                        Kaggle Repository Slug (Optional):
-                      </label>
-                      <HelpTooltip content="Leave blank to auto-resolve from unified_data.yaml. Format: owner/dataset-slug" />
-                    </div>
-                    <input
-                      id="meta-kaggle-ref"
-                      type="text"
-                      className="editor-input"
-                      placeholder="e.g. lemgenda/lemgendized-upn-v2 (or auto from registry)"
-                      value={metaUpdateRef}
-                      onChange={(e) => setMetaUpdateRef(e.target.value)}
-                      disabled={isUpdatingMeta}
-                    />
-                  </div>
-                </>
-              )}
-
-              {metaUpdateMode === "all" && (
-                <div className="form-group" style={{ gridColumn: "span 2" }}>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                    Updates Kaggle metadata (title, description, license, column descriptors) for
-                    <strong> every dataset</strong> in <code>unified_data.yaml</code> that has a local
-                    <code> dataset-metadata.json</code>. No data is re-uploaded.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleKaggleMetadataUpdate}
-                disabled={isUpdatingMeta || !datasetCompilerOnline}
-              >
-                {isUpdatingMeta ? "Initiating Metadata Update..." : "Update Metadata on Kaggle"}
-              </button>
-              <HelpTooltip content="Pushes dataset-metadata.json (title, subtitle, description, license, column descriptors) to Kaggle for the selected dataset(s). No data transfer occurs — only metadata records are updated via the Kaggle API." />
-            </div>
-
-            {metaUpdateStatus && (
+            return (
               <div
-                className={`validation-banner ${metaUpdateStatus.includes("failed") ? "banner-error" : "banner-success"}`}
-                style={{ marginTop: "16px" }}
-                role="status"
+                key={d.key}
+                className="card"
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  padding: "16px",
+                }}
               >
-                <span>{metaUpdateStatus}</span>
-              </div>
-            )}
-          </div>
-        )}
+                {/* 1. Manifold Name: Full-width at the very top */}
+                <div style={{ width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                  <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3, flex: 1 }}>
+                    {d.display_name}
+                  </h4>
+                  <HelpTooltip content={`Authoritative key: ${d.key}. Local directory: ${d.modernized_folder || d.key}. Canonical format: ${d.canonical_format || d.format}.`} />
+                </div>
 
-        {/* Audit Notebooks Section */}
-        {kaggleActiveTab === "notebooks" && (
-          <div>
-            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-              Kaggle notebooks for registry metadata synchronization and dataset health auditing.
-              Run these notebooks on Kaggle to validate dataset integrity, update metadata, and
-              synchronize the production registry.
-            </p>
-
-            {/* Registry Metadata Audit Notebook */}
-            <div className="card" style={{ marginBottom: "16px", border: "1px solid var(--border-color)" }}>
-              <div className="card-title">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* 2. Compilation Status / Format Badge: Full-width directly below name */}
+                <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "6px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                    Manifold Status:
+                  </span>
                   <div>
-                    <h5 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "2px" }}>Registry Metadata Training Audit</h5>
-                    <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                      _registry_metadata_training.ipynb
+                    {d.is_compiled ? (
+                      <span className="badge badge-success" style={{ fontWeight: 700 }}>COMPILED</span>
+                    ) : (
+                      <span className="badge badge-warning" style={{ fontWeight: 700 }}>UNCOMPILED</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. Metric Specs Rows */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
+                  <div className="metric-row">
+                    <span className="metric-label">Storage Format</span>
+                    <span className="metric-value" style={{ textTransform: "uppercase", fontWeight: 600 }}>
+                      {d.canonical_format || d.format}
                     </span>
                   </div>
-                </div>
-                <span className="badge badge-info">Kaggle Notebook</span>
-              </div>
 
-              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-                Audits and synchronizes dataset-metadata.json files across all production manifolds.
-                Validates Kaggle registry bindings, regenerates column descriptors, and pushes
-                updated metadata to Kaggle without re-uploading dataset files.
-              </p>
+                  <div className="metric-row">
+                    <span className="metric-label">Total Samples</span>
+                    <span className="metric-value">{d.total_samples.toLocaleString()}</span>
+                  </div>
 
-              <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "#60a5fa", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  Required Dataset Attachments (Kaggle Sidebar → Add Input → Your Datasets)
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {datasets.slice(0, 8).map((d) => (
-                    <div key={d.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-                      <span style={{ color: "var(--accent-emerald)" }}>→</span>
-                      <span style={{ flex: 1, marginLeft: "8px" }}>{d.display_name}</span>
-                      <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{(d.total_size_mb / 1024).toFixed(1)} GB</span>
+                  <div className="metric-row">
+                    <span className="metric-label">Disk Footprint</span>
+                    <span className="metric-value">{(d.total_size_mb / 1024).toFixed(1)} GB</span>
+                  </div>
+
+                  <div className="metric-row">
+                    <span className="metric-label">
+                      {isDirectoryFormat ? "Dataset Splits" : "Container Shards"}
+                    </span>
+                    <span className="metric-value" style={{ fontWeight: 600, color: (d.shards_count && d.shards_count > 0) ? "var(--accent-emerald)" : undefined }}>
+                      {isDirectoryFormat
+                        ? `${d.shards_count || 2} splits (train/val)`
+                        : `${d.shards_count || 0} shards`}
+                    </span>
+                  </div>
+
+                  {/* 4. Expandable Upstream Sources Row (matching SOTA targets row on models) */}
+                  <div
+                    style={{
+                      background: isSourcesOpen ? "rgba(59, 130, 246, 0.08)" : "rgba(255,255,255,0.02)",
+                      border: isSourcesOpen ? "1px solid rgba(59, 130, 246, 0.4)" : "1px solid var(--border-color)",
+                      borderRadius: "6px",
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    onClick={() => toggleSourcesPin(d.key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleSourcesPin(d.key);
+                      }
+                    }}
+                    onMouseEnter={() => setHoveredSourcesManifold(d.key)}
+                    onMouseLeave={() => setHoveredSourcesManifold((prev) => (prev === d.key ? null : prev))}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isSourcesOpen}
+                    aria-label={`Upstream sources for ${d.display_name}. Click to pin open.`}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                          Upstream Sources
+                        </span>
+                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+                          {pinnedSourcesManifold === d.key ? "(Pinned)" : "(Click to pin)"}
+                        </span>
+                      </div>
+                      <span
+                        className="metric-value"
+                        style={{
+                          color: (d.sources && d.sources.length > 0) ? "var(--accent-emerald)" : "var(--text-muted)",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                        }}
+                      >
+                        {d.sources && d.sources.length > 0 ? `${d.sources.length} Sources` : "1 Primary Source"}
+                      </span>
                     </div>
-                  ))}
-                  {datasets.length > 8 && (
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
-                      + {datasets.length - 8} more datasets from unified_data.yaml
-                    </div>
-                  )}
+
+                    {/* Expanded Sources Details */}
+                    {isSourcesOpen && d.sources && d.sources.length > 0 && (
+                      <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: "6px" }}>
+                        {d.sources.map((s, idx) => (
+                          <div key={`${s.name}_${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
+                            <span style={{ color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "160px" }} title={s.ref || s.name}>
+                              {s.name}
+                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                                {s.count ? `${s.count.toLocaleString()} samples` : "Active"}
+                              </span>
+                              <span className="badge badge-secondary" style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}>
+                                {s.type || "SOURCE"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 5. Format Breakdown */}
+                  <div style={{ marginTop: "4px", paddingTop: "8px", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                    <span>WebP: {d.format_breakdown.webp.toLocaleString()}</span>
+                    <span>JPG: {d.format_breakdown.jpg.toLocaleString()}</span>
+                    <span>PNG: {d.format_breakdown.png.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* 4. Action Buttons Toolbar (2x2 Grid matching Model Card styling) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "auto", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
+                  {/* Top Row: Update Metadata & Audit Notebooks */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleUpdateMetadataSingle(d)}
+                    disabled={isBusy || !datasetCompilerOnline}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Push dataset-metadata.json descriptors to Kaggle Cloud"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>{actionBusyKey === `meta_${d.key}` ? "Updating..." : "Update Metadata"}</span>
+                  </button>
+
+                  <a
+                    href="https://www.kaggle.com/code/lemtreursi/registry-metadata-training"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+                    title="Open Kaggle Registry Metadata Training Audit notebook"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    <span>Audit Notebooks</span>
+                  </a>
+
+                  {/* Bottom Row: Download from Kaggle & Upload to Kaggle */}
+                  <button
+                    type="button"
+                    className="btn btn-vault-pull"
+                    onClick={() => handleDownloadManifold(d)}
+                    disabled={isBusy || !datasetCompilerOnline}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title={`Download ${d.display_name} from Kaggle Cloud Storage`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>{actionBusyKey === `dl_${d.key}` ? "Downloading..." : "Download"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-vault-pull"
+                    onClick={() => handleUploadManifold(d)}
+                    disabled={isBusy || !datasetCompilerOnline}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title={`Upload local ${d.display_name} manifold to Kaggle Cloud`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span>{actionBusyKey === `ul_${d.key}` ? "Uploading..." : "Upload"}</span>
+                  </button>
                 </div>
               </div>
-
-              <div style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--accent-emerald)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  Required Kaggle Secrets (Add-ons → Secrets)
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>
-                  <div><span style={{ color: "#f59e0b" }}>SUITE_PAT</span> — GitHub Personal Access Token (repo read)</div>
-                  <div><span style={{ color: "#f59e0b" }}>KAGGLE_KEY</span> — Kaggle API token (JSON key value)</div>
-                  <div><span style={{ color: "#f59e0b" }}>KAGGLE_USERNAME</span> — Kaggle username (lemtreursi)</div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <a
-                  href="https://www.kaggle.com/code/lemtreursi/registry-metadata-training"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary"
-                  style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                >
-                  Open on Kaggle
-                </a>
-                <HelpTooltip content="Opens the registry metadata audit notebook on Kaggle. Ensure all required datasets are attached via the right sidebar before running all cells." />
-              </div>
-            </div>
-
-            {/* Dataset attachment how-to */}
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "10px" }}>How to Attach Datasets in Kaggle</div>
-              <ol style={{ fontSize: "12px", color: "var(--text-secondary)", paddingLeft: "16px", lineHeight: "2" }}>
-                <li>Open the notebook on Kaggle and click <strong>Edit</strong> (top right)</li>
-                <li>In the right sidebar, click <strong>Add Input</strong> → <strong>Your Datasets</strong></li>
-                <li>Search for <code>LemGendized</code> and attach each production dataset</li>
-                <li>Also attach model checkpoints from <strong>Your Models</strong> if needed</li>
-                <li>Under <strong>Session Options</strong> → set <strong>Accelerator: GPU T4 x2</strong></li>
-                <li>Click <strong>Run All</strong> — the notebook auto-resolves all paths in <code>/kaggle/input</code></li>
-              </ol>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ─── SECTION 3: PRODUCTION MANIFOLDS CATALOG ───────────────────────── */}
-      <div style={{ marginTop: "24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-          <h4 style={{ fontSize: "15px", fontWeight: 600 }}>
-            Production Manifolds Catalog &amp; Format Breakdown ({datasets.length} Datasets)
-          </h4>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-            All manifolds verified in local storage root
-          </span>
-        </div>
-
-        <div className="card-grid">
-          {datasets.map((d) => (
-            <div key={d.key} className="card">
-              <div className="card-title">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <h5 style={{ fontSize: "14px", fontWeight: 600 }}>{d.display_name}</h5>
-                  <HelpTooltip content={`Detailed format distribution for manifold '${d.key}'. Canonical target: ${d.canonical_format || d.format}.`} />
-                </div>
-                <span className={`badge ${d.is_compiled ? "badge-success" : "badge-warning"}`}>
-                  {d.is_compiled ? "COMPILED" : "UNCOMPILED"}
-                </span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Format / Architecture</span>
-                <span className="metric-value">{d.canonical_format || d.format}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Total Samples</span>
-                <span className="metric-value">{d.total_samples.toLocaleString()}</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Disk Footprint</span>
-                <span className="metric-value">{Math.round(d.total_size_mb / 1024 * 10) / 10} GB</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="metric-label">Container Shards</span>
-                <span className="metric-value">{d.shards_count || 0} shards</span>
-              </div>
-
-              <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                <span>WebP: {d.format_breakdown.webp.toLocaleString()}</span>
-                <span>JPG: {d.format_breakdown.jpg.toLocaleString()}</span>
-                <span>PNG: {d.format_breakdown.png.toLocaleString()}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
