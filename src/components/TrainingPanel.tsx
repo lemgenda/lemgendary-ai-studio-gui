@@ -272,12 +272,23 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     return Array.from(set).sort();
   }, [models]);
 
+  const getBaseArchitecture = (arch: string): string => {
+    if (!arch) return "";
+    const match = arch.match(/^[^(]+/);
+    return match ? match[0].trim() : arch.trim();
+  };
+
   const uniqueArchitectures = useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, number>();
     models.forEach((m) => {
-      if (m.architecture) set.add(m.architecture);
+      const base = getBaseArchitecture(m.architecture);
+      if (base) {
+        map.set(base, (map.get(base) || 0) + 1);
+      }
     });
-    return Array.from(set).sort();
+    return Array.from(map.entries())
+      .map(([arch, count]) => ({ arch, count }))
+      .sort((a, b) => a.arch.localeCompare(b.arch));
   }, [models]);
 
   // Filtered models
@@ -312,7 +323,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
       // Architecture filter
       if (archFilter !== "ALL") {
-        if (m.architecture !== archFilter) return false;
+        const base = getBaseArchitecture(m.architecture);
+        if (base !== archFilter && m.architecture !== archFilter) return false;
       }
 
       return true;
@@ -443,8 +455,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               style={{ padding: "6px 8px", fontSize: "12px" }}
             >
               <option value="ALL">All Architectures</option>
-              {uniqueArchitectures.map((a) => (
-                <option key={a} value={a}>{a}</option>
+              {uniqueArchitectures.map(({ arch, count }) => (
+                <option key={arch} value={arch}>{arch} ({count})</option>
               ))}
             </select>
           </div>
@@ -487,7 +499,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         )}
 
         {/* ─── MODEL CARDS GRID ────────────────────────────────────────────── */}
-        <div className="card-grid">
+        <div className="card-grid card-grid-models">
           {filteredModels.map((m) => {
             const isTargetOpen = pinnedTargetModel === m.key || hoveredTargetModel === m.key;
             const isCurrentlyTrainingThis = runningJobModel === m.key;
