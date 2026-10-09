@@ -154,3 +154,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/App.tsx` — Automated Startup Routine on Launch** — Added `autoStartOffline` startup effect on initial GUI mount. Automatically probes the tripartite mesh and triggers background daemon launch for any offline sidecar without manual intervention.
 - **`src/App.tsx` — Decoupled Fast Mesh Polling & Continuous Heartbeat** — Extracted `refreshMeshStatus()` to immediately update UI service tiles (<90ms) independently of slow full-ecosystem audits (~9s). Added a 4-second reactive background polling loop keeping sidecar status badges continuously synchronized.
 - **`src/api/client.ts` — GET-Based Health Fallback** — Standardized `probeSidecarPort()` to use standard `GET` requests with `res.ok` validation, ensuring universal compatibility across FastAPI routers.
+
+### v2.7.0 — Dataset Compiler Card 2x2 Action Button Hierarchy & Color Synchronization
+
+- **`src/components/CompilerPanel.tsx` — 2x2 Button Grid Harmonization** — Synchronized Dataset Card action button styling and visual hierarchy with the Model Card toolbar (`TrainingPanel.tsx`):
+  - **Top-Left (`Update Metadata`)**: Upgraded to `btn btn-primary` (Cyan-Blue solid gradient, matching `Local Training`).
+  - **Top-Right (`Audit Notebooks`)**: Upgraded to `btn btn-cloud` (Purple solid gradient, matching `Cloud Training`).
+  - **Bottom-Left (`Download`)**: Standardized to `btn btn-vault-pull` (Dark vault outline button with download icon).
+  - **Bottom-Right (`Upload`)**: Corrected to `btn btn-vault-push` (Dark vault outline button with upload icon, replacing erroneous `btn-vault-pull`).
+- **Ecosystem UI Consistency** — Enforced 100% visual parity across all card components: top row reserved for solid primary/cloud trigger buttons and bottom row for dark vault operations.
