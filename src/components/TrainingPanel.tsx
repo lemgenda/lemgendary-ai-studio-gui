@@ -46,10 +46,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
   const [hoveredTargetModel, setHoveredTargetModel] = useState<string | null>(null);
 
-  // Pinned/hovered Best achieved metrics details
-  const [pinnedBestModel, setPinnedBestModel] = useState<string | null>(null);
-  const [hoveredBestModel, setHoveredBestModel] = useState<string | null>(null);
-
   // Cloud modal state
   const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
@@ -305,10 +301,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setPinnedTargetModel((prev) => (prev === modelKey ? null : modelKey));
   };
 
-  const toggleBestPin = (modelKey: string) => {
-    setPinnedBestModel((prev) => (prev === modelKey ? null : modelKey));
-  };
-
   return (
     <div className="panel-container">
       {/* ─── REGISTERED ARCHITECTURES & CHECKPOINT TELEMETRY SECTION ───────────── */}
@@ -476,7 +468,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         <div className="card-grid">
           {filteredModels.map((m) => {
             const isTargetOpen = pinnedTargetModel === m.key || hoveredTargetModel === m.key;
-            const isBestOpen = pinnedBestModel === m.key || hoveredBestModel === m.key;
             const isCurrentlyTrainingThis = runningJobModel === m.key;
             const isBusy = actionBusyKey === `local_${m.key}` || actionBusyKey === `cloud_${m.key}` || actionBusyKey === `pull_${m.key}` || actionBusyKey === `push_${m.key}`;
 
@@ -539,95 +530,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                   <div className="metric-row">
                     <span className="metric-label">Completed Epochs</span>
                     <span className="metric-value">{m.epochs_completed ?? 0}</span>
-                  </div>
-
-                  {/* Best Achieved Metrics Card - Interactive Pin/Hover showing best result achieved for all relevant metrics */}
-                  <div
-                    style={{
-                      background: isBestOpen ? "rgba(16, 185, 129, 0.08)" : "rgba(255,255,255,0.02)",
-                      border: isBestOpen ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid var(--border-color)",
-                      borderRadius: "6px",
-                      padding: "8px 10px",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                    onClick={() => toggleBestPin(m.key)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggleBestPin(m.key);
-                      }
-                    }}
-                    onMouseEnter={() => setHoveredBestModel(m.key)}
-                    onMouseLeave={() => setHoveredBestModel((prev) => (prev === m.key ? null : prev))}
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isBestOpen}
-                    aria-label={`Best achieved metrics details for ${m.display_name}. Click to pin open.`}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                          Best Achieved Metrics
-                        </span>
-                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-                          {pinnedBestModel === m.key ? "(Pinned)" : "(Click to pin)"}
-                        </span>
-                      </div>
-                      <span
-                        className="metric-value"
-                        style={{
-                          color: "var(--accent-emerald)",
-                          fontWeight: 700,
-                          fontSize: "12px",
-                        }}
-                      >
-                        {m.best_metric !== undefined ? `${m.metric_name || "Best"}: ${m.best_metric}` : "Pending"}
-                      </span>
-                    </div>
-
-                    {/* Expanded Best Metrics Details */}
-                    {isBestOpen && (
-                      <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: "6px" }}>
-                        {((m.best_metrics_details && m.best_metrics_details.length > 0)
-                          ? m.best_metrics_details
-                          : (m.sota_details && m.sota_details.length > 0)
-                            ? m.sota_details.map((s) => ({
-                                key: s.key,
-                                label: s.label,
-                                value: s.achieved !== null ? s.achieved : (s.key === m.metric_name?.toLowerCase() ? m.best_metric : null),
-                                target: s.target,
-                                lower_is_better: s.lower_is_better,
-                                passed: s.passed,
-                              }))
-                            : [{
-                                key: "primary",
-                                label: m.metric_name || "Best Metric",
-                                value: m.best_metric ?? null,
-                                target: m.sota_target,
-                                lower_is_better: false,
-                                passed: m.sota_reached ?? false,
-                              }]
-                        ).map((item) => (
-                          <div key={item.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}>
-                            <span style={{ color: "var(--text-secondary)" }}>{item.label}:</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                              {item.target !== undefined && item.target !== null && (
-                                <span style={{ color: "var(--text-muted)" }}>Target: {item.target}</span>
-                              )}
-                              <span style={{ fontWeight: 600, color: item.value !== null && item.value !== undefined ? "var(--accent-emerald)" : "var(--text-muted)" }}>
-                                {item.value !== null && item.value !== undefined ? item.value : "Pending"}
-                              </span>
-                              {item.target !== undefined && item.target !== null && (
-                                <span className={`badge ${item.passed ? "badge-success" : "badge-secondary"}`} style={{ fontSize: "9px", padding: "1px 5px" }}>
-                                  {item.passed ? "SOTA MET" : "PROGRESS"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* 4. Target Metrics Card (SOTA) - Hover or Click to Expand/Pin */}
