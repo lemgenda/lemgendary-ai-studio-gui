@@ -77,6 +77,25 @@ export async function triggerPipeline(targetProject?: string): Promise<{ status:
   return res.json();
 }
 
+export async function triggerPipelineStep(
+  stepNumber: number,
+  targetProject?: string,
+  clean?: boolean
+): Promise<{ status: string; message?: string }> {
+  const res = await fetch(`${ENV_BASE}/api/pipeline/run-step`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      step_number: stepNumber,
+      target_project: targetProject || null,
+      clean: Boolean(clean),
+    }),
+  });
+  if (!res.ok) throw new Error(`Failed to trigger pipeline step ${stepNumber}: ${res.statusText}`);
+  return res.json();
+}
+
+
 export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
   const res = await fetch(`${ENV_BASE}/api/gui/ecosystem`);
   if (!res.ok) throw new Error(`Failed to probe ecosystem mesh: ${res.statusText}`);
@@ -106,15 +125,60 @@ export async function probeSidecarPort(port: number): Promise<boolean> {
 
 // ─── Ecosystem Sidecar Daemon Lifecycle Management (Port 8000) ───────────────
 
-export async function startService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
+export async function startDevService(serviceId: string): Promise<ServiceOperationResult> {
+  const res = await fetch("/api/dev/services/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ serviceId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.error || `Failed to start ${serviceId}: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function startDevAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
+  const res = await fetch("/api/dev/services/start-all", {
     method: "POST",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to start ${serviceId}: ${res.statusText}`);
+    throw new Error(err.detail || err.error || `Failed to start all services: ${res.statusText}`);
   }
   return res.json();
+}
+
+export async function startService(serviceId: string): Promise<ServiceOperationResult> {
+  const isTauri =
+    typeof window !== "undefined" &&
+    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+  if (isTauri) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("spawn_service", { serviceId });
+    return {
+      status: "started",
+      message: `Started ${serviceId} background daemon.`,
+      port: serviceId === "env-manager" ? 8000 : serviceId === "dataset-compiler" ? 8100 : 8200,
+    };
+  }
+
+  if (serviceId === "env-manager") {
+    return startDevService(serviceId);
+  }
+  try {
+    const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Failed to start ${serviceId}: ${res.statusText}`);
+    }
+    return res.json();
+  } catch {
+    // If Environment Manager port 8000 is unreachable, fall back to dev server endpoint
+    return startDevService(serviceId);
+  }
 }
 
 export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
@@ -129,14 +193,28 @@ export async function stopService(serviceId: string): Promise<ServiceOperationRe
 }
 
 export async function startAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
-  const res = await fetch(`${ENV_BASE}/api/services/start-all`, {
-    method: "POST",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to start all services: ${res.statusText}`);
+  const isTauri =
+    typeof window !== "undefined" &&
+    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+  if (isTauri) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("spawn_all_services");
+    return { results: {} };
   }
-  return res.json();
+
+  try {
+    const res = await fetch(`${ENV_BASE}/api/services/start-all`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Failed to start all services: ${res.statusText}`);
+    }
+    return res.json();
+  } catch {
+    // Fall back to dev server endpoint if root coordinator is offline
+    return startDevAllServices();
+  }
 }
 
 // ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────

@@ -372,15 +372,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Registered Architectures &amp; Checkpoint Telemetry
+                LemGendary Trained Models Repo
               </h3>
-              <HelpTooltip content="Unified telemetry registry for all neural architectures defined in unified_models_v2.yaml. Displays authoritative checkpoint status, SOTA convergence, resolution ladders, and dispatches local or cloud training passes." />
+              <HelpTooltip content="Authoritative neural architecture registry and checkpoints in LemGendary Trained Models Repo (.\LemGendaryModels\). Displays authoritative checkpoint status, SOTA convergence, resolution ladders, and dispatches training passes." />
               <span className="badge badge-info" style={{ fontSize: "11px" }}>
                 {filteredModels.length} of {models.length} Models
               </span>
             </div>
             <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
-              Comprehensive model manifold cards with integrated local training, headless Kaggle/Colab cloud orchestration, and checkpoint vaults.
+              Comprehensive model manifold cards with integrated local training, headless Kaggle/Colab cloud orchestration, and .\LemGendaryModels\ checkpoint vaults.
             </p>
           </div>
 

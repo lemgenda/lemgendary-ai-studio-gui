@@ -1,6 +1,8 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { MeshStatus } from "../api/types";
+import lemgendaIcon from "../branding/lemgenda-icon.svg";
+import lemgendaLogo from "../branding/lemgenda-logo.svg";
 
 interface SidebarProps {
   currentTab: string;
@@ -12,7 +14,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
-  onOpenConfigEditor,
   meshStatus,
 }) => {
   // Map each tab to the sidecar port it depends on for online/offline dot.
@@ -28,8 +29,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", tooltip: "Ecosystem overview: system hardware, quick clean install orchestrator, managed project environments, and live log stream." },
-    { id: "datasets", label: "Dataset Compiler", tooltip: "Port 8100 sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation." },
-    { id: "training", label: "Training Suite", tooltip: "Port 8200 sidecar: neural architecture cards, Sawtooth Governor VRAM telemetry, spatial ladder progression, and training dispatch." },
+    { id: "datasets", label: "LemGendary Dataset Compiler Suite", tooltip: "Port 8100 sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation." },
+    { id: "training", label: "LemGendary Model Training Suite", tooltip: "Port 8200 sidecar: neural architecture cards, Sawtooth Governor VRAM telemetry, spatial ladder progression, and training dispatch." },
     { id: "pipeline", label: "Clean Install Pipeline", tooltip: "Deterministic 7-step environment recreation, toolchain audit, wheel cache purging, and bytecode verification." },
     { id: "projects", label: "Project Environments", tooltip: "Dedicated virtual environment status cards with package counts and individual project reconciliation controls." },
     { id: "health", label: "Health & Version Drift", tooltip: "Host toolchain prerequisites audit and cross-project package version comparison matrix." },
@@ -65,8 +66,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="sidebar" aria-label="Application Sidebar">
       <div className="brand-header">
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span className="brand-badge" aria-label="Professional Edition">PRO</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <img
+            src={lemgendaIcon}
+            alt="LemGendary Brand"
+            style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }}
+          />
           <h1 className="brand-title">LemGendary AI</h1>
           <HelpTooltip content="LemGendary AI Studio Desktop GUI v2.0. Unified client interface for dataset compilation, model training, and environment governance." />
         </div>
@@ -105,22 +110,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {onOpenConfigEditor && (
-        <div style={{ padding: "16px", borderTop: "1px solid var(--border-color)", marginTop: "auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ width: "100%", fontSize: "12px" }}
-              onClick={onOpenConfigEditor}
-              aria-label="Open Universal Configuration, Registry Editor & Secrets Vault Modal"
-            >
-              Config &amp; Secrets
-            </button>
-            <HelpTooltip content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens." position="right" />
-          </div>
-        </div>
-      )}
+      <div className="sidebar-brand-footer" style={{ padding: "16px 8px 4px", borderTop: "1px solid var(--border-color)", marginTop: "auto", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <a
+          href="https://www.lemgenda.hr/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="sidebar-brand-link"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            padding: "4px 0",
+            background: "transparent",
+            textDecoration: "none",
+          }}
+          aria-label="Visit LemGenda Official Website (https://www.lemgenda.hr/)"
+        >
+          <img
+            src={lemgendaLogo}
+            alt="LemGenda"
+            style={{
+              width: "100%",
+              maxWidth: "160px",
+              height: "26px",
+              objectFit: "contain",
+              filter: "brightness(1.15)",
+              transition: "transform 0.2s ease, opacity 0.2s ease",
+            }}
+          />
+        </a>
+      </div>
     </aside>
   );
 };

@@ -8,7 +8,9 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             commands::check_server_status,
-            commands::spawn_sidecar
+            commands::spawn_sidecar,
+            commands::spawn_service,
+            commands::spawn_all_services
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

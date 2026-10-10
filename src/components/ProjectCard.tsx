@@ -1,6 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
-import { ProjectHealth } from "../api/types";
+import { ProjectHealth, getProjectDisplayName } from "../api/types";
 
 interface ProjectCardProps {
   project: ProjectHealth;
@@ -16,13 +16,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   isOffline = false,
 }) => {
   const headingId = `proj-title-${project.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+  const displayName = getProjectDisplayName(project.name);
 
   return (
     <article className="card" aria-labelledby={headingId}>
       <div className="card-title">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{project.name}</h3>
-          <HelpTooltip content={`Discovered workspace project at ${project.project_dir}. Managed via SSOT requirements manifest.`} />
+          <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{displayName}</h3>
+          <HelpTooltip content="Independent workspace project governed via SSOT requirements manifest." />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span

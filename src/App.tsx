@@ -12,6 +12,7 @@ import { TrainingPanel } from "./components/TrainingPanel";
 import { ConfigEditorModal } from "./components/ConfigEditorModal";
 import { ServiceTiles } from "./components/ServiceTiles";
 import { HelpTooltip } from "./components/HelpTooltip";
+import { PipelineStepCards } from "./components/PipelineStepCards";
 import {
   fetchHardware,
   fetchHealth,
@@ -19,6 +20,7 @@ import {
   fetchEcosystemMesh,
   probeSidecarPort,
   triggerPipeline,
+  triggerPipelineStep,
   createLogWebSocket,
   isProgressLine,
   startService,
@@ -214,17 +216,34 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleRunPipelineStep = async (stepNumber: number) => {
+    try {
+      setIsRunningPipeline(true);
+      await triggerPipelineStep(stepNumber);
+    } catch {
+      setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port 8000) is not reachable.`);
+      setIsRunningPipeline(false);
+    }
+  };
+
+
   const [startingServiceId, setStartingServiceId] = useState<string | null>(null);
 
   const handleStartService = async (serviceId: string) => {
     try {
       setStartingServiceId(serviceId);
       setRefreshError(null);
+
       await startService(serviceId);
-      // Poll mesh status for up to 10 seconds to confirm readiness
-      for (let i = 0; i < 10; i++) {
+
+      // Poll mesh status for up to 15 seconds to confirm readiness
+      for (let i = 0; i < 15; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await refreshMeshStatus();
+        const check = await fetchEcosystemMesh().catch(() => null);
+        if (serviceId === "env-manager" && check?.env_manager?.reachable) break;
+        if (serviceId === "dataset-compiler" && check?.dataset_compiler?.reachable) break;
+        if (serviceId === "training-suite" && check?.training_suite?.reachable) break;
       }
       await loadData();
     } catch (err) {
@@ -240,31 +259,16 @@ export const App: React.FC = () => {
       setStartingServiceId("all");
       setRefreshError(null);
 
-      // If Port 8000 root coordinator is offline, try desktop Tauri bootstrap or guide browser
-      if (!meshStatus.envManager) {
-        const isTauri = typeof window !== "undefined" && Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
-        if (isTauri) {
-          try {
-            const { invoke } = await import("@tauri-apps/api/core");
-            await invoke("spawn_sidecar");
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            await refreshMeshStatus();
-          } catch (spawnErr) {
-            const msg = spawnErr instanceof Error ? spawnErr.message : String(spawnErr);
-            throw new Error(`Tauri sidecar bootstrap failed: ${msg}`);
-          }
-        } else {
-          setRefreshError(
-            "Root coordinator (Port 8000) is offline. In browser sandbox mode, launch the coordinator in your terminal: powershell -ExecutionPolicy Bypass -File .\\lemgendary_env_manager.ps1 serve (or python -m env_manager.cli serve --port 8000)"
-          );
-          return;
-        }
-      }
-
       await startAllServices();
-      for (let i = 0; i < 10; i++) {
+
+      // Poll mesh status for up to 15 seconds to confirm all 3 sidecars report ready
+      for (let i = 0; i < 15; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await refreshMeshStatus();
+        const check = await fetchEcosystemMesh().catch(() => null);
+        if (check?.dataset_compiler?.reachable && check?.training_suite?.reachable) {
+          break;
+        }
       }
       await loadData();
     } catch (err) {
@@ -280,9 +284,9 @@ export const App: React.FC = () => {
       case "dashboard":
         return "Ecosystem Control Dashboard";
       case "datasets":
-        return "Dataset Compiler & Storage Modernization";
+        return "LemGendary Dataset Compiler Suite";
       case "training":
-        return "Master Training Suite & Architecture Matrix";
+        return "LemGendary Model Training Suite";
       case "pipeline":
         return "Smart Clean Install Pipeline";
       case "projects":
@@ -292,7 +296,7 @@ export const App: React.FC = () => {
       case "logs":
         return "Real-time Telemetry Stream";
       default:
-        return "LemGendary AI Studio";
+        return "LemGendary AI Studio GUI";
     }
   };
 
@@ -374,19 +378,6 @@ export const App: React.FC = () => {
             >
               <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{refreshError}</span>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-                {refreshError.includes("lemgendary_env_manager.ps1") && (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    style={{ fontSize: "11px", padding: "2px 10px" }}
-                    onClick={() => {
-                      navigator.clipboard.writeText("powershell -ExecutionPolicy Bypass -File .\\lemgendary_env_manager.ps1 serve");
-                    }}
-                    aria-label="Copy server launch command to clipboard"
-                  >
-                    Copy Command
-                  </button>
-                )}
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -483,10 +474,16 @@ export const App: React.FC = () => {
                 recentEvents={events}
                 envManagerOnline={meshStatus.envManager}
               />
-              <LogPanel
-                events={events}
-                onClear={() => setEvents([])}
-                isConnected={wsConnected}
+              <PipelineStepCards
+                isRunning={isRunningPipeline}
+                activeStepNum={
+                  events.length > 0 && isRunningPipeline
+                    ? events[events.length - 1].step_number
+                    : null
+                }
+                onRunStep={handleRunPipelineStep}
+                recentEvents={events}
+                envManagerOnline={meshStatus.envManager}
               />
             </>
           )}

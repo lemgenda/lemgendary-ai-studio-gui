@@ -804,15 +804,15 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Production Manifolds Catalog &amp; Storage Hub
+                LemGendary Compiled Manifolds Repo
               </h3>
-              <HelpTooltip content="Authoritative catalog of compiled and raw dataset manifolds defined in unified_data.yaml. Features real-time shard validation, upstream source provenance tracking, direct Kaggle cloud bidirectional sync, and notebook audits." />
+              <HelpTooltip content="Authoritative catalog of compiled dataset manifolds in LemGendary Compiled Manifolds Repo (./LemGendaryDatasets/). Features real-time shard validation, upstream source provenance tracking, direct Kaggle cloud bidirectional sync, and notebook audits." />
               <span className="badge badge-info" style={{ fontSize: "11px" }}>
                 {filteredDatasets.length} of {datasets.length} Manifolds
               </span>
             </div>
             <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
-              Modern streaming containers with verified split telemetry, expandable source provenance, and integrated cloud synchronization.
+              Modern streaming containers in ./LemGendaryDatasets/ with verified split telemetry, expandable source provenance, and integrated cloud synchronization.
             </p>
           </div>
 

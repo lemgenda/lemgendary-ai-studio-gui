@@ -154,6 +154,19 @@ code, pre {
   color: var(--text-primary);
 }
 
+.sidebar-brand-btn {
+  background-color: rgba(30, 41, 59, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.sidebar-brand-btn:hover {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(6, 182, 212, 0.4);
+  transform: translateY(-1px);
+}
+
 .nav-menu {
   display: flex;
   flex-direction: column;

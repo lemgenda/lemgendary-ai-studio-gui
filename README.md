@@ -163,3 +163,17 @@ lem-env validate --project lemgendary-ai-studio-gui
   - **Bottom-Left (`Download`)**: Standardized to `btn btn-vault-pull` (Dark vault outline button with download icon).
   - **Bottom-Right (`Upload`)**: Corrected to `btn btn-vault-push` (Dark vault outline button with upload icon, replacing erroneous `btn-vault-pull`).
 - **Ecosystem UI Consistency** — Enforced 100% visual parity across all card components: top row reserved for solid primary/cloud trigger buttons and bottom row for dark vault operations.
+
+### v2.8.0 — Full-Mesh Autonomous Cold Boot & Dev Middleware Service Dispatch
+
+- **`vite.config.ts` — Vite Dev Middleware Service Launcher** — Added `/api/dev/services/start-all` and `/api/dev/services/start` middleware to the Vite dev server. When all services (or Port 8000) are offline during development, Vite's Node.js engine automatically detects virtual environment Python paths, spawns `uvicorn` daemons with `detached: true` and windowless execution, probes readiness via non-blocking TCP socket verification, and cascades orchestration across all three tripartite sidecars.
+- **`src-tauri/src/commands.rs` — Tauri Sidecar Virtualenv Resolution** — Updated `spawn_sidecar` to resolve `.venv/Scripts/pythonw.exe` inside `lemgendary-env-manager`, bind the process working directory directly to `../lemgendary-env-manager`, and enforce Windows `CREATE_NO_WINDOW` (0x08000000) flags.
+- **`src/api/client.ts` — Transparent Dev Endpoints & Seamless Fallback** — Added `startDevService` and `startDevAllServices`. `startService` and `startAllServices` automatically fall back to the Vite dev endpoints whenever Port 8000 is down.
+- **`src/App.tsx` — Direct One-Click Cold Boot** — `handleStartAllServices` now starts the complete tripartite mesh directly from cold offline state without displaying terminal execution warning banners or requiring manual shell commands. Individual `handleStartService` calls for Environment Manager cleanly boot the orchestrator.
+
+### v2.9.0 — Universal Cross-Platform Windowless Daemon Dispatch
+
+- **Zero Terminal / Shell Window Spawning** — Eliminated all invocation of Windows Command Prompt (`cmd.exe`) and PowerShell (`powershell.exe`). Daemons are executed directly via windowless binary dispatch (`pythonw.exe` with `CREATE_NO_WINDOW` (0x08000000) on Windows, and `.venv/bin/python` with detached sessions on POSIX/Linux/macOS/mobile).
+- **Independent Single Service Controls** — Each "Start Service" button on the ecosystem cards targets and launches strictly its corresponding single service without starting unwanted sidecars or re-running global setup pipelines.
+- **Unified Tauri Native & Dev Bridge** — Integrated `spawn_service` and `spawn_all_services` directly into `src/api/client.ts` with standard `Stdio::null()` redirection and resilient directory discovery across desktop environments.
+- **Clean Error Handling & Telemetry** — Removed shell-specific remediation copy buttons from error banners, providing unified cross-platform diagnostics across Windows, Linux, macOS, Unix, and mobile architectures.
