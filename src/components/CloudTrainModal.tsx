@@ -32,7 +32,10 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     : `LemGendized${model.key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
   const datasetSearchQuery = isForex ? "lemtreursi/forexuniverse" : `lemtreursi/${model.key.replace(/_/g, "-")}`;
   const kaggleUrl = `https://www.kaggle.com/code/lemtreursi/${model.key.replace(/_/g, "-")}-training`;
-  const notebookFilename = `${model.key}_training.ipynb`;
+  const notebookFilename =
+    targetPlatform === "colab"
+      ? `${model.key}_colab_training.ipynb`
+      : `${model.key}_kaggle_training.ipynb`;
   const checkpointRepo = `lemtreursi/lemgendary-${model.key.replace(/_/g, "-")}-checkpoints`;
 
   const handleLaunch = async () => {

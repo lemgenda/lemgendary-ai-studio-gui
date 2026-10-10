@@ -444,6 +444,38 @@ code, pre {
   box-shadow: 0 4px 10px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+.btn-notebook-train {
+  background: linear-gradient(180deg, #1e1e38 0%, #111122 100%);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+
+.btn-notebook-train:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2d2b52 0%, #1a1a36 100%);
+  border-color: rgba(139, 92, 246, 0.8);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-notebook-usage {
+  background: linear-gradient(180deg, #16242c 0%, #0d171d 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+}
+
+.btn-notebook-usage:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1e353f 0%, #13242c 100%);
+  border-color: rgba(16, 185, 129, 0.8);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
 .btn-danger {
   background: linear-gradient(135deg, #ef4444, #dc2626);
   color: #ffffff;

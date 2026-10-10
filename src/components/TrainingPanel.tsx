@@ -11,7 +11,9 @@ import {
   launchKaggleTrain,
   monitorKaggleKernel,
   pullKaggleModelArtifacts,
+  pushKaggleModelArtifacts,
   fetchLiveModelTelemetry,
+  generateNotebooks,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 
@@ -40,7 +42,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [remoteJobModel, setRemoteJobModel] = useState<string | null>(null);
   const [attachedKernelRef, setAttachedKernelRef] = useState<string | null>(null);
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
+  const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+
+  // Local & Remote telemetry stream isolation and clipboard controls
+  const [localCopied, setLocalCopied] = useState<boolean>(false);
+  const [clearedLocalTimestamp, setClearedLocalTimestamp] = useState<number>(0);
+  const [remoteCopied, setRemoteCopied] = useState<boolean>(false);
+  const [clearedRemoteTimestamp, setClearedRemoteTimestamp] = useState<number>(0);
+  const localLogContainerRef = useRef<HTMLDivElement>(null);
+  const remoteLogContainerRef = useRef<HTMLDivElement>(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -117,33 +128,60 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         const jobs = await fetchRunningTrainingJobs();
         if (!isMounted) return;
         if (jobs && jobs.length > 0) {
-          const active = jobs.find((j) => j.status === "running") || jobs[0];
-          setLocalJobId(active.id);
-          const activeKey = active.model_key || (active.params?.model as string) || null;
-          setLocalJobModel(activeKey);
-          if (activeKey) {
-            const tel = await fetchLiveModelTelemetry(activeKey).catch(() => null);
-            if (tel && (tel.latest_res !== null || tel.latest_data !== null)) {
-              setModels((prev) =>
-                prev.map((m) => {
-                  if (m.key !== activeKey) return m;
-                  const newRes = tel.latest_res ?? m.active_res;
-                  const newDataFraction = tel.latest_data ?? m.data_fraction_completed ?? 0;
-                  const newPassed = (newDataFraction >= 0.99 && m.ladder_passed) || Boolean(m.sota_reached);
-                  return {
-                    ...m,
-                    active_res: newRes,
-                    data_fraction_completed: newDataFraction,
-                    data_fraction_passed: newPassed,
-                    epochs_completed: Math.max(m.epochs_completed ?? 0, tel.latest_epoch ?? 0),
-                  };
-                })
-              );
+          // Track active local training jobs only (never allow remote jobs to overwrite local job state)
+          const localActive = jobs.find(
+            (j) =>
+              (j.status === "running" || j.status === "pending") &&
+              ["train", "local_train", "quick_train"].includes(j.job_type)
+          );
+          if (localActive) {
+            setLocalJobId(localActive.id);
+            const activeKey = localActive.model_key || (localActive.params?.model as string) || null;
+            setLocalJobModel(activeKey);
+            if (activeKey) {
+              const tel = await fetchLiveModelTelemetry(activeKey).catch(() => null);
+              if (tel && (tel.latest_res !== null || tel.latest_data !== null)) {
+                setModels((prev) =>
+                  prev.map((m) => {
+                    if (m.key !== activeKey) return m;
+                    const newRes = tel.latest_res ?? m.active_res;
+                    const newDataFraction = tel.latest_data ?? m.data_fraction_completed ?? 0;
+                    const newPassed = (newDataFraction >= 0.99 && m.ladder_passed) || Boolean(m.sota_reached);
+                    return {
+                      ...m,
+                      active_res: newRes,
+                      data_fraction_completed: newDataFraction,
+                      data_fraction_passed: newPassed,
+                      epochs_completed: Math.max(m.epochs_completed ?? 0, tel.latest_epoch ?? 0),
+                    };
+                  })
+                );
+              }
             }
+          } else {
+            setLocalJobId(null);
+            setLocalJobModel(null);
+          }
+
+          // Track active remote / cloud training jobs separately
+          const remoteActive = jobs.find(
+            (j) =>
+              (j.status === "running" || j.status === "pending") &&
+              ["kaggle_train", "kaggle_monitor", "cloud_push"].includes(j.job_type)
+          );
+          if (remoteActive) {
+            setRemoteJobId(remoteActive.id);
+            const activeRemoteKey = remoteActive.model_key || (remoteActive.params?.model as string) || null;
+            setRemoteJobModel(activeRemoteKey);
+          } else {
+            setRemoteJobId(null);
+            setRemoteJobModel(null);
           }
         } else {
           setLocalJobId(null);
           setLocalJobModel(null);
+          setRemoteJobId(null);
+          setRemoteJobModel(null);
         }
       } catch {
         // Training suite sidecar temporarily unreachable
@@ -274,20 +312,197 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handlePushArtifacts = async (modelKey: string) => {
     setActionBusyKey(`push_${modelKey}`);
-    setStatusNotice(`Packaging and pushing ${modelKey} checkpoints to Cloud Vault...`);
+    setStatusNotice(`Packaging and pushing ${modelKey} checkpoints to Kaggle Models Vault...`);
     try {
-      await launchKaggleTrain({
-        model: modelKey,
-        gpu: "T4",
-        auto_pull: true,
-      });
-      setStatusNotice(`Successfully pushed checkpoints for ${modelKey} to Cloud Vault.`);
+      const res = await pushKaggleModelArtifacts(modelKey);
+      setStatusNotice(res.message || `Successfully pushed checkpoints for ${modelKey} to Cloud Vault.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatusNotice(`Push failed: ${msg}`);
     } finally {
       setActionBusyKey(null);
     }
+  };
+
+  const handleGenerateTrainingNotebook = async (modelKey: string) => {
+    setGeneratingNotebookModel(`${modelKey}_training`);
+    setStatusNotice(`Regenerating training notebooks for ${modelKey}...`);
+    try {
+      const res = await generateNotebooks({
+        model_key: modelKey,
+        platform: "all",
+        kinds: ["training"],
+      });
+      const generatedCount = Object.keys(res.generated || {}).length;
+      setStatusNotice(`Generated ${generatedCount} training notebooks for ${modelKey}.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to generate training notebooks: ${msg}`);
+    } finally {
+      setGeneratingNotebookModel(null);
+      setTimeout(() => setStatusNotice(null), 5000);
+    }
+  };
+
+  const handleGenerateUsageNotebook = async (modelKey: string) => {
+    setGeneratingNotebookModel(`${modelKey}_usage`);
+    setStatusNotice(`Regenerating usage notebooks for ${modelKey}...`);
+    try {
+      const res = await generateNotebooks({
+        model_key: modelKey,
+        platform: "all",
+        kinds: ["usage"],
+      });
+      const generatedCount = Object.keys(res.generated || {}).length;
+      setStatusNotice(`Generated ${generatedCount} usage notebooks for ${modelKey}.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to generate usage notebooks: ${msg}`);
+    } finally {
+      setGeneratingNotebookModel(null);
+      setTimeout(() => setStatusNotice(null), 5000);
+    }
+  };
+
+  // Stream isolation filters
+  const displayedLocalEvents = useMemo(() => {
+    return (_recentEvents || []).filter((ev) => {
+      if (clearedLocalTimestamp > 0 && ev.timestamp) {
+        if (new Date(ev.timestamp).getTime() <= clearedLocalTimestamp) return false;
+      }
+      const msg = ev.message.toLowerCase();
+      const step = ev.step_name.toLowerCase();
+      const jobType = (ev.data as Record<string, unknown> | undefined)?.job_type as string | undefined;
+
+      const isRemote =
+        step.includes("kaggle") ||
+        step.includes("cloud") ||
+        jobType === "kaggle_train" ||
+        jobType === "kaggle_monitor" ||
+        jobType === "cloud_push" ||
+        msg.includes("kaggle") ||
+        msg.includes("[cloud]") ||
+        msg.includes("colab") ||
+        msg.includes("kernel") ||
+        msg.includes("[auto-pull]") ||
+        msg.includes("auto-pull");
+
+      if (isRemote) return false;
+
+      return (
+        step.includes("training") ||
+        msg.includes("[governor]") ||
+        msg.includes("[yolo gen]") ||
+        msg.includes("[training]") ||
+        msg.includes("[start]") ||
+        msg.includes("epoch") ||
+        msg.includes("rung")
+      );
+    });
+  }, [_recentEvents, clearedLocalTimestamp]);
+
+  const displayedRemoteEvents = useMemo(() => {
+    return (_recentEvents || []).filter((ev) => {
+      if (clearedRemoteTimestamp > 0 && ev.timestamp) {
+        if (new Date(ev.timestamp).getTime() <= clearedRemoteTimestamp) return false;
+      }
+      const msg = ev.message.toLowerCase();
+      const step = ev.step_name.toLowerCase();
+      const jobType = (ev.data as Record<string, unknown> | undefined)?.job_type as string | undefined;
+
+      return (
+        step.includes("kaggle") ||
+        step.includes("cloud") ||
+        jobType === "kaggle_train" ||
+        jobType === "kaggle_monitor" ||
+        jobType === "cloud_push" ||
+        msg.includes("kaggle") ||
+        msg.includes("[cloud]") ||
+        msg.includes("colab") ||
+        msg.includes("kernel") ||
+        msg.includes("[auto-pull]") ||
+        msg.includes("auto-pull")
+      );
+    });
+  }, [_recentEvents, clearedRemoteTimestamp]);
+
+  // Auto-scroll stream terminals
+  useEffect(() => {
+    if (localLogContainerRef.current) {
+      localLogContainerRef.current.scrollTop = localLogContainerRef.current.scrollHeight;
+    }
+  }, [displayedLocalEvents]);
+
+  useEffect(() => {
+    if (remoteLogContainerRef.current) {
+      remoteLogContainerRef.current.scrollTop = remoteLogContainerRef.current.scrollHeight;
+    }
+  }, [displayedRemoteEvents]);
+
+  const handleCopyLocalStream = async () => {
+    if (displayedLocalEvents.length === 0) return;
+    const formattedLog = displayedLocalEvents
+      .map((ev) => {
+        const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--";
+        return `[${timeStr}] [LOCAL] [${ev.step_name.toUpperCase()}]: ${ev.message}`;
+      })
+      .join("\n");
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(formattedLog);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = formattedLog;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setLocalCopied(true);
+      setTimeout(() => setLocalCopied(false), 2500);
+    } catch (err) {
+      console.error("Failed to copy local logs:", err);
+    }
+  };
+
+  const handleClearLocalStream = () => {
+    setClearedLocalTimestamp(Date.now());
+  };
+
+  const handleCopyRemoteStream = async () => {
+    if (displayedRemoteEvents.length === 0) return;
+    const formattedLog = displayedRemoteEvents
+      .map((ev) => {
+        const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--";
+        return `[${timeStr}] [CLOUD] [${ev.step_name.toUpperCase()}]: ${ev.message}`;
+      })
+      .join("\n");
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(formattedLog);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = formattedLog;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setRemoteCopied(true);
+      setTimeout(() => setRemoteCopied(false), 2500);
+    } catch (err) {
+      console.error("Failed to copy remote logs:", err);
+    }
+  };
+
+  const handleClearRemoteStream = () => {
+    setClearedRemoteTimestamp(Date.now());
   };
 
   // Distinct architectures and categories for filters
@@ -773,6 +988,38 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                     </svg>
                     <span>Pull Checkpoint</span>
                   </button>
+
+                  {/* Training Notebook */}
+                  <button
+                    type="button"
+                    className="btn btn-notebook-train"
+                    onClick={() => handleGenerateTrainingNotebook(m.key)}
+                    disabled={isBusy || generatingNotebookModel === `${m.key}_training`}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Regenerates training notebooks in Model folder (both Colab and Kaggle), kaggle_training folder, colab_training folder, and matching dataset manifold"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    <span>{generatingNotebookModel === `${m.key}_training` ? "Generating..." : "Training Notebook"}</span>
+                  </button>
+
+                  {/* Usage Notebook */}
+                  <button
+                    type="button"
+                    className="btn btn-notebook-usage"
+                    onClick={() => handleGenerateUsageNotebook(m.key)}
+                    disabled={isBusy || generatingNotebookModel === `${m.key}_usage`}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Regenerates standalone usage guide notebooks in Model folder (both Colab and Kaggle)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <polyline points="16 18 22 12 16 6" />
+                      <polyline points="8 6 2 12 8 18" />
+                    </svg>
+                    <span>{generatingNotebookModel === `${m.key}_usage` ? "Generating..." : "Usage Notebook"}</span>
+                  </button>
                 </div>
               </div>
             );
@@ -863,31 +1110,83 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             </div>
 
             {/* Quick Context Controls */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {activeTelemetryTab === "local" && localJobId && (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={handleStopLocalTrain}
-                  disabled={actionBusyKey === "stopping"}
-                  style={{ fontSize: "11px", padding: "4px 12px" }}
-                >
-                  {actionBusyKey === "stopping" ? "Halting Job..." : "Halt Local Job"}
-                </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {activeTelemetryTab === "local" && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                    onClick={handleCopyLocalStream}
+                    disabled={displayedLocalEvents.length === 0}
+                    aria-label={localCopied ? "Local logs copied to clipboard" : "Copy local training stream logs to clipboard"}
+                  >
+                    {localCopied ? "Copied" : "Copy Stream"}
+                  </button>
+                  <HelpTooltip content="Copy local training telemetry log buffer to clipboard as plain text." />
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                    onClick={handleClearLocalStream}
+                    aria-label="Clear local training stream log"
+                  >
+                    Clear Stream
+                  </button>
+                  <HelpTooltip content="Flush local terminal event buffer. Clears displayed messages to isolate diagnostics for new operations." />
+
+                  {localJobId && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleStopLocalTrain}
+                      disabled={actionBusyKey === "stopping"}
+                      style={{ fontSize: "11px", padding: "4px 12px" }}
+                    >
+                      {actionBusyKey === "stopping" ? "Halting Job..." : "Halt Local Job"}
+                    </button>
+                  )}
+                </>
               )}
 
               {activeTelemetryTab === "remote" && (
-                <button
-                  type="button"
-                  className="btn btn-cloud"
-                  onClick={() => {
-                    const target = models.find((m) => m.key === selectedCloudLaunchModel) || models[0];
-                    if (target) handleOpenCloudModal(target);
-                  }}
-                  style={{ fontSize: "11px", padding: "4px 12px" }}
-                >
-                  Launch Cloud Run
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                    onClick={handleCopyRemoteStream}
+                    disabled={displayedRemoteEvents.length === 0}
+                    aria-label={remoteCopied ? "Remote logs copied to clipboard" : "Copy remote cloud stream logs to clipboard"}
+                  >
+                    {remoteCopied ? "Copied" : "Copy Stream"}
+                  </button>
+                  <HelpTooltip content="Copy remote cloud telemetry log buffer to clipboard as plain text." />
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ fontSize: "11px", padding: "4px 10px" }}
+                    onClick={handleClearRemoteStream}
+                    aria-label="Clear remote cloud stream log"
+                  >
+                    Clear Stream
+                  </button>
+                  <HelpTooltip content="Flush remote cloud terminal event buffer. Clears displayed messages to isolate diagnostics for new operations." />
+
+                  <button
+                    type="button"
+                    className="btn btn-cloud"
+                    onClick={() => {
+                      const target = models.find((m) => m.key === selectedCloudLaunchModel) || models[0];
+                      if (target) handleOpenCloudModal(target);
+                    }}
+                    style={{ fontSize: "11px", padding: "4px 12px" }}
+                  >
+                    Launch Cloud Run
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -914,37 +1213,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               </div>
 
               {/* Local Training Monospace Stream */}
-              <div className="log-container" role="log" style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}>
-                {(_recentEvents || []).filter((ev) => {
-                  const msg = ev.message.toLowerCase();
-                  const isRemote = msg.includes("[kaggle]") || msg.includes("[cloud]") || msg.includes("kaggle://") || msg.includes("kernel");
-                  return !isRemote && (
-                    ev.step_name.toLowerCase().includes("training") ||
-                    msg.includes("[governor]") ||
-                    msg.includes("[yolo gen]") ||
-                    msg.includes("[training]") ||
-                    msg.includes("[start]") ||
-                    msg.includes("epoch") ||
-                    msg.includes("rung")
-                  );
-                }).length === 0 ? (
+              <div ref={localLogContainerRef} className="log-container" role="log" style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}>
+                {displayedLocalEvents.length === 0 ? (
                   <div className="log-empty">
                     {localJobId ? "Awaiting training stream packets from sidecar..." : "No active local training stream. Launch a local model to monitor live execution."}
                   </div>
                 ) : (
-                  (_recentEvents || []).filter((ev) => {
-                    const msg = ev.message.toLowerCase();
-                    const isRemote = msg.includes("[kaggle]") || msg.includes("[cloud]") || msg.includes("kaggle://") || msg.includes("kernel");
-                    return !isRemote && (
-                      ev.step_name.toLowerCase().includes("training") ||
-                      msg.includes("[governor]") ||
-                      msg.includes("[yolo gen]") ||
-                      msg.includes("[training]") ||
-                      msg.includes("[start]") ||
-                      msg.includes("epoch") ||
-                      msg.includes("rung")
-                    );
-                  }).map((ev, idx) => (
+                  displayedLocalEvents.map((ev, idx) => (
                     <div key={`local-${ev.timestamp}-${idx}`} className="log-line">
                       <span className="log-timestamp">{ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}</span>
                       <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
@@ -1062,35 +1337,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               )}
 
               {/* Remote Cloud Monospace Stream */}
-              <div className="log-container" role="log" style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}>
-                {(_recentEvents || []).filter((ev) => {
-                  const msg = ev.message.toLowerCase();
-                  return (
-                    msg.includes("[kaggle]") ||
-                    msg.includes("[cloud]") ||
-                    msg.includes("kaggle://") ||
-                    msg.includes("colab") ||
-                    msg.includes("kernel") ||
-                    ev.step_name.toLowerCase().includes("kaggle") ||
-                    ev.step_name.toLowerCase().includes("cloud")
-                  );
-                }).length === 0 ? (
+              <div ref={remoteLogContainerRef} className="log-container" role="log" style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}>
+                {displayedRemoteEvents.length === 0 ? (
                   <div className="log-empty">
                     No remote cloud telemetry received yet. Click &quot;Attach Stream&quot; on an active Kaggle kernel or dispatch a new cloud run above.
                   </div>
                 ) : (
-                  (_recentEvents || []).filter((ev) => {
-                    const msg = ev.message.toLowerCase();
-                    return (
-                      msg.includes("[kaggle]") ||
-                      msg.includes("[cloud]") ||
-                      msg.includes("kaggle://") ||
-                      msg.includes("colab") ||
-                      msg.includes("kernel") ||
-                      ev.step_name.toLowerCase().includes("kaggle") ||
-                      ev.step_name.toLowerCase().includes("cloud")
-                    );
-                  }).map((ev, idx) => (
+                  displayedRemoteEvents.map((ev, idx) => (
                     <div key={`remote-${ev.timestamp}-${idx}`} className="log-line">
                       <span className="log-timestamp">{ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}</span>
                       <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>

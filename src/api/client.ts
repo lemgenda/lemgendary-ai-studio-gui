@@ -693,6 +693,48 @@ export async function pullKaggleModelArtifacts(model: string): Promise<{ status:
   return res.json();
 }
 
+export async function pushKaggleModelArtifacts(model: string): Promise<{ status: string; model: string; message: string }> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to push Kaggle artifacts: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export interface GenerateNotebooksPayload {
+  model_key: string;
+  platform?: "kaggle" | "colab" | "all";
+  kinds?: ("training" | "inference" | "usage")[];
+  output_dir?: string;
+}
+
+export interface GenerateNotebooksResponse {
+  success: boolean;
+  model_key: string;
+  platform: string;
+  generated: Record<string, string>;
+}
+
+export async function generateNotebooks(
+  payload: GenerateNotebooksPayload
+): Promise<GenerateNotebooksResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/notebooks/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to generate notebooks: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────
 
 const MESH_WEBSOCKET_URLS = [
@@ -784,7 +826,7 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
       message: cleanMsg,
       is_progress: isProgress,
       timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
-      data: raw.job_id ? { job_id: raw.job_id } : undefined,
+      data: raw.job_id || raw.job_type ? { job_id: raw.job_id, job_type: raw.job_type } : undefined,
     };
   }
 
