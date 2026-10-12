@@ -311,6 +311,7 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
     try {
       const res = await saveSecrets(secrets);
       setSecretsSuccessMsg(res.message || "Secrets securely saved and propagated across repositories.");
+      window.dispatchEvent(new CustomEvent("secrets-updated"));
     } catch {
       setSecretsErrorMsg(
         "Secrets vault is unavailable (Port 8000 offline). " +

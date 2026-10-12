@@ -374,6 +374,8 @@ export interface KaggleTrainPayload {
   gpu?: string;
   auto_pull?: boolean;
   poll_interval?: number;
+  username?: string;
+  key?: string;
 }
 
 export interface KaggleMonitorPayload {
@@ -388,4 +390,75 @@ export interface KaggleSuiteStatus {
   username: string;
   token_configured: boolean;
 }
+
+export interface ModernizationQueueItem {
+  dataset_key: string;
+  modernized_folder: string;
+  canonical_format: string;
+  needs_conversion: boolean;
+  needs_push: boolean;
+  status: string;
+  reason: string;
+}
+
+export interface ModernizationQueueResponse {
+  status: string;
+  total_datasets: number;
+  pending_conversions: number;
+  queue: ModernizationQueueItem[];
+}
+
+export interface ModernizeRunPayload {
+  dataset?: string;
+  workers?: number;
+  push_kaggle?: boolean;
+  force?: boolean;
+  dry_run?: boolean;
+}
+
+export interface ManifoldReducePayload {
+  manifold: string;
+  scale?: number;
+  dry_run?: boolean;
+}
+
+export interface UnitTestAllPayload {
+  epochs?: number;
+  env?: string;
+  force?: boolean;
+}
+
+export interface ModelEvalPayload {
+  model: string;
+  checkpoint_path?: string;
+  batch_size?: number;
+  env?: string;
+}
+
+export interface ModelExportPayload {
+  model: string;
+  checkpoint_path?: string;
+  output_dir?: string;
+  targets?: string[];
+}
+
+export interface HookInstallItem {
+  project: string;
+  success: boolean;
+  message: string;
+}
+
+export interface HooksInstallResponse {
+  status: string;
+  all_ok: boolean;
+  results: HookInstallItem[];
+}
+
+export interface DeepCleanResponse {
+  status: string;
+  cleaned_count: number;
+  reclaimed_bytes: number;
+  reclaimed_mb: number;
+}
+
 

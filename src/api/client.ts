@@ -33,9 +33,35 @@ import {
   SecretItem,
   ServiceOperationResult,
   TrainingJobInfo,
+  DeepCleanResponse,
+  HooksInstallResponse,
+  ManifoldReducePayload,
+  ModelEvalPayload,
+  ModelExportPayload,
+  ModernizationQueueItem,
+  ModernizationQueueResponse,
+  ModernizeRunPayload,
+  UnitTestAllPayload,
 } from "./types";
 
-export type { KaggleKernelItem, KaggleMonitorPayload, KaggleSuiteStatus, KaggleTrainPayload, MeshStatus, ServiceOperationResult, TrainingJobInfo };
+export type {
+  KaggleKernelItem,
+  KaggleMonitorPayload,
+  KaggleSuiteStatus,
+  KaggleTrainPayload,
+  MeshStatus,
+  ServiceOperationResult,
+  TrainingJobInfo,
+  DeepCleanResponse,
+  HooksInstallResponse,
+  ManifoldReducePayload,
+  ModelEvalPayload,
+  ModelExportPayload,
+  ModernizationQueueItem,
+  ModernizationQueueResponse,
+  ModernizeRunPayload,
+  UnitTestAllPayload,
+};
 
 export const ENV_BASE = "http://127.0.0.1:8000";
 export const DATASETS_BASE = "http://127.0.0.1:8100";
@@ -216,6 +242,55 @@ export async function startAllServices(): Promise<{ results: Record<string, Serv
     return startDevAllServices();
   }
 }
+
+export async function triggerSafeUpdate(dryRun: boolean = false): Promise<{ status: string; events?: unknown[]; plan?: unknown }> {
+  const resp = await fetch(`${ENV_BASE}/api/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Safe package update failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerDeepClean(project?: string): Promise<DeepCleanResponse> {
+  const resp = await fetch(`${ENV_BASE}/api/clean`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Deep cache clean failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function installGitHooks(project?: string): Promise<HooksInstallResponse> {
+  const resp = await fetch(`${ENV_BASE}/api/hooks/install`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Git hooks installation failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function runEcosystemValidation(project?: string): Promise<{ status: string; all_passed: boolean; projects: Record<string, unknown> }> {
+  const resp = await fetch(`${ENV_BASE}/api/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Ecosystem validation failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
 
 // ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────
 
@@ -437,6 +512,52 @@ export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Prom
   return res.json();
 }
 
+export async function updateAllKaggleMetadata(): Promise<{ status: string; job_id?: string }> {
+  return updateKaggleMetadata({ all_datasets: true });
+}
+
+export async function fetchModernizationQueue(): Promise<ModernizationQueueResponse> {
+  const resp = await fetch(`${DATASETS_BASE}/api/modernize/queue`);
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch modernization queue: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerModernizationRun(payload: ModernizeRunPayload): Promise<{ status: string; job_id?: string; message?: string }> {
+  const resp = await fetch(`${DATASETS_BASE}/api/modernize/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Modernization run failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerManifoldReduce(payload: ManifoldReducePayload): Promise<{ status: string; job_id?: string; message?: string }> {
+  const resp = await fetch(`${DATASETS_BASE}/api/modernize/reduce`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Manifold scale reduction failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerRegenerateManifolds(): Promise<{ status: string; job_id?: string; message?: string }> {
+  const resp = await fetch(`${DATASETS_BASE}/api/modernize/regenerate-manifolds`, {
+    method: "POST",
+  });
+  if (!resp.ok) {
+    throw new Error(`Regenerate manifolds failed: ${resp.status}`);
+  }
+  return resp.json();
+}
+
 // ─── Training Suite Sidecar (Port 8200) ─────────────────────────────────────
 
 interface RawModelData {
@@ -636,9 +757,28 @@ export async function cancelTrainingJob(jobId: string): Promise<boolean> {
 
 export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
   try {
-    const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/status`);
-    if (!res.ok) return { authenticated: false, username: "", token_configured: false };
-    return res.json();
+    const [res, secrets] = await Promise.all([
+      fetch(`${TRAINING_BASE}/api/training/kaggle/status`).catch(() => null),
+      fetchSecrets().catch(() => []),
+    ]);
+
+    const defaultKaggle = (secrets || []).find(
+      (s) => s.service.toLowerCase() === "kaggle" && s.is_default
+    );
+
+    const data: KaggleSuiteStatus =
+      res && res.ok
+        ? await res.json()
+        : { authenticated: false, username: "", token_configured: false };
+
+    if (defaultKaggle && defaultKaggle.username) {
+      data.username = defaultKaggle.username;
+      data.token_configured = Boolean(defaultKaggle.secret_value);
+      if (defaultKaggle.secret_value) {
+        data.authenticated = true;
+      }
+    }
+    return data;
   } catch {
     return { authenticated: false, username: "", token_configured: false };
   }
@@ -733,6 +873,54 @@ export async function generateNotebooks(
     throw new Error(err.detail || err.message || `Failed to generate notebooks: ${res.statusText}`);
   }
   return res.json();
+}
+
+export async function triggerUnitTestAll(payload: UnitTestAllPayload = {}): Promise<{ job_id: string; status: string; message: string }> {
+  const resp = await fetch(`${TRAINING_BASE}/api/training/unit-test-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to trigger 1-epoch diagnostic unit test: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerModelEvaluate(payload: ModelEvalPayload): Promise<{ job_id: string; status: string; message: string }> {
+  const resp = await fetch(`${TRAINING_BASE}/api/training/evaluate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to enqueue evaluation: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function triggerModelExport(payload: ModelExportPayload): Promise<{ job_id: string; status: string; message: string }> {
+  const resp = await fetch(`${TRAINING_BASE}/api/training/export`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to enqueue export: ${resp.status}`);
+  }
+  return resp.json();
+}
+
+export async function generateAllNotebooks(platform: string = "all"): Promise<{ success: boolean; total_models: number; total_files: number }> {
+  const resp = await fetch(`${TRAINING_BASE}/api/notebooks/generate-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ platform }),
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to batch generate notebooks: ${resp.status}`);
+  }
+  return resp.json();
 }
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────

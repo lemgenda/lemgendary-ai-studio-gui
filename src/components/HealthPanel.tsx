@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { HealthAuditReport } from "../api/types";
+import {
+  triggerSafeUpdate,
+  triggerDeepClean,
+  installGitHooks,
+  runEcosystemValidation,
+} from "../api/client";
 
 interface HealthPanelProps {
   report: HealthAuditReport | null;
@@ -8,6 +14,12 @@ interface HealthPanelProps {
 }
 
 export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvManager }) => {
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isCleaning, setIsCleaning] = useState<boolean>(false);
+  const [isInstallingHooks, setIsInstallingHooks] = useState<boolean>(false);
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [maintenanceFeedback, setMaintenanceFeedback] = useState<string | null>(null);
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
   if (!report) {
     return (
       <section className="card" aria-labelledby="health-offline-title">
@@ -34,6 +46,71 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       </section>
     );
   }
+
+  const handleSafeUpdate = async (dryRun: boolean = false) => {
+    setIsUpdating(true);
+    setMaintenanceFeedback(null);
+    setMaintenanceError(null);
+    try {
+      const res = await triggerSafeUpdate(dryRun);
+      setMaintenanceFeedback(
+        dryRun
+          ? "Safe upgrade dry run complete. See logs for package version diffs."
+          : `Safe package update initiated (Status: ${res.status}).`
+      );
+    } catch (err: unknown) {
+      setMaintenanceError(`Safe update failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeepClean = async () => {
+    setIsCleaning(true);
+    setMaintenanceFeedback(null);
+    setMaintenanceError(null);
+    try {
+      const res = await triggerDeepClean();
+      setMaintenanceFeedback(`Deep clean complete: Purged ${res.cleaned_count} cache artifacts, reclaimed ${res.reclaimed_mb} MB.`);
+    } catch (err: unknown) {
+      setMaintenanceError(`Deep clean failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
+  const handleInstallHooks = async () => {
+    setIsInstallingHooks(true);
+    setMaintenanceFeedback(null);
+    setMaintenanceError(null);
+    try {
+      const res = await installGitHooks();
+      const summary = res.results.map((r) => `${r.project}: ${r.success ? "OK" : "Failed"}`).join(" | ");
+      setMaintenanceFeedback(`Pre-commit git hooks installed across projects: ${summary}`);
+    } catch (err: unknown) {
+      setMaintenanceError(`Hooks installation failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsInstallingHooks(false);
+    }
+  };
+
+  const handleValidateEcosystem = async () => {
+    setIsValidating(true);
+    setMaintenanceFeedback(null);
+    setMaintenanceError(null);
+    try {
+      const res = await runEcosystemValidation();
+      setMaintenanceFeedback(
+        res.all_passed
+          ? "Full ecosystem codebase validation passed (py_compile, HTML/W3C, YAML, Git hooks)."
+          : "Ecosystem validation reported violations. Check log stream for details."
+      );
+    } catch (err: unknown) {
+      setMaintenanceError(`Validation failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   const projNames = report.projects.map((p) => p.name);
 
@@ -144,6 +221,87 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* ─── ECOSYSTEM MAINTENANCE & GOVERNANCE ACTIONS ─── */}
+      <section className="card" aria-labelledby="maintenance-actions-title">
+        <div className="card-title">
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <h3 id="maintenance-actions-title" style={{ fontSize: "16px", fontWeight: 600 }}>
+              Ecosystem Maintenance &amp; Governance
+            </h3>
+            <HelpTooltip content="Operational maintenance routines executed by Environment Manager (Port 8000): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation." />
+          </div>
+          <span className="badge badge-info">MAINTENANCE</span>
+        </div>
+
+        <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "16px" }}>
+          One-click ecosystem maintenance routines enforcing zero-drift dependency alignment, clean workspace caches, and standardized pre-commit validation hooks.
+        </p>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => handleSafeUpdate(false)}
+            disabled={isUpdating}
+            style={{ fontSize: "12px", padding: "8px 14px", fontWeight: 600 }}
+          >
+            {isUpdating ? "Upgrading Packages..." : "Safe Package Upgrade"}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => handleSafeUpdate(true)}
+            disabled={isUpdating}
+            style={{ fontSize: "12px", padding: "8px 14px" }}
+          >
+            Upgrade Dry Run
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleDeepClean}
+            disabled={isCleaning}
+            style={{ fontSize: "12px", padding: "8px 14px" }}
+          >
+            {isCleaning ? "Purging Caches..." : "Deep Cache Purge"}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleInstallHooks}
+            disabled={isInstallingHooks}
+            style={{ fontSize: "12px", padding: "8px 14px" }}
+          >
+            {isInstallingHooks ? "Configuring Hooks..." : "Install Git Hooks"}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleValidateEcosystem}
+            disabled={isValidating}
+            style={{ fontSize: "12px", padding: "8px 14px" }}
+          >
+            {isValidating ? "Validating Ecosystem..." : "Run Ecosystem Validation"}
+          </button>
+        </div>
+
+        {maintenanceFeedback && (
+          <div className="validation-banner banner-success" style={{ fontSize: "12px", marginTop: "10px" }} role="status">
+            <span>{maintenanceFeedback}</span>
+          </div>
+        )}
+
+        {maintenanceError && (
+          <div className="validation-banner banner-error" style={{ fontSize: "12px", marginTop: "10px" }} role="alert">
+            <span>{maintenanceError}</span>
+          </div>
+        )}
       </section>
     </div>
   );

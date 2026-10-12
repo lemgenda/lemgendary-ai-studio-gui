@@ -14,6 +14,10 @@ import {
   pushKaggleModelArtifacts,
   fetchLiveModelTelemetry,
   generateNotebooks,
+  triggerUnitTestAll,
+  triggerModelEvaluate,
+  triggerModelExport,
+  generateAllNotebooks,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 
@@ -44,6 +48,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [isUnitTestRunning, setIsUnitTestRunning] = useState<boolean>(false);
+  const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
 
   // Local & Remote telemetry stream isolation and clipboard controls
   const [localCopied, setLocalCopied] = useState<boolean>(false);
@@ -109,6 +115,18 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     loadTrainingData();
     loadKaggleData();
   }, [loadTrainingData, loadKaggleData]);
+
+  useEffect(() => {
+    const handleSync = () => {
+      loadKaggleData();
+    };
+    window.addEventListener("secrets-updated", handleSync);
+    window.addEventListener("focus", handleSync);
+    return () => {
+      window.removeEventListener("secrets-updated", handleSync);
+      window.removeEventListener("focus", handleSync);
+    };
+  }, [loadKaggleData]);
 
   const runningJobId = localJobId;
   const runningJobModel = localJobModel;
@@ -264,6 +282,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         model: modelKey,
         gpu,
         auto_pull: autoPull,
+        username: kaggleAuthStatus?.username || undefined,
       });
       if (res.job_id) {
         setRemoteJobId(res.job_id);
@@ -361,6 +380,83 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     } finally {
       setGeneratingNotebookModel(null);
       setTimeout(() => setStatusNotice(null), 5000);
+    }
+  };
+
+  const handleUnitTestAll = async () => {
+    setIsUnitTestRunning(true);
+    setStatusNotice("Dispatching 1-epoch diagnostic pass across all 22 registered models...");
+    try {
+      const res = await triggerUnitTestAll({ epochs: 1, env: "local", force: false });
+      setStatusNotice(`Fleet diagnostic pass dispatched (Job ID: ${res.job_id}). Local telemetry streaming below.`);
+      if (res.job_id) {
+        setLocalJobId(res.job_id);
+        setLocalJobModel("all");
+      }
+      setActiveTelemetryTab("local");
+      scrollToTelemetry();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to launch fleet diagnostic: ${msg}`);
+    } finally {
+      setIsUnitTestRunning(false);
+    }
+  };
+
+  const handleGenerateAllNotebooks = async () => {
+    setIsGeneratingAllNotebooks(true);
+    setStatusNotice("Batch synthesizing notebooks across all registered models...");
+    try {
+      const res = await generateAllNotebooks("all");
+      setStatusNotice(`Batch generated notebooks across all ${res.total_models} models (${res.total_files} files created).`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to batch generate notebooks: ${msg}`);
+    } finally {
+      setIsGeneratingAllNotebooks(false);
+    }
+  };
+
+  const handleEvaluateModel = async (modelKey: string) => {
+    setActionBusyKey(`eval_${modelKey}`);
+    setStatusNotice(`Evaluating model ${modelKey}...`);
+    try {
+      const res = await triggerModelEvaluate({ model: modelKey, env: "local" });
+      setStatusNotice(`Evaluation dispatched for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming below.`);
+      if (res.job_id) {
+        setLocalJobId(res.job_id);
+        setLocalJobModel(modelKey);
+      }
+      setActiveTelemetryTab("local");
+      scrollToTelemetry();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Evaluation failed for ${modelKey}: ${msg}`);
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  const handleExportModel = async (modelKey: string) => {
+    setActionBusyKey(`export_${modelKey}`);
+    setStatusNotice(`Compiling ONNX FP32/FP16 and TorchScript binaries for ${modelKey}...`);
+    try {
+      const res = await triggerModelExport({
+        model: modelKey,
+        targets: ["onnx_fp32", "onnx_fp16", "torch_pt"],
+      });
+      setStatusNotice(`Export dispatched for ${modelKey} (Job ID: ${res.job_id}). Artifacts written to LemGendaryModels.`);
+      if (res.job_id) {
+        setLocalJobId(res.job_id);
+        setLocalJobModel(modelKey);
+      }
+      setActiveTelemetryTab("local");
+      scrollToTelemetry();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Export failed for ${modelKey}: ${msg}`);
+    } finally {
+      setActionBusyKey(null);
     }
   };
 
@@ -617,6 +713,28 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                 </button>
               </div>
             )}
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleUnitTestAll}
+              disabled={isUnitTestRunning || !trainingSuiteOnline}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              title="Execute sequential 1-epoch diagnostic pass across all 22 registered models (smoke test)"
+            >
+              <span>{isUnitTestRunning ? "Running Fleet Test..." : "Run 1-Epoch Diagnostic (All 22 Models)"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleGenerateAllNotebooks}
+              disabled={isGeneratingAllNotebooks || !trainingSuiteOnline}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              title="Batch generate Jupyter notebooks across all registered neural models"
+            >
+              <span>{isGeneratingAllNotebooks ? "Generating Notebooks..." : "Generate All Notebooks"}</span>
+            </button>
 
             <button
               type="button"
@@ -1019,6 +1137,40 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
                       <polyline points="8 6 2 12 8 18" />
                     </svg>
                     <span>{generatingNotebookModel === `${m.key}_usage` ? "Generating..." : "Usage Notebook"}</span>
+                  </button>
+
+                  {/* Evaluate Model */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleEvaluateModel(m.key)}
+                    disabled={isBusy || !trainingSuiteOnline}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Runs evaluation on validation split and streams metrics"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{actionBusyKey === `eval_${m.key}` ? "Evaluating..." : "Evaluate Model"}</span>
+                  </button>
+
+                  {/* Export Model */}
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => handleExportModel(m.key)}
+                    disabled={isBusy || !trainingSuiteOnline}
+                    style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
+                    title="Compiles model checkpoint into ONNX FP32/FP16 and TorchScript deployment binaries"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                      <polyline points="16 16 12 12 8 16" />
+                      <line x1="12" y1="12" x2="12" y2="21" />
+                      <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                    </svg>
+                    <span>{actionBusyKey === `export_${m.key}` ? "Exporting..." : "Export Binaries"}</span>
                   </button>
                 </div>
               </div>

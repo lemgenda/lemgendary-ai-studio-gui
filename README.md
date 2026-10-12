@@ -100,6 +100,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.0 — Modernization Queue Subtabs, Scale Reduction, Fleet Diagnostics & Ecosystem Governance Cards
+
+- **`src/components/CompilerPanel.tsx` — Modernization Queue & Scale Reduction Subtabs** — Structured Section 2 into three sub-tabs: "Manifolds Catalog" (21 production manifolds), "Modernization Queue & Transcode" (interactive scan of datasets needing WebP transcoding, worker pool slider, push to Kaggle, dry-run, force flags, and batch execution), and "Scale Reduction (Downsample)" (downsampled dataset derivation with 10%, 25%, 50%, 75% scale presets). Added top toolbar buttons: "Update All Kaggle Metadata" (bulk Kaggle push) and "Regenerate Manifolds Index".
+- **`src/components/TrainingPanel.tsx` — Fleet Diagnostics, Batch Notebooks & Card Actions** — Added global toolbar buttons: "Run 1-Epoch Diagnostic (All 22 Models)" (`POST /api/training/unit-test-all`) and "Generate All Notebooks" (`POST /api/notebooks/generate-all`). Added per-model action buttons: "Evaluate Model" (`POST /api/training/evaluate`) and "Export Binaries" (`POST /api/training/export`).
+- **`src/components/CloudTrainModal.tsx` — Checkpoint Upload to Kaggle Models** — Added third cloud option tab "Upload Checkpoints" allowing operators to stage and publish trained model weights directly to Kaggle Models repositories with live status reporting.
+- **`src/components/HealthPanel.tsx` — Ecosystem Maintenance & Governance Card** — Added dedicated governance control card providing one-click buttons for "Safe Package Upgrade", "Upgrade Dry Run", "Deep Cache Purge" (`POST /api/clean`), "Install Git Hooks" (`POST /api/hooks/install`), and "Run Ecosystem Validation" (`POST /api/validate`).
+- **`src/api/client.ts` & `src/api/types.ts` — API Interface Expansion** — Added full TypeScript interfaces and asynchronous wrapper functions for all new sidecar capabilities across ports 8000, 8100, and 8200.
+
 ### v2.8.6 — Telemetry Control Sequence Sanitation & Tag Flex Hardening
 
 - **`src/api/client.ts` — ANSI Sequence Cleanser Precision (`cleanAnsiAndControlChars`)** — Hardened regex replacement to require at least one numerical digit/parameter (`^\[[0-9;]+[a-zA-Z]`) when stripping remnant ANSI CSI sequences. Prevented zero-length match corruption that erroneously stripped the leading bracket and character from logging tags like `[PROGRESS]` and `[GOVERNOR]`.

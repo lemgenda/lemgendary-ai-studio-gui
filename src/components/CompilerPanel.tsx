@@ -8,10 +8,16 @@ import {
   downloadKaggleDataset,
   uploadKaggleDataset,
   updateKaggleMetadata,
+  updateAllKaggleMetadata,
+  fetchModernizationQueue,
+  triggerModernizationRun,
+  triggerManifoldReduce,
+  triggerRegenerateManifolds,
 } from "../api/client";
 import {
   CompilerPreset,
   DatasetItem,
+  ModernizationQueueItem,
 } from "../api/types";
 
 interface CompilerPanelProps {
@@ -63,6 +69,27 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Card-level action busy states & status notices
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Section Tab State (Catalog vs Modernization Queue vs Scale Reduction)
+  const [activeSectionTab, setActiveSectionTab] = useState<"catalog" | "modernize" | "reduction">("catalog");
+  const [queueItems, setQueueItems] = useState<ModernizationQueueItem[]>([]);
+  const [isLoadingQueue, setIsLoadingQueue] = useState<boolean>(false);
+  const [modernizeWorkers, setModernizeWorkers] = useState<number>(4);
+  const [modernizePushKaggle, setModernizePushKaggle] = useState<boolean>(false);
+  const [modernizeForce, setModernizeForce] = useState<boolean>(false);
+  const [modernizeDryRun, setModernizeDryRun] = useState<boolean>(false);
+  const [isModernizing, setIsModernizing] = useState<boolean>(false);
+  const [modernizeStatus, setModernizeStatus] = useState<string | null>(null);
+
+  // Scale Reduction State
+  const [reduceManifold, setReduceManifold] = useState<string>("");
+  const [reduceScale, setReduceScale] = useState<number>(0.25);
+  const [isReducing, setIsReducing] = useState<boolean>(false);
+  const [reduceStatus, setReduceStatus] = useState<string | null>(null);
+
+  // Global Actions State
+  const [isUpdatingAllMetadata, setIsUpdatingAllMetadata] = useState<boolean>(false);
+  const [isRegeneratingIndex, setIsRegeneratingIndex] = useState<boolean>(false);
 
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
@@ -419,6 +446,88 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       setActionNotice(`Metadata update failed for ${dataset.display_name}: ${msg}`);
     } finally {
       setActionBusyKey(null);
+    }
+  };
+
+  const loadModernizationQueue = useCallback(async () => {
+    setIsLoadingQueue(true);
+    try {
+      const res = await fetchModernizationQueue();
+      setQueueItems(res.queue || []);
+    } catch (err: unknown) {
+      console.error("Failed to load modernization queue:", err);
+    } finally {
+      setIsLoadingQueue(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSectionTab === "modernize") {
+      loadModernizationQueue();
+    }
+  }, [activeSectionTab, loadModernizationQueue]);
+
+  const handleRunModernize = async (datasetKey?: string) => {
+    setIsModernizing(true);
+    setModernizeStatus(null);
+    try {
+      const res = await triggerModernizationRun({
+        dataset: datasetKey,
+        workers: modernizeWorkers,
+        push_kaggle: modernizePushKaggle,
+        force: modernizeForce,
+        dry_run: modernizeDryRun,
+      });
+      setModernizeStatus(`Modernization job queued: ${res.job_id || "running"}`);
+      await loadModernizationQueue();
+    } catch (err: unknown) {
+      setModernizeStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsModernizing(false);
+    }
+  };
+
+  const handleRunReduce = async () => {
+    if (!reduceManifold) {
+      setReduceStatus("Please select a target manifold to downsample.");
+      return;
+    }
+    setIsReducing(true);
+    setReduceStatus(null);
+    try {
+      const res = await triggerManifoldReduce({
+        manifold: reduceManifold,
+        scale: reduceScale,
+      });
+      setReduceStatus(`Manifold scale reduction queued: ${res.job_id || "running"}`);
+    } catch (err: unknown) {
+      setReduceStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsReducing(false);
+    }
+  };
+
+  const handleUpdateAllMetadata = async () => {
+    setIsUpdatingAllMetadata(true);
+    try {
+      const res = await updateAllKaggleMetadata();
+      setRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.job_id || "active"}).`);
+    } catch (err: unknown) {
+      setRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsUpdatingAllMetadata(false);
+    }
+  };
+
+  const handleRegenerateManifolds = async () => {
+    setIsRegeneratingIndex(true);
+    try {
+      const res = await triggerRegenerateManifolds();
+      setRefreshFeedback(`Regenerated manifolds index (Job ID: ${res.job_id || "active"}).`);
+    } catch (err: unknown) {
+      setRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsRegeneratingIndex(false);
     }
   };
 
@@ -820,6 +929,28 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
             <button
               type="button"
               className="btn btn-secondary"
+              onClick={handleUpdateAllMetadata}
+              disabled={isUpdatingAllMetadata || !datasetCompilerOnline}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              title="Push dataset-metadata.json descriptors for every dataset in unified_data.yaml to Kaggle Cloud"
+            >
+              <span>{isUpdatingAllMetadata ? "Updating All Metadata..." : "Update All Kaggle Metadata"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleRegenerateManifolds}
+              disabled={isRegeneratingIndex || !datasetCompilerOnline}
+              style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              title="Re-index all manifolds and synchronize manifolds.md documentation"
+            >
+              <span>{isRegeneratingIndex ? "Regenerating..." : "Regenerate Manifolds Index"}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
               onClick={loadCompilerData}
               disabled={isRefreshing}
               style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
@@ -830,6 +961,41 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
             <HelpTooltip content="Poll Port 8100 sidecar to rescan storage roots, refresh container shard allocations, verify hardlink ratios, and audit metadata." />
           </div>
         </div>
+
+        {/* Section View Tabs */}
+        <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="segmented-control" style={{ maxWidth: "620px" }}>
+            <button
+              type="button"
+              className={`segmented-btn ${activeSectionTab === "catalog" ? "active" : ""}`}
+              onClick={() => setActiveSectionTab("catalog")}
+              style={{ fontSize: "12px", padding: "4px 12px" }}
+            >
+              Manifolds Catalog ({filteredDatasets.length})
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${activeSectionTab === "modernize" ? "active" : ""}`}
+              onClick={() => setActiveSectionTab("modernize")}
+              style={{ fontSize: "12px", padding: "4px 12px" }}
+            >
+              Modernization Queue &amp; Transcode
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${activeSectionTab === "reduction" ? "active" : ""}`}
+              onClick={() => setActiveSectionTab("reduction")}
+              style={{ fontSize: "12px", padding: "4px 12px" }}
+            >
+              Scale Reduction (Downsample)
+            </button>
+          </div>
+          <HelpTooltip content="Switch between browsing the active manifold catalog, monitoring the container modernization queue, or downsampling massive manifolds for lightweight testing." />
+        </div>
+
+        {/* ─── TAB 1: MANIFOLDS CATALOG ─── */}
+        {activeSectionTab === "catalog" && (
+          <div>
 
         {/* Search & Filter Toolbar (Identical to Model Matrix) */}
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px", padding: "12px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px", marginBottom: "16px" }}>
@@ -1221,8 +1387,240 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           })}
         </div>
       </div>
-    </div>
-  );
+    )}
+
+    {/* ─── TAB 2: MODERNIZATION QUEUE & TRANSCODE ─── */}
+    {activeSectionTab === "modernize" && (
+      <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+          <div>
+            <h4 style={{ fontSize: "14px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+              Container Modernization &amp; Publication Queue
+            </h4>
+            <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+              Automated streaming transcode into WebDataset (.tar), MosaicML (.mds), or Parquet shards with Kaggle publication.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+              <span>Workers:</span>
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={modernizeWorkers}
+                onChange={(e) => setModernizeWorkers(Number(e.target.value))}
+                className="editor-input"
+                style={{ width: "60px", padding: "4px 8px", fontSize: "12px" }}
+              />
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={modernizePushKaggle}
+                onChange={(e) => setModernizePushKaggle(e.target.checked)}
+              />
+              <span>Push Kaggle</span>
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={modernizeForce}
+                onChange={(e) => setModernizeForce(e.target.checked)}
+              />
+              <span>Force</span>
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={modernizeDryRun}
+                onChange={(e) => setModernizeDryRun(e.target.checked)}
+              />
+              <span>Dry Run</span>
+            </label>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={loadModernizationQueue}
+              disabled={isLoadingQueue}
+              style={{ fontSize: "12px", padding: "5px 12px" }}
+            >
+              {isLoadingQueue ? "Scanning..." : "Scan Queue"}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleRunModernize()}
+              disabled={isModernizing || !datasetCompilerOnline}
+              style={{ fontSize: "12px", padding: "5px 12px", fontWeight: 600 }}
+            >
+              {isModernizing ? "Processing Queue..." : "Batch Modernize All"}
+            </button>
+          </div>
+        </div>
+
+        {modernizeStatus && (
+          <div
+            className={`validation-banner ${modernizeStatus.includes("Error") ? "banner-error" : "banner-info"}`}
+            style={{ marginBottom: "16px", fontSize: "12px" }}
+            role="status"
+          >
+            <span>{modernizeStatus}</span>
+          </div>
+        )}
+
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", textAlign: "left" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)", fontSize: "11px", textTransform: "uppercase" }}>
+                <th style={{ padding: "8px 10px" }}>Dataset Key</th>
+                <th style={{ padding: "8px 10px" }}>Target Folder</th>
+                <th style={{ padding: "8px 10px" }}>Canonical Format</th>
+                <th style={{ padding: "8px 10px" }}>Queue Status</th>
+                <th style={{ padding: "8px 10px" }}>Diagnostic Details</th>
+                <th style={{ padding: "8px 10px", textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queueItems.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+                    {isLoadingQueue ? "Scanning modernization queue..." : "No items in queue or catalog is up to date."}
+                  </td>
+                </tr>
+              ) : (
+                queueItems.map((item) => (
+                  <tr key={item.dataset_key} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <td style={{ padding: "8px 10px", fontWeight: 600, color: "var(--text-primary)" }}>
+                      {item.dataset_key}
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+                      {item.modernized_folder}
+                    </td>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span className="badge badge-secondary" style={{ fontSize: "10px", textTransform: "uppercase" }}>
+                        {item.canonical_format}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 10px" }}>
+                      <span
+                        className={`badge ${
+                          item.status === "NEEDS_CONVERSION"
+                            ? "badge-warning"
+                            : item.status === "NEEDS_PUSH"
+                            ? "badge-info"
+                            : "badge-success"
+                        }`}
+                        style={{ fontSize: "10px" }}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "var(--text-muted)", fontSize: "11px" }}>
+                      {item.reason}
+                    </td>
+                    <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handleRunModernize(item.dataset_key)}
+                        disabled={isModernizing || !datasetCompilerOnline}
+                        style={{ fontSize: "11px", padding: "3px 8px" }}
+                      >
+                        Modernize
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    {/* ─── TAB 3: SCALE REDUCTION ─── */}
+    {activeSectionTab === "reduction" && (
+      <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+        <h4 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--text-primary)" }}>
+          Manifold Downsampling &amp; Scale Reduction
+        </h4>
+        <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 16px 0" }}>
+          Synthesize a lightweight scaled derivative manifold (e.g. 25% or 10% sampling) preserving paired input/target alignments for rapid local unit testing.
+        </p>
+
+        <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+          <div className="form-group">
+            <label htmlFor="reduce-manifold-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+              Source Manifold:
+            </label>
+            <select
+              id="reduce-manifold-select"
+              className="editor-select"
+              value={reduceManifold}
+              onChange={(e) => setReduceManifold(e.target.value)}
+              disabled={isReducing}
+              style={{ fontSize: "12px", padding: "6px 8px" }}
+            >
+              <option value="">Select Manifold to Reduce...</option>
+              {datasets.map((d) => (
+                <option key={d.key} value={d.modernized_folder || d.key}>
+                  {d.display_name} ({d.modernized_folder || d.key})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="reduce-scale-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+              Sampling Scale Factor:
+            </label>
+            <select
+              id="reduce-scale-select"
+              className="editor-select"
+              value={reduceScale}
+              onChange={(e) => setReduceScale(Number(e.target.value))}
+              disabled={isReducing}
+              style={{ fontSize: "12px", padding: "6px 8px" }}
+            >
+              <option value={0.1}>10% Sampling (Diagnostic Smoke Test)</option>
+              <option value={0.25}>25% Sampling (Balanced Lightweight)</option>
+              <option value={0.5}>50% Sampling (Medium Scale)</option>
+              <option value={0.75}>75% Sampling (High Fidelity)</option>
+            </select>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleRunReduce}
+          disabled={isReducing || !datasetCompilerOnline || !reduceManifold}
+          style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
+        >
+          {isReducing ? "Executing Scale Reduction..." : "Launch Scale Reduction"}
+        </button>
+
+        {reduceStatus && (
+          <div
+            className={`validation-banner ${reduceStatus.includes("Error") ? "banner-error" : "banner-info"}`}
+            style={{ marginTop: "16px", fontSize: "12px" }}
+            role="status"
+          >
+            <span>{reduceStatus}</span>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+</div>
+);
 };
 
 export default CompilerPanel;

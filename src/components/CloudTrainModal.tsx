@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ModelItem, KaggleSuiteStatus } from "../api/types";
+import { pushKaggleModelArtifacts } from "../api/client";
 
 interface CloudTrainModalProps {
   isOpen: boolean;
@@ -19,10 +20,12 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   kaggleAuthStatus,
   isBusy,
 }) => {
-  const [targetPlatform, setTargetPlatform] = useState<"kaggle" | "colab">("kaggle");
+  const [targetPlatform, setTargetPlatform] = useState<"kaggle" | "colab" | "upload">("kaggle");
   const [selectedGpu, setSelectedGpu] = useState<"T4" | "P100">("T4");
   const [autoPull, setAutoPull] = useState<boolean>(true);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
   if (!isOpen || !model) return null;
 
@@ -46,6 +49,20 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setLaunchError(msg);
+    }
+  };
+
+  const handleUploadCheckpoints = async () => {
+    setIsUploading(true);
+    setUploadStatus(null);
+    try {
+      const res = await pushKaggleModelArtifacts(model.key);
+      setUploadStatus(res.message || `Checkpoints for ${model.key} uploaded successfully.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`Upload failed: ${msg}`);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -89,6 +106,14 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
             >
               Google Colab FUSE
+            </button>
+            <button
+              type="button"
+              className={`btn ${targetPlatform === "upload" ? "btn-primary" : "btn-secondary"}`}
+              onClick={() => setTargetPlatform("upload")}
+              style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
+            >
+              Upload Checkpoints
             </button>
           </div>
 
@@ -187,12 +212,31 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : targetPlatform === "colab" ? (
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "20px" }}>
               <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                 Google Colab execution mounts <strong>Google Drive FUSE</strong> directly at <code>/content/drive/MyDrive/LemGendaryModels</code>.
                 Background daemon threads stream updated model weights and metrics every 30 seconds.
               </div>
+            </div>
+          ) : (
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
+              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 10px 0", color: "var(--text-primary)" }}>
+                Stage &amp; Upload Local Checkpoints to Kaggle Models
+              </h4>
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 12px 0" }}>
+                Upload converged weights, metrics, and compiled binaries from local <code>LemGendaryModels/{model.key}/checkpoints/</code> into remote Kaggle Models (<code>kaggle.com/models/{checkpointRepo}</code>).
+              </p>
+              <div style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-muted)", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "6px" }}>
+                <div>Local Source: LemGendaryModels/{model.key}/</div>
+                <div>Target Repo: {checkpointRepo}</div>
+                <div>Artifacts: *_best.pth, metrics.csv, *.onnx</div>
+              </div>
+              {uploadStatus && (
+                <div className={`validation-banner ${uploadStatus.includes("failed") ? "banner-error" : "banner-success"}`} style={{ marginTop: "12px", fontSize: "12px" }}>
+                  <span>{uploadStatus}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -208,7 +252,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               type="button"
               className="btn btn-secondary"
               onClick={onClose}
-              disabled={isBusy}
+              disabled={isBusy || isUploading}
               style={{ padding: "8px 16px", fontSize: "13px" }}
             >
               Cancel
@@ -233,6 +277,18 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                 style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
               >
                 {isBusy ? "Dispatching..." : "Launch Cloud Training"}
+              </button>
+            )}
+
+            {targetPlatform === "upload" && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleUploadCheckpoints}
+                disabled={isUploading}
+                style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
+              >
+                {isUploading ? "Uploading Checkpoints..." : "Upload to Kaggle Models"}
               </button>
             )}
           </div>
