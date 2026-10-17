@@ -145,12 +145,23 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
               textAlign: "right",
             }}
           >
-            {isIndeterminate ? "IN-FLIGHT" : `${percentage.toFixed(1)}%`}
+            {isIndeterminate
+              ? "IN-FLIGHT"
+              : percentage > 0 && percentage < 1
+              ? `${percentage.toFixed(2)}%`
+              : `${percentage.toFixed(1)}%`}
           </span>
         </div>
       </div>
 
       {/* ─── LINE 2: VISUAL PROGRESS BAR ONLY ─────────────────────────────── */}
+      <style>{`
+        @keyframes telemetry-indeterminate-sweep {
+          0% { transform: translateX(-100%); width: 40%; }
+          50% { transform: translateX(50%); width: 60%; }
+          100% { transform: translateX(200%); width: 40%; }
+        }
+      `}</style>
       <Progress.Root
         value={isIndeterminate ? null : percentage}
         max={100}
@@ -168,13 +179,14 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
         <Progress.Indicator
           style={{
             background: gradient,
-            width: "100%",
+            width: isIndeterminate ? "50%" : "100%",
             height: "100%",
             borderRadius: "9999px",
             boxShadow: `0 0 12px ${sourceColor}`,
-            transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: isIndeterminate ? "none" : "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+            animation: isIndeterminate ? "telemetry-indeterminate-sweep 1.8s infinite ease-in-out" : "none",
             transform: isIndeterminate
-              ? "translateX(-20%)"
+              ? undefined
               : `translateX(-${100 - percentage}%)`,
           }}
         />

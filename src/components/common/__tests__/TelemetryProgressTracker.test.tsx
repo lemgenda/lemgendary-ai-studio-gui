@@ -41,6 +41,41 @@ describe("TelemetryProgressTracker & progressParser", () => {
     expect(html).toContain('role="progressbar"');
   });
 
+  it("parses model training batch ratio and renders exact percentage and it/s rate", () => {
+    const raw = "  [BATCH     20/109196] Loss: 0.3191 | AvgLoss: 0.6325 | LR: 0.001000 | 1117.9s";
+    const parsed = parseProgressMessage(raw, "Training");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.operation).toBe("TRAINING");
+    expect(parsed?.target).toBe("Batch 20/109196");
+    expect(parsed?.percentage).toBeCloseTo(0.0183, 3);
+    expect(parsed?.isIndeterminate).toBe(false);
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("TRAINING");
+    expect(html).toContain("0.02%");
+    expect(html).toContain("Batch 20/109196");
+    expect(html).not.toContain("IN-FLIGHT");
+  });
+
+  it("parses modern batch progression with explicit percentage and ETA", () => {
+    const raw = "  [BATCH     20/16379] (0.12%) Loss: 0.3191 | AvgLoss: 0.6325 | LR: 0.001000 | 5.42 it/s | ETA 50m24s | 3.7s";
+    const parsed = parseProgressMessage(raw, "Training");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(0.12);
+    expect(parsed?.rate).toBe("5.42 it/s");
+    expect(parsed?.eta).toBe("50m24s");
+    expect(parsed?.isIndeterminate).toBe(false);
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("0.12%");
+    expect(html).toContain("5.42 it/s");
+    expect(html).toContain("ETA 50m24s");
+  });
+
   it("returns null when progress object is null", () => {
     const html = renderToStaticMarkup(
       <TelemetryProgressTracker progress={null} />

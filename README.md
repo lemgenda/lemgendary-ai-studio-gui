@@ -84,6 +84,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
 - **Embedded Real-Time Telemetry & Diagnostics**:
   - 3-tab live console (Local Training, Remote Cloud, Ecosystem Mesh) embedded directly on individual operational panels.
   - Streaming WebSockets over `/ws/log` and `/api/ws/logs` with color-coded severity badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`).
+  - **Telemetry Progress Tracker (`TelemetryProgressTracker.tsx`, `progressParser.ts`)**: Real-time progress bar powered by `@radix-ui/react-progress`. Intelligently parses dataset archiving/uploads (`ARCHIVING: ... 45.2%`), pipeline steps (`[Step 2/6]`), and model training batch ratios (`[BATCH 20/16379]`). Renders precise decimal percentages (`0.02%`) during early epoch fractions, extracts throughput rates (`it/s`, `MB/s`) and dynamic ETAs, with smooth indeterminate gradient sweep animations during preparation phases.
   - Memory-efficient circular log buffers and smart auto-scroll controls.
 
 ## Design Aesthetics
