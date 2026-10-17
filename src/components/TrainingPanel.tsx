@@ -475,33 +475,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
   };
 
-  // Clipboard & Clear Controls
-  const handleCopyLocalStream = () => {
-    const text = (_recentEvents || [])
-      .filter((ev) => ev.step_name.includes("train") || ev.step_name.includes("TRAIN") || ev.step_name.includes("Local"))
-      .map((e) => `[${e.timestamp}] [${e.step_name}] ${e.message}`)
-      .join("\n");
-    navigator.clipboard.writeText(text);
-    setLocalCopied(true);
-    setTimeout(() => setLocalCopied(false), 2000);
-  };
-
-  const handleClearLocalStream = () => {
-    setClearedLocalTimestamp(Date.now());
-  };
-
-  const handleCopyRemoteStream = () => {
-    const text = remoteEvents.map((e) => `[${e.timestamp}] [${e.step_name}] ${e.message}`).join("\n");
-    navigator.clipboard.writeText(text);
-    setRemoteCopied(true);
-    setTimeout(() => setRemoteCopied(false), 2000);
-  };
-
-  const handleClearRemoteStream = () => {
-    setClearedRemoteTimestamp(Date.now());
-    setRemoteEvents([]);
-  };
-
   const displayedLocalEvents = useMemo(() => {
     return (_recentEvents || []).filter(
       (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedLocalTimestamp
@@ -513,6 +486,76 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedRemoteTimestamp
     );
   }, [remoteEvents, clearedRemoteTimestamp]);
+
+  // Clipboard & Clear Controls
+  const handleCopyLocalStream = async () => {
+    if (displayedLocalEvents.length === 0) return;
+    const text = displayedLocalEvents
+      .map((e) => {
+        const timeStr = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : "--:--:--";
+        return `[${timeStr}] [${e.step_name}] ${e.message}`;
+      })
+      .join("\n");
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setLocalCopied(true);
+      setTimeout(() => setLocalCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy local training stream logs:", err);
+    }
+  };
+
+  const handleClearLocalStream = () => {
+    setClearedLocalTimestamp(Date.now());
+  };
+
+  const handleCopyRemoteStream = async () => {
+    if (displayedRemoteEvents.length === 0) return;
+    const text = displayedRemoteEvents
+      .map((e) => {
+        const timeStr = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : "--:--:--";
+        return `[${timeStr}] [${e.step_name}] ${e.message}`;
+      })
+      .join("\n");
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setRemoteCopied(true);
+      setTimeout(() => setRemoteCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy remote cloud stream logs:", err);
+    }
+  };
+
+  const handleClearRemoteStream = () => {
+    setClearedRemoteTimestamp(Date.now());
+    setRemoteEvents([]);
+  };
 
   return (
     <div style={{ padding: "20px 24px" }}>
