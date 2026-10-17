@@ -78,6 +78,27 @@ describe("TelemetryProgressTracker & progressParser", () => {
     expect(html).toContain("ETA 50m24s");
   });
 
+  it("parses validation batch progression and renders VALIDATION badge and ETA", () => {
+    const raw = "  [VAL BATCH 125/2500] (5.00%) ValLoss: 0.2104 | AvgValLoss: 0.2215 | 1.05 it/s | ETA 37m42s | 119.0s";
+    const parsed = parseProgressMessage(raw, "Training");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(5);
+    expect(parsed?.operation).toBe("VALIDATION");
+    expect(parsed?.target).toBe("Val Batch 125/2500");
+    expect(parsed?.rate).toBe("1.05 it/s");
+    expect(parsed?.eta).toBe("37m42s");
+    expect(parsed?.source).toBe("training");
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("VALIDATION");
+    expect(html).toContain("5.0%");
+    expect(html).toContain("Val Batch 125/2500");
+    expect(html).toContain("37m42s");
+    expect(html).toContain("1.05 it/s");
+  });
+
   it("parses dataset upload progress cleanly without target percentage duplication or rate duplication", () => {
     const raw = "Uploading: 45% 1.23G/2.74G [3:25:49<3:59:04, 2.76MB/s]";
     const parsed = parseProgressMessage(raw, "Compiler");

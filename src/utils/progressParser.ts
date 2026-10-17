@@ -18,7 +18,7 @@ export interface ParsedProgress {
 const PERCENT_REGEX = /(\d{1,3}(?:\.\d+)?)\s*%/;
 const BRACKET_STATS_REGEX = /\[([^\]]+)\]/;
 const STEP_RATIO_REGEX = /\[Step\s+(\d+)\/(\d+)\]/i;
-const BATCH_RATIO_REGEX = /\[BATCH\s+(\d+)\/(\d+)\]/i;
+const BATCH_RATIO_REGEX = /\[(?:VAL\s+)?BATCH\s+(\d+)\/(\d+)\]/i;
 const EPOCH_BATCH_REGEX = /(\d+)\/(\d+)\s+(?:batches|epochs|steps|samples)/i;
 
 export function parseProgressMessage(message: string, stepName?: string): ParsedProgress | null {
@@ -41,7 +41,7 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     }
   }
 
-  // 3. Batch ratio check (e.g. [BATCH 20/109196])
+  // 3. Batch ratio check (e.g. [BATCH 20/109196] or [VAL BATCH 125/2500])
   const batchRatioMatch = trimmed.match(BATCH_RATIO_REGEX);
   if (percentage < 0 && batchRatioMatch) {
     const current = parseInt(batchRatioMatch[1], 10);
@@ -67,9 +67,10 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     source = "compiler";
   } else if (
     stepLower.includes("training") ||
+    stepLower.includes("validation") ||
     stepLower.includes("epoch") ||
     stepLower.includes("model") ||
-    trimmed.includes("[BATCH") ||
+    trimmed.includes("BATCH") ||
     trimmed.includes("EPOCH")
   ) {
     source = "training";
@@ -85,7 +86,7 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     trimmed.startsWith("EXTRACTING") ||
     trimmed.startsWith("COMPILING") ||
     trimmed.includes("EPOCH") ||
-    trimmed.includes("[BATCH") ||
+    trimmed.includes("BATCH") ||
     trimmed.includes("batches") ||
     trimmed.includes("ETA:") ||
     trimmed.includes("it/s") ||
@@ -100,8 +101,9 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
   let target: string | undefined;
 
   if (batchRatioMatch) {
-    operation = "TRAINING";
-    target = `Batch ${batchRatioMatch[1]}/${batchRatioMatch[2]}`;
+    const isVal = /VAL\s+BATCH/i.test(trimmed) || trimmed.toUpperCase().includes("VALLOSS");
+    operation = isVal ? "VALIDATION" : "TRAINING";
+    target = `${isVal ? "Val Batch" : "Batch"} ${batchRatioMatch[1]}/${batchRatioMatch[2]}`;
   } else {
     const colonIdx = trimmed.indexOf(":");
     if (colonIdx > 0 && colonIdx < 30) {

@@ -19,16 +19,21 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
 
   const { operation, target, percentage, isIndeterminate, numericStats, rate, eta, source } = progress;
 
-  // Accent styling based on subsystem source
+  // Accent styling based on subsystem source and operation
+  const isValidation = operation === "VALIDATION";
   const sourceColor =
-    source === "compiler"
+    isValidation
+      ? "var(--accent-emerald, #00ff88)"
+      : source === "compiler"
       ? "var(--accent-cyan, #00f0ff)"
       : source === "training"
       ? "var(--accent-purple, #bf7af0)"
       : "var(--accent-emerald, #00ff88)";
 
   const gradient =
-    source === "compiler"
+    isValidation
+      ? "linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%)"
+      : source === "compiler"
       ? "linear-gradient(90deg, #00d2ff 0%, #00f0ff 60%, #00ff88 100%)"
       : source === "training"
       ? "linear-gradient(90deg, #8a2be2 0%, #bf7af0 60%, #00f0ff 100%)"
