@@ -252,13 +252,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   }, [models, searchQuery, statusFilter, categoryFilter, archFilter]);
 
   // Handlers
-  const handleStartLocalTrain = async (m: ModelItem) => {
+  const handleStartLocalTrain = async (m: ModelItem, batchSize?: number) => {
     setActionBusyKey(`local_${m.key}`);
     try {
-      const res = await triggerQuickTrain({ model_key: m.key });
+      const res = await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
       setLocalJob({ jobId: res.job_id || null, modelKey: m.key });
       setActiveTelemetryTab("local");
-      setStatusNotice(`Local training initialized for ${m.display_name} (Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
+      setStatusNotice(`Local training initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatusNotice(`Failed to start local training for ${m.display_name}: ${msg}`);

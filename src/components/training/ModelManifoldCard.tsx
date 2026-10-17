@@ -11,7 +11,7 @@ export interface ModelManifoldCardProps {
   isTargetPinned: boolean;
   onToggleTargetPin: () => void;
   generatingNotebookModel: string | null;
-  onStartLocalTrain: (model: ModelItem) => void;
+  onStartLocalTrain: (model: ModelItem, batchSize?: number) => void;
   onStopLocalTrain: () => void;
   onOpenCloudModal: (model: ModelItem) => void;
   onPushArtifacts: (modelKey: string) => void;
@@ -46,6 +46,14 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
   onStageVariations,
   trainingSuiteOnline,
 }) => {
+  const [selectedBatchSize, setSelectedBatchSize] = React.useState<number>(m.batch_size ?? 256);
+
+  React.useEffect(() => {
+    if (m.batch_size) {
+      setSelectedBatchSize(m.batch_size);
+    }
+  }, [m.batch_size]);
+
   return (
     <div
       className="card"
@@ -308,14 +316,57 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         </div>
       </div>
 
+      {/* Batch Size Selector */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "8px",
+          background: "rgba(255, 255, 255, 0.02)",
+          padding: "5px 10px",
+          borderRadius: "6px",
+          border: "1px solid var(--border-color)",
+          marginTop: "auto",
+        }}
+      >
+        <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 600 }}>
+          Batch Size:
+        </span>
+        <select
+          value={selectedBatchSize}
+          onChange={(e) => setSelectedBatchSize(Number(e.target.value))}
+          disabled={isBusy || isCurrentlyTrainingThis}
+          aria-label={`Select local batch size for ${m.display_name}`}
+          style={{
+            padding: "2px 8px",
+            fontSize: "11px",
+            fontWeight: 700,
+            borderRadius: "4px",
+            background: "rgba(15, 23, 42, 0.8)",
+            border: "1px solid var(--border-color)",
+            color: "var(--text-primary)",
+            cursor: isBusy || isCurrentlyTrainingThis ? "not-allowed" : "pointer",
+          }}
+        >
+          <option value={8}>8</option>
+          <option value={16}>16</option>
+          <option value={32}>32</option>
+          <option value={64}>64</option>
+          <option value={128}>128</option>
+          <option value={256}>256</option>
+          <option value={512}>512</option>
+          <option value={1024}>1024</option>
+        </select>
+      </div>
+
       {/* 4. Action Buttons Toolbar on each card */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: "8px",
-          marginTop: "auto",
-          paddingTop: "10px",
+          paddingTop: "6px",
           borderTop: "1px solid var(--border-color)",
         }}
       >
@@ -337,7 +388,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => onStartLocalTrain(m)}
+            onClick={() => onStartLocalTrain(m, selectedBatchSize)}
             disabled={isBusy || !trainingSuiteOnline}
             style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
             title="Starts local GPU training pass and focuses telemetry terminal below"
