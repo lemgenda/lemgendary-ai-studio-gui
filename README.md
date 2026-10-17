@@ -47,8 +47,8 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
     - **`HoverPinPopover.tsx`**: Zero-dependency CSS hover and native semantic `<button>` pin popover for SOTA targets and upstream raw sources, strictly adhering to `jsx-a11y` standards.
     - **`HelpTooltip.tsx`**: Contextual interactive hover guidance popovers attached to interactive controls across all panels.
   - **Training Subsystem**:
-    - `ModelManifoldCard.tsx`: Dedicated card handling spatial ladder progress, multi-variation isolation badges, SOTA target metrics, primary local/cloud training triggers, and export actions.
-    - `TelemetryConsole.tsx`: High-throughput 3-tab terminal displaying live Local Training, Remote Cloud, and Ecosystem Mesh logs with ANSI stripping, auto-scroll, regex search, clipboard export, and sub-second minibatch abort.
+    - `ModelManifoldCard.tsx`: Dedicated card handling spatial ladder progress, multi-variation isolation badges, SOTA target metrics, primary local/cloud training triggers, export actions, and in-app model card documentation regeneration (`Docs & Meta`).
+    - `TelemetryConsole.tsx`: High-throughput 3-tab terminal displaying live Local Training, Remote Cloud, and Ecosystem Mesh logs with ANSI stripping, auto-scroll, regex search, zero-loss clipboard export (with secure `navigator.clipboard` and legacy `execCommand` fallback), and sub-second minibatch abort.
     - `TrainingToolbar.tsx`: Fleet-wide batch action triggers ("Unit Test All Models", "Generate All Notebooks", "Push All Models to Kaggle", "Refresh Models"), live search filter, and category/architecture selectors.
     - `VariationIsolationChecker.tsx`: Interactive verification checklist for isolated Kaggle Model Hub variations (PyTorch, ONNX FP32, ONNX FP16) with dry-run protection.
   - **Compiler Subsystem**:
@@ -56,7 +56,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
     - `DatasetCompilationForm.tsx`: Standard presets and Direct Kaggle Ingestion engines with WebDataset container streaming and WebP transcoding.
     - `ModernizationQueueTable.tsx`: Background queue orchestrator with worker thread concurrency controls.
     - `ScaleReductionView.tsx`: Image downscaling governor for bandwidth-constrained remote environments.
-    - `CompilerToolbar.tsx`: Format filters and global dataset action buttons.
+    - `CompilerToolbar.tsx`: Format filters, global dataset action buttons, and live archiving/upload/extraction telemetry progress indicators.
 
 - **Dataset Compiler & Modernization Suite**:
   - **Standard Compilation Presets**: Fast transformation of raw archives into WebDataset `.data` / `.tar` shards, Parquet, MosaicML `.mds`, or LitData containers.
