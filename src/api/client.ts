@@ -1079,7 +1079,21 @@ export function isCompilerEvent(ev: PipelineEvent): boolean {
   if (!ev) return false;
   const step = (ev.step_name || "").toLowerCase();
   const msg = (ev.message || "").toLowerCase();
-  if (step.includes("compiler") || step.includes("dataset") || step.includes("sync") || step.includes("archive")) {
+
+  // Training-tagged events always belong to the training stream
+  if (
+    step.includes("train") ||
+    msg.includes("[training]") ||
+    msg.includes("[train]") ||
+    msg.includes("[factory]") ||
+    msg.includes("[governor]") ||
+    msg.includes("[epoch") ||
+    msg.includes("[batch")
+  ) {
+    return false;
+  }
+
+  if (step.includes("compiler") || step.includes("dataset") || step.includes("archive")) {
     return true;
   }
   if (
@@ -1089,7 +1103,7 @@ export function isCompilerEvent(ev: PipelineEvent): boolean {
     msg.includes("pulling:") ||
     msg.includes("[compiler]") ||
     msg.includes("kaggle extraction") ||
-    msg.includes("lemgendized")
+    msg.includes("dataset compiler")
   ) {
     return true;
   }
@@ -1098,7 +1112,6 @@ export function isCompilerEvent(ev: PipelineEvent): boolean {
 
 export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
   if (!ev) return false;
-  if (isCompilerEvent(ev)) return false;
   const step = (ev.step_name || "").toLowerCase();
   const msg = (ev.message || "").toLowerCase();
   if (
@@ -1106,11 +1119,7 @@ export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
     step.includes("model") ||
     step.includes("eval") ||
     step.includes("export") ||
-    step.includes("governor")
-  ) {
-    return true;
-  }
-  if (
+    step.includes("governor") ||
     msg.includes("[training]") ||
     msg.includes("[train]") ||
     msg.includes("[epoch") ||
@@ -1120,6 +1129,7 @@ export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
   ) {
     return true;
   }
+  if (isCompilerEvent(ev)) return false;
   return false;
 }
 
