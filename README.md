@@ -49,7 +49,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - **Training Subsystem**:
     - `ModelManifoldCard.tsx`: Dedicated card handling spatial ladder progress, multi-variation isolation badges, SOTA target metrics, primary local/cloud training triggers, and export actions.
     - `TelemetryConsole.tsx`: High-throughput 3-tab terminal displaying live Local Training, Remote Cloud, and Ecosystem Mesh logs with ANSI stripping, auto-scroll, regex search, clipboard export, and sub-second minibatch abort.
-    - `TrainingToolbar.tsx`: Fleet-wide batch action triggers, architecture filters, and category toggles.
+    - `TrainingToolbar.tsx`: Fleet-wide batch action triggers ("Unit Test All Models", "Generate All Notebooks", "Push All Models to Kaggle", "Refresh Models"), live search filter, and category/architecture selectors.
     - `VariationIsolationChecker.tsx`: Interactive verification checklist for isolated Kaggle Model Hub variations (PyTorch, ONNX FP32, ONNX FP16) with dry-run protection.
   - **Compiler Subsystem**:
     - `DatasetManifoldCard.tsx`: Manifold statistics, container format badges, sample counts, upstream source popovers, and direct card-level Kaggle actions (`Update Metadata`, `Download from Kaggle`, `Upload to Kaggle`).
@@ -66,6 +66,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
 
 - **Multi-Variation Kaggle Model Hub & Cloud Training**:
   - Interactive cloud training dialog supporting Kaggle Dual-T4 and P100 hardware clusters.
+  - Fleet-Wide Kaggle Push: One-click "Push All Models to Kaggle" toolbar action to stage, validate, and publish all 22 registered neural architectures and their multi-format variations with pre-flight isolation verification.
   - Automated staging and verification of 3 distinct isolated variations:
     - Variation 1 (`pytorch`): PyTorch checkpoint binaries (`*.pt`).
     - Variation 2 (`onnx_fp32`): High-precision standard ONNX exports (`*_FP32.onnx*`).

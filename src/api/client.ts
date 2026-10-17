@@ -49,6 +49,8 @@ import {
   ModelValidateIsolationResponse,
   KagglePushModelPayload,
   KagglePushModelResponse,
+  KagglePushAllPayload,
+  KagglePushAllResponse,
   LLMTrainingConfig,
   LLMTrainResponse,
 } from "./types";
@@ -77,6 +79,8 @@ export type {
   ModelValidateIsolationResponse,
   KagglePushModelPayload,
   KagglePushModelResponse,
+  KagglePushAllPayload,
+  KagglePushAllResponse,
   LLMTrainingConfig,
   LLMTrainResponse,
 };
@@ -983,6 +987,19 @@ export async function pushKaggleModelVariation(payload: KagglePushModelPayload):
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || err.message || `Failed to push model variation to Kaggle: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function pushAllKaggleModels(payload: KagglePushAllPayload = {}): Promise<KagglePushAllResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to enqueue fleet Kaggle push: ${res.statusText}`);
   }
   return res.json();
 }

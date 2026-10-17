@@ -24,6 +24,7 @@ import {
   generateAllNotebooks,
   generateModelDocs,
   stageModelVariations,
+  pushAllKaggleModels,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
@@ -65,6 +66,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [isUnitTestRunning, setIsUnitTestRunning] = useState<boolean>(false);
   const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
+  const [isPushingAllKaggle, setIsPushingAllKaggle] = useState<boolean>(false);
 
   // Local & Remote telemetry stream isolation and clipboard controls
   const [localCopied, setLocalCopied] = useState<boolean>(false);
@@ -443,6 +445,21 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
   };
 
+  const handlePushAllKaggle = async () => {
+    setIsPushingAllKaggle(true);
+    setActiveTelemetryTab("remote");
+    try {
+      const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
+      setRemoteJob({ jobId: res.job_id, modelKey: "all_models" });
+      setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Remote telemetry streaming.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusNotice(`Failed to enqueue fleet Kaggle push: ${msg}`);
+    } finally {
+      setIsPushingAllKaggle(false);
+    }
+  };
+
   const handleAttachKernelStream = async (k: KaggleKernelItem) => {
     setActionBusyKey(`attach_${k.ref}`);
     setAttachedKernelRef(k.ref);
@@ -522,6 +539,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         onRunUnitTestAll={handleRunUnitTestAll}
         isGeneratingAllNotebooks={isGeneratingAllNotebooks}
         onGenerateAllNotebooks={handleGenerateAllNotebooks}
+        isPushingAllKaggle={isPushingAllKaggle}
+        onPushAllKaggle={handlePushAllKaggle}
         isRefreshing={isRefreshing}
         onRefreshModels={loadTrainingData}
         totalModelsCount={models.length}

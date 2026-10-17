@@ -525,6 +525,20 @@ export interface KagglePushModelResponse {
   errors: string[];
 }
 
+export interface KagglePushAllPayload {
+  variation?: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16";
+  version_notes?: string;
+  dry_run?: boolean;
+}
+
+export interface KagglePushAllResponse {
+  job_id: string;
+  status: string;
+  message: string;
+  variation: string;
+  dry_run: boolean;
+}
+
 export interface LLMTrainingConfig {
   model?: string;
   epochs?: number;

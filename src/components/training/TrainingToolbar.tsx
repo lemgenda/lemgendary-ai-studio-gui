@@ -18,6 +18,8 @@ export interface TrainingToolbarProps {
   onRunUnitTestAll: () => void;
   isGeneratingAllNotebooks: boolean;
   onGenerateAllNotebooks: () => void;
+  isPushingAllKaggle: boolean;
+  onPushAllKaggle: () => void;
   isRefreshing: boolean;
   onRefreshModels: () => void;
   totalModelsCount: number;
@@ -41,6 +43,8 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
   onRunUnitTestAll,
   isGeneratingAllNotebooks,
   onGenerateAllNotebooks,
+  isPushingAllKaggle,
+  onPushAllKaggle,
   isRefreshing,
   onRefreshModels,
   totalModelsCount,
@@ -74,6 +78,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <button
             type="button"
+            id="train-btn-unit-test-all"
             className="btn btn-secondary"
             onClick={onRunUnitTestAll}
             disabled={isUnitTestRunning || !trainingSuiteOnline}
@@ -85,6 +90,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
 
           <button
             type="button"
+            id="train-btn-generate-all-notebooks"
             className="btn btn-secondary"
             onClick={onGenerateAllNotebooks}
             disabled={isGeneratingAllNotebooks || !trainingSuiteOnline}
@@ -96,6 +102,19 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
 
           <button
             type="button"
+            id="training-toolbar-push-all-models-btn"
+            className="btn btn-secondary"
+            onClick={onPushAllKaggle}
+            disabled={isPushingAllKaggle || !trainingSuiteOnline}
+            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            title="Stage and publish all registered models, checkpoints, and variations to Kaggle Models Hub"
+          >
+            <span>{isPushingAllKaggle ? "Pushing All Models..." : "Push All Models to Kaggle"}</span>
+          </button>
+
+          <button
+            type="button"
+            id="train-btn-refresh-models"
             className="btn btn-secondary"
             onClick={onRefreshModels}
             disabled={isRefreshing}
