@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { ValidationBanner } from "./common/ValidationBanner";
 import { HealthAuditReport } from "../api/types";
 import {
   triggerSafeUpdate,
@@ -112,7 +113,11 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
     }
   };
 
-  const projNames = report.projects.map((p) => p.name);
+  const pythonProjects = report.projects.filter(
+    (p) => p.name !== "lemgendary-ai-studio-gui"
+  );
+  const projNames = pythonProjects.map((p) => p.name);
+  const guiProject = report.projects.find((p) => p.name === "lemgendary-ai-studio-gui");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -185,7 +190,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </div>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: "12px" }}>
+        <div style={{ overflowX: "auto", marginTop: "12px", maxHeight: "360px", overflowY: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
             <caption className="sr-only">Cross-Project Package Version Drift Matrix comparing package versions across projects</caption>
             <thead>
@@ -222,6 +227,69 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </table>
         </div>
       </section>
+
+      {guiProject && (
+        <section className="card" aria-labelledby="gui-dependencies-title">
+          <div className="card-title">
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <h3 id="gui-dependencies-title" style={{ fontSize: "16px", fontWeight: 600 }}>Desktop GUI Project Packages (NPM)</h3>
+              <HelpTooltip content="Node.js and Tauri ecosystem packages managed via package.json. Desktop UI runs independently of Python virtual environments." />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span className={`badge ${guiProject.is_healthy ? "badge-success" : "badge-error"}`}>
+                {guiProject.is_healthy ? "NODE_MODULES READY" : "ATTENTION REQUIRED"}
+              </span>
+              <HelpTooltip content={guiProject.is_healthy ? "All direct and dev dependencies installed in node_modules." : "node_modules missing or incomplete. Run npm install to resolve."} />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginTop: "12px" }}>
+            <div className="metric-row">
+              <span className="metric-label">Runtime Engine</span>
+              <span className="metric-value">Node.js LTS (npm)</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-label">Direct Dependencies</span>
+              <span className="metric-value">{guiProject.total_required} declared</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-label">Installed Packages</span>
+              <span className="metric-value">{guiProject.total_installed} packages</span>
+            </div>
+          </div>
+
+          {Object.keys(guiProject.installed_packages).length > 0 && (
+            <div style={{ marginTop: "16px", overflowX: "auto", maxHeight: "360px", overflowY: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border-color)", textAlign: "left", color: "var(--text-muted)" }}>
+                    <th scope="col" style={{ padding: "8px 12px" }}>Package Name</th>
+                    <th scope="col" style={{ padding: "8px 12px" }}>Installed Version</th>
+                    <th scope="col" style={{ padding: "8px 12px" }}>Category</th>
+                    <th scope="col" style={{ padding: "8px 12px" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(guiProject.installed_packages).map(([pkg, ver]) => (
+                    <tr key={pkg} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                      <th scope="row" style={{ padding: "8px 12px", color: "var(--accent-cyan)", fontWeight: 500, textAlign: "left" }}>
+                        {pkg}
+                      </th>
+                      <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{ver}</td>
+                      <td style={{ padding: "8px 12px", color: "var(--text-muted)" }}>
+                        {pkg.startsWith("@types") || pkg.includes("eslint") || pkg === "typescript" || pkg === "vite" || pkg === "vitest" ? "Dev Dependency" : "Production Dependency"}
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>
+                        <span className="badge badge-success">INSTALLED</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ─── ECOSYSTEM MAINTENANCE & GOVERNANCE ACTIONS ─── */}
       <section className="card" aria-labelledby="maintenance-actions-title">
@@ -292,15 +360,19 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
         </div>
 
         {maintenanceFeedback && (
-          <div className="validation-banner banner-success" style={{ fontSize: "12px", marginTop: "10px" }} role="status">
-            <span>{maintenanceFeedback}</span>
-          </div>
+          <ValidationBanner
+            type="success"
+            message={maintenanceFeedback}
+            style={{ fontSize: "12px", marginTop: "10px" }}
+          />
         )}
 
         {maintenanceError && (
-          <div className="validation-banner banner-error" style={{ fontSize: "12px", marginTop: "10px" }} role="alert">
-            <span>{maintenanceError}</span>
-          </div>
+          <ValidationBanner
+            type="error"
+            message={maintenanceError}
+            style={{ fontSize: "12px", marginTop: "10px" }}
+          />
         )}
       </section>
     </div>

@@ -42,6 +42,15 @@ import {
   ModernizationQueueResponse,
   ModernizeRunPayload,
   UnitTestAllPayload,
+  ModelVariationInfo,
+  ModelDocGenResponse,
+  ModelStageResponse,
+  VariationValidationDetail,
+  ModelValidateIsolationResponse,
+  KagglePushModelPayload,
+  KagglePushModelResponse,
+  LLMTrainingConfig,
+  LLMTrainResponse,
 } from "./types";
 
 export type {
@@ -61,6 +70,15 @@ export type {
   ModernizationQueueResponse,
   ModernizeRunPayload,
   UnitTestAllPayload,
+  ModelVariationInfo,
+  ModelDocGenResponse,
+  ModelStageResponse,
+  VariationValidationDetail,
+  ModelValidateIsolationResponse,
+  KagglePushModelPayload,
+  KagglePushModelResponse,
+  LLMTrainingConfig,
+  LLMTrainResponse,
 };
 
 export const ENV_BASE = "http://127.0.0.1:8000";
@@ -922,6 +940,66 @@ export async function generateAllNotebooks(platform: string = "all"): Promise<{ 
   }
   return resp.json();
 }
+
+export async function generateModelDocs(modelKey: string): Promise<ModelDocGenResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/docs/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to generate model documentation: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function stageModelVariations(modelKey: string): Promise<ModelStageResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/export/stage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to stage model variations: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function validateModelIsolation(modelKey: string): Promise<ModelValidateIsolationResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/variations/validate`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to validate model isolation: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function pushKaggleModelVariation(payload: KagglePushModelPayload): Promise<KagglePushModelResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push-model`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to push model variation to Kaggle: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function trainLLM(config: LLMTrainingConfig): Promise<LLMTrainResponse> {
+  const res = await fetch(`${TRAINING_BASE}/api/training/llm/train`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Failed to dispatch LLM training: ${res.statusText}`);
+  }
+  return res.json();
+}
+
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────
 

@@ -22,9 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     datasets: meshStatus.datasetCompiler,
     training: meshStatus.trainingSuite,
     pipeline: meshStatus.envManager,
-    projects: meshStatus.envManager,
     health: meshStatus.envManager,
-    logs: meshStatus.envManager,
   };
 
   const navItems = [
@@ -32,9 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "datasets", label: "LemGendary Dataset Compiler Suite", tooltip: "Port 8100 sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation." },
     { id: "training", label: "LemGendary Model Training Suite", tooltip: "Port 8200 sidecar: neural architecture cards, Sawtooth Governor VRAM telemetry, spatial ladder progression, and training dispatch." },
     { id: "pipeline", label: "Clean Install Pipeline", tooltip: "Deterministic 7-step environment recreation, toolchain audit, wheel cache purging, and bytecode verification." },
-    { id: "projects", label: "Project Environments", tooltip: "Dedicated virtual environment status cards with package counts and individual project reconciliation controls." },
     { id: "health", label: "Health & Version Drift", tooltip: "Host toolchain prerequisites audit and cross-project package version comparison matrix." },
-    { id: "logs", label: "Real-time Telemetry", tooltip: "High-throughput monospace console streaming real-time status and progress packets over WebSockets." },
   ];
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {

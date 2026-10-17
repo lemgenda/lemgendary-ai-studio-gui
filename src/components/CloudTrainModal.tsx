@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HelpTooltip } from "./HelpTooltip";
-import { ModelItem, KaggleSuiteStatus } from "../api/types";
-import { pushKaggleModelArtifacts } from "../api/client";
+import { ValidationBanner } from "./common/ValidationBanner";
+import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
+import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse } from "../api/types";
+import {
+  pushKaggleModelVariation,
+  validateModelIsolation,
+  stageModelVariations,
+  generateModelDocs,
+} from "../api/client";
 
 interface CloudTrainModalProps {
   isOpen: boolean;
@@ -27,6 +34,32 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
+  // Phase 8: Multi-Variation Kaggle Models Hub State
+  const [selectedVariation, setSelectedVariation] = useState<"all" | "pytorch" | "onnx_fp32" | "onnx_fp16">("all");
+  const [dryRun, setDryRun] = useState<boolean>(false);
+  const [isolationReport, setIsolationReport] = useState<ModelValidateIsolationResponse | null>(null);
+  const [isValidatingIsolation, setIsValidatingIsolation] = useState<boolean>(false);
+  const [isStaging, setIsStaging] = useState<boolean>(false);
+  const [isGeneratingDocs, setIsGeneratingDocs] = useState<boolean>(false);
+
+  const checkIsolation = React.useCallback(async (modelKey: string) => {
+    setIsValidatingIsolation(true);
+    try {
+      const rep = await validateModelIsolation(modelKey);
+      setIsolationReport(rep);
+    } catch {
+      setIsolationReport(null);
+    } finally {
+      setIsValidatingIsolation(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && model) {
+      checkIsolation(model.key);
+    }
+  }, [isOpen, model, checkIsolation]);
+
   if (!isOpen || !model) return null;
 
   const isForex = Boolean(model.is_forex || model.task_type === "forex" || model.category === "forex");
@@ -34,12 +67,12 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     ? "ForexUniverse (2019-2026)"
     : `LemGendized${model.key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
   const datasetSearchQuery = isForex ? "lemtreursi/forexuniverse" : `lemtreursi/${model.key.replace(/_/g, "-")}`;
-  const kaggleUrl = `https://www.kaggle.com/code/lemtreursi/${model.key.replace(/_/g, "-")}-training`;
+  const kaggleTrainingUrl = `https://www.kaggle.com/code/lemtreursi/${model.key.replace(/_/g, "-")}-training`;
+  const kaggleModelHubUrl = `https://www.kaggle.com/models/lemtreursi/${model.key.replace(/_/g, "-")}`;
   const notebookFilename =
     targetPlatform === "colab"
       ? `${model.key}_colab_training.ipynb`
       : `${model.key}_kaggle_training.ipynb`;
-  const checkpointRepo = `lemtreursi/lemgendary-${model.key.replace(/_/g, "-")}-checkpoints`;
 
   const handleLaunch = async () => {
     setLaunchError(null);
@@ -52,12 +85,52 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     }
   };
 
-  const handleUploadCheckpoints = async () => {
+  const handleStageVariations = async () => {
+    setIsStaging(true);
+    setUploadStatus(null);
+    try {
+      const res = await stageModelVariations(model.key);
+      const stagedCount = Object.keys(res.staged_files || {}).length;
+      setUploadStatus(`Staged ${stagedCount} isolated variation binaries for ${model.key}.`);
+      await checkIsolation(model.key);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`Staging failed: ${msg}`);
+    } finally {
+      setIsStaging(false);
+    }
+  };
+
+  const handleGenerateDocs = async () => {
+    setIsGeneratingDocs(true);
+    setUploadStatus(null);
+    try {
+      await generateModelDocs(model.key);
+      setUploadStatus(`README.md and model-metadata.json regenerated for ${model.key}.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadStatus(`Docs generation failed: ${msg}`);
+    } finally {
+      setIsGeneratingDocs(false);
+    }
+  };
+
+  const handlePushModel = async () => {
     setIsUploading(true);
     setUploadStatus(null);
     try {
-      const res = await pushKaggleModelArtifacts(model.key);
-      setUploadStatus(res.message || `Checkpoints for ${model.key} uploaded successfully.`);
+      const res = await pushKaggleModelVariation({
+        model: model.key,
+        variation: selectedVariation,
+        dry_run: dryRun,
+      });
+      const varCount = Object.keys(res.variations || {}).length;
+      if (dryRun) {
+        setUploadStatus(`[DRY RUN PASSED] Verified ${varCount} variation payload(s) for ${model.key} with strict isolation.`);
+      } else {
+        setUploadStatus(`Successfully published ${varCount} variation(s) for ${model.key} to Kaggle Models Hub.`);
+      }
+      await checkIsolation(model.key);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setUploadStatus(`Upload failed: ${msg}`);
@@ -68,14 +141,14 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cloud-modal-title">
-      <div className="modal-content" style={{ maxWidth: "680px", height: "auto", maxHeight: "90vh", overflowY: "auto" }}>
+      <div className="modal-content" style={{ maxWidth: "720px", height: "auto", maxHeight: "90vh", overflowY: "auto" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid var(--border-color)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <h3 id="cloud-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-              Cloud Training Dispatch: {model.display_name}
+              Cloud &amp; Registry Dispatch: {model.display_name}
             </h3>
-            <HelpTooltip content="Dispatches production-hardened remote execution notebooks to Kaggle GPU cloud or prepares Google Colab manifests." />
+            <HelpTooltip content="Dispatches remote execution notebooks to Kaggle GPU cloud or pushes isolated multi-variation models to Kaggle Models Hub." />
           </div>
           <button
             type="button"
@@ -113,7 +186,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               onClick={() => setTargetPlatform("upload")}
               style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
             >
-              Upload Checkpoints
+              Kaggle Models Hub
             </button>
           </div>
 
@@ -152,7 +225,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Checkpoint Vault (Resume Capability)</div>
                   <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                    {checkpointRepo}
+                    LemGendaryModels/{model.key}/checkpoints/
                   </div>
                 </div>
                 <span className={`badge ${model.checkpoint_exists ? "badge-success" : "badge-secondary"}`} style={{ fontSize: "11px" }}>
@@ -221,79 +294,100 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
             </div>
           ) : (
             <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 10px 0", color: "var(--text-primary)" }}>
-                Stage &amp; Upload Local Checkpoints to Kaggle Models
-              </h4>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6, margin: "0 0 12px 0" }}>
-                Upload converged weights, metrics, and compiled binaries from local <code>LemGendaryModels/{model.key}/checkpoints/</code> into remote Kaggle Models (<code>kaggle.com/models/{checkpointRepo}</code>).
-              </p>
-              <div style={{ fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-muted)", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "6px" }}>
-                <div>Local Source: LemGendaryModels/{model.key}/</div>
-                <div>Target Repo: {checkpointRepo}</div>
-                <div>Artifacts: *_best.pth, metrics.csv, *.onnx</div>
+              <div style={{ marginBottom: "12px" }}>
+                <h4 style={{ fontSize: "13px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                  Kaggle Models Hub — Multi-Variation Isolated Staging
+                </h4>
               </div>
-              {uploadStatus && (
-                <div className={`validation-banner ${uploadStatus.includes("failed") ? "banner-error" : "banner-success"}`} style={{ marginTop: "12px", fontSize: "12px" }}>
-                  <span>{uploadStatus}</span>
-                </div>
-              )}
+              <VariationIsolationChecker
+                modelKey={model.key}
+                isolationReport={isolationReport}
+                isValidatingIsolation={isValidatingIsolation}
+                isGeneratingDocs={isGeneratingDocs}
+                isStaging={isStaging}
+                isBusy={isBusy}
+                onGenerateDocs={handleGenerateDocs}
+                onStageVariations={handleStageVariations}
+                selectedVariation={selectedVariation}
+                onSelectVariation={setSelectedVariation}
+                dryRun={dryRun}
+                onToggleDryRun={setDryRun}
+                uploadStatus={uploadStatus}
+              />
             </div>
           )}
 
           {launchError && (
-            <div className="validation-banner banner-error" style={{ marginBottom: "16px" }} role="alert">
-              <span>{launchError}</span>
-            </div>
+            <ValidationBanner
+              type="error"
+              message={launchError}
+              onDismiss={() => setLaunchError(null)}
+              style={{ marginBottom: "16px" }}
+            />
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-              disabled={isBusy || isUploading}
-              style={{ padding: "8px 16px", fontSize: "13px" }}
-            >
-              Cancel
-            </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <a
+                href={kaggleTrainingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+              >
+                Kaggle Notebook
+              </a>
+              <a
+                href={kaggleModelHubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary"
+                style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+              >
+                Kaggle Model Hub
+              </a>
+            </div>
 
-            <a
-              href={kaggleUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary"
-              style={{ padding: "8px 16px", fontSize: "13px", textDecoration: "none" }}
-            >
-              Open on Kaggle
-            </a>
-
-            {targetPlatform === "kaggle" && (
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={handleLaunch}
-                disabled={isBusy}
-                style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
+                className="btn btn-secondary"
+                onClick={onClose}
+                disabled={isBusy || isUploading}
+                style={{ padding: "8px 16px", fontSize: "13px" }}
               >
-                {isBusy ? "Dispatching..." : "Launch Cloud Training"}
+                Cancel
               </button>
-            )}
 
-            {targetPlatform === "upload" && (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleUploadCheckpoints}
-                disabled={isUploading}
-                style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
-              >
-                {isUploading ? "Uploading Checkpoints..." : "Upload to Kaggle Models"}
-              </button>
-            )}
+              {targetPlatform === "kaggle" && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleLaunch}
+                  disabled={isBusy}
+                  style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
+                >
+                  {isBusy ? "Dispatching..." : "Launch Cloud Training"}
+                </button>
+              )}
+
+              {targetPlatform === "upload" && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handlePushModel}
+                  disabled={isUploading}
+                  style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
+                >
+                  {isUploading ? "Processing..." : dryRun ? "Validate Isolation (Dry Run)" : "Push to Kaggle Models"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+

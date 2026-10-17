@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useStudioStore } from "./store/useStudioStore";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { HardwareCard } from "./components/HardwareCard";
@@ -60,13 +61,16 @@ export const App: React.FC = () => {
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
 
   const refreshMeshStatus = useCallback(async () => {
+    let newMesh: MeshStatus;
     try {
       const mesh = await fetchEcosystemMesh();
-      setMeshStatus({
+      newMesh = {
         envManager: mesh.env_manager.reachable,
         datasetCompiler: mesh.dataset_compiler.reachable,
         trainingSuite: mesh.training_suite.reachable,
-      });
+      };
+      setMeshStatus(newMesh);
+      useStudioStore.getState().setMeshStatus(newMesh);
       return true;
     } catch {
       const [em, dc, ts] = await Promise.all([
@@ -74,7 +78,9 @@ export const App: React.FC = () => {
         probeSidecarPort(8100),
         probeSidecarPort(8200),
       ]);
-      setMeshStatus({ envManager: em, datasetCompiler: dc, trainingSuite: ts });
+      newMesh = { envManager: em, datasetCompiler: dc, trainingSuite: ts };
+      setMeshStatus(newMesh);
+      useStudioStore.getState().setMeshStatus(newMesh);
       return em || dc || ts;
     }
   }, []);
@@ -91,12 +97,24 @@ export const App: React.FC = () => {
         fetchPipelineStatus().catch(() => null),
       ]);
 
-      if (hwData) setHardware(hwData);
-      if (healthData) setHealth(healthData);
+      if (hwData) {
+        setHardware(hwData);
+        useStudioStore.getState().setHardware(hwData);
+      }
+      if (healthData) {
+        setHealth(healthData);
+        useStudioStore.getState().setHealth(healthData);
+      }
       if (pipeStatus) {
         setIsRunningPipeline(pipeStatus.is_running);
+        useStudioStore.getState().setIsRunningPipeline(pipeStatus.is_running);
         if (pipeStatus.recent_events && pipeStatus.recent_events.length > 0) {
           setEvents((prev) => {
+            const combined = [...prev, ...pipeStatus.recent_events];
+            const unique = Array.from(new Set(combined.map((e) => JSON.stringify(e)))).map((s) => JSON.parse(s));
+            return unique.slice(-200);
+          });
+          useStudioStore.getState().setEvents((prev) => {
             const combined = [...prev, ...pipeStatus.recent_events];
             const unique = Array.from(new Set(combined.map((e) => JSON.stringify(e)))).map((s) => JSON.parse(s));
             return unique.slice(-200);
@@ -289,12 +307,8 @@ export const App: React.FC = () => {
         return "LemGendary Model Training Suite";
       case "pipeline":
         return "Smart Clean Install Pipeline";
-      case "projects":
-        return "Project Virtual Environments";
       case "health":
         return "Health & Version Drift Matrix";
-      case "logs":
-        return "Real-time Telemetry Stream";
       default:
         return "LemGendary AI Studio GUI";
     }
@@ -455,6 +469,7 @@ export const App: React.FC = () => {
             <TrainingPanel
               trainingSuiteOnline={meshStatus.trainingSuite}
               onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+              onStartTrainingSuite={() => handleStartService("training-suite")}
               recentEvents={events}
               logSlot={
                 <LogPanel
@@ -485,33 +500,23 @@ export const App: React.FC = () => {
                 recentEvents={events}
                 envManagerOnline={meshStatus.envManager}
               />
+              <LogPanel
+                events={events}
+                onClear={() => setEvents([])}
+                isConnected={wsConnected}
+              />
             </>
           )}
 
-          {currentTab === "projects" && (
-            <div className="card-grid">
-              {displayProjects.map((p) => (
-                <ProjectCard
-                  key={p.name}
-                  project={p}
-                  onInstall={handleReconcileProject}
-                  isProcessing={isRunningPipeline}
-                  isOffline={!health}
-                />
-              ))}
-            </div>
-          )}
-
           {currentTab === "health" && (
-            <HealthPanel report={health} onStartEnvManager={() => handleStartService("env-manager")} />
-          )}
-
-          {currentTab === "logs" && (
-            <LogPanel
-              events={events}
-              onClear={() => setEvents([])}
-              isConnected={wsConnected}
-            />
+            <>
+              <HealthPanel report={health} onStartEnvManager={() => handleStartService("env-manager")} />
+              <LogPanel
+                events={events}
+                onClear={() => setEvents([])}
+                isConnected={wsConnected}
+              />
+            </>
           )}
         </main>
 

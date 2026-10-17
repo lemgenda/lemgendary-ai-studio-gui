@@ -461,4 +461,85 @@ export interface DeepCleanResponse {
   reclaimed_mb: number;
 }
 
+export interface ModelVariationInfo {
+  variation: "pytorch" | "onnx_fp32" | "onnx_fp16";
+  exists: boolean;
+  files: string[];
+  is_valid: boolean;
+  errors?: string[];
+}
+
+export interface ModelDocGenResponse {
+  status: string;
+  model_key: string;
+  readme_path: string;
+  metadata_path: string;
+  message?: string;
+}
+
+export interface ModelStageResponse {
+  status: string;
+  model_key: string;
+  staged_files: Record<string, string>;
+  is_valid: boolean;
+  errors: string[];
+  message: string;
+}
+
+export interface VariationValidationDetail {
+  variation: string;
+  is_valid: boolean;
+  files_found: string[];
+  errors: string[];
+  warnings: string[];
+}
+
+export interface ModelValidateIsolationResponse {
+  model_key: string;
+  is_valid: boolean;
+  variations: Record<string, VariationValidationDetail>;
+  all_errors: string[];
+}
+
+export interface KagglePushModelPayload {
+  model: string;
+  variation?: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16";
+  version_notes?: string;
+  dry_run?: boolean;
+  username?: string;
+  key?: string;
+}
+
+export interface KagglePushModelResponse {
+  model_key: string;
+  success: boolean;
+  variations: Record<string, {
+    variation: string;
+    handle: string;
+    success: boolean;
+    files: string[];
+    error?: string | null;
+    dry_run: boolean;
+  }>;
+  isolation_report?: ModelValidateIsolationResponse;
+  errors: string[];
+}
+
+export interface LLMTrainingConfig {
+  model?: string;
+  epochs?: number;
+  batch_size?: number;
+  lr?: number;
+  max_seq_length?: number;
+  env?: "local" | "kaggle" | "colab";
+}
+
+export interface LLMTrainResponse {
+  job_id: string;
+  status: string;
+  message: string;
+  config?: Record<string, unknown>;
+}
+
+
 

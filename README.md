@@ -26,41 +26,62 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
 
 - **Universal Dynamic Configuration & Registry Editor**:
   - In-app modal for viewing, modifying, and validating core manifests: `unified_data.yaml`, `unified_models_v2.yaml`, `config.yaml`, `presets.yaml`, `runtime_env.yaml`, `requirements.txt`, and `package.json`.
-  - In-app syntax checking, schema validation, visual diff preview, and atomic backup writing.
+  - Deconstructed into dedicated micro-tabs:
+    - **Manifest Editor Tab (`ManifestEditorTab.tsx`)**: In-app syntax checking, schema validation, visual diff preview, and atomic backup writing.
+    - **Secrets Vault Tab (`SecretsEditorTab.tsx`)**: Multi-service credential manager supporting Kaggle (mandatory), Google Drive, GitHub, Hugging Face, MetaTrader 5, Saturn Cloud, Weights & Biases, and custom API tokens.
+
+- **Centralized State Architecture (Zustand `useStudioStore`)**:
+  - Unified reactive state store (`src/store/useStudioStore.ts`) eliminating redundant network round-trips and component prop drilling.
+  - Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200), hardware accelerator metrics, running local/cloud training jobs, model and dataset cache manifolds, and real-time ANSI telemetry buffers.
+
+- **5-Panel Streamlined Navigation Topology**:
+  - **Dashboard**: Hardware Acceleration Sentinel, Tripartite Sidecar Tiles, Managed Workspace Projects Health, and embedded event diagnostics.
+  - **Dataset Compiler**: Standard presets, Direct Kaggle Ingestion, verified production manifolds with card-level Kaggle sync, and embedded telemetry console.
+  - **Model Training**: Architecture matrix, Sawtooth Governor VRAM safeguards, spatial ladders, and 3-tab live telemetry console.
+  - **Clean Install Pipeline**: Autonomous 7-stage deterministic environment provisioning and toolchain verification.
+  - **Health & Version Drift**: Toolchain prerequisites, Cross-Project Python Drift Matrix, Desktop GUI Project Packages (NPM) audit, and ecosystem maintenance actions.
+
+- **Modular S.O.L.I.D. Component Hierarchy**:
+  - **Shared Micro-Components**:
+    - **`ValidationBanner.tsx`**: Unified notification banner with auto-type deduction (`info`, `success`, `warning`, `error`), dismiss buttons, and accessible ARIA alert/status semantics.
+    - **`HoverPinPopover.tsx`**: Zero-dependency CSS hover and native semantic `<button>` pin popover for SOTA targets and upstream raw sources, strictly adhering to `jsx-a11y` standards.
+    - **`HelpTooltip.tsx`**: Contextual interactive hover guidance popovers attached to interactive controls across all panels.
+  - **Training Subsystem**:
+    - `ModelManifoldCard.tsx`: Dedicated card handling spatial ladder progress, multi-variation isolation badges, SOTA target metrics, primary local/cloud training triggers, and export actions.
+    - `TelemetryConsole.tsx`: High-throughput 3-tab terminal displaying live Local Training, Remote Cloud, and Ecosystem Mesh logs with ANSI stripping, auto-scroll, regex search, clipboard export, and sub-second minibatch abort.
+    - `TrainingToolbar.tsx`: Fleet-wide batch action triggers, architecture filters, and category toggles.
+    - `VariationIsolationChecker.tsx`: Interactive verification checklist for isolated Kaggle Model Hub variations (PyTorch, ONNX FP32, ONNX FP16) with dry-run protection.
+  - **Compiler Subsystem**:
+    - `DatasetManifoldCard.tsx`: Manifold statistics, container format badges, sample counts, upstream source popovers, and direct card-level Kaggle actions (`Update Metadata`, `Download from Kaggle`, `Upload to Kaggle`).
+    - `DatasetCompilationForm.tsx`: Standard presets and Direct Kaggle Ingestion engines with WebDataset container streaming and WebP transcoding.
+    - `ModernizationQueueTable.tsx`: Background queue orchestrator with worker thread concurrency controls.
+    - `ScaleReductionView.tsx`: Image downscaling governor for bandwidth-constrained remote environments.
+    - `CompilerToolbar.tsx`: Format filters and global dataset action buttons.
 
 - **Dataset Compiler & Modernization Suite**:
-  - **Standard Compilation**: Fast transformation of raw archives into WebDataset `.tar` shards, Parquet, MosaicML `.mds`, or LitData containers.
-  - **Custom Multi-Source Dataset Compilation**: Synthesize new custom manifolds by supplying lists of source datasets from Kaggle (`kaggle://`), HuggingFace (`hf://`), Google Drive (`gd://`), or GitHub (`gh://`).
-  - **Kaggle Cloud Synchronization & Storage Hub**: Bi-directional cloud syncing: download pre-configured manifolds from `unified_data.yaml`, download custom datasets via direct URL or slug, and publish local compiled manifolds.
-  - **Production Manifolds Catalog**: Real-time status, format breakdowns, sample counts, and disk metrics across all 22 production manifolds.
+  - **Standard Compilation Presets**: Fast transformation of raw archives into WebDataset `.data` / `.tar` shards, Parquet, MosaicML `.mds`, or LitData containers.
+  - **Direct Kaggle Ingestion**: Direct cloud ingestion pulling remote research datasets directly from Kaggle URLs or slugs straight into streaming WebDataset shards.
+  - **Card-Level Kaggle Cloud Synchronization**: Download, upload, and update metadata directly per dataset from individual manifold cards, with global batch metadata sync from the top toolbar.
+  - **Production Manifolds Catalog**: Real-time status, format breakdowns, sample counts, and disk metrics across all 20 production manifolds.
 
-- **Revamped 1/4 - 3/4 Training Dashboard Topology**:
-  - **1/4 Left Sidebar**: Unified preset selection (`quick-sota`, `forex-production`, `vision-standard`), runtime hyperparameters, VRAM safety limits, and one-click Sidecar Services management.
-  - **3/4 Main Workspace**: Model Card Grid with top-level metric filters and interactive bottom-docked Telemetry Console.
-
-- **Training Manifold & SOTA Model Cards**:
-  - **Full-Width Header & Integrated Progress Bar**: Model cards feature a full-width header bar displaying the model title, domain badges, parameter count, and an inline progress bar showing the active spatial ladder progress or SOTA target completion.
-  - **Pinned SOTA Metric Tooltip**: Hovering over SOTA targets reveals all metrics, targets, and actual best scores; clicking pins the tooltip open for persistent comparison during training.
-  - **Dual Local vs. Cloud Execution Triggers**: Card action buttons provide **"Start Training"** (local dispatch) and **"Cloud Training"** (opens the interactive Cloud Training modal). Both triggers automatically scroll down to focus the bottom Telemetry console.
-  - **One-Click Jupyter Notebook Regeneration Triggers**: Model cards feature dedicated action buttons:
-    - **"Training Notebook"**: Invokes the Training Suite sidecar (`POST /api/notebooks/generate`, `kinds: ["training"]`) to regenerate and synchronize execution notebooks across `LemGendaryModels/<model_key>/`, `kaggle_training/`, `colab_training/`, and matching `LemGendaryDatasets/` manifolds.
-    - **"Usage Notebook"**: Invokes the Training Suite sidecar (`POST /api/notebooks/generate`, `kinds: ["usage"]`) to regenerate standalone model usage and inference guides in `LemGendaryModels/<model_key>/` (both Colab and Kaggle).
-  - **Interactive Cloud Training Modal**: Dedicated dialog allowing users to choose target cloud notebooks (`Kaggle`, `Colab`, `SageMaker`), verify manifold bindings, review required secrets (`SUITE_PAT`, `KAGGLE_KEY`), and launch cloud runs with zero manual setup.
-  - **Strict 3-Pillar Convergence Badges**: Model cards authoritatively evaluate `FULLY TRAINED` (all SOTA targets met + entire ladder passed + 100% data fraction), `PARTIALLY TRAINED`, `WEIGHTS READY`, and `INITIALIZING`.
-  - **Adaptive Domain Controls**: Selecting `forex_predictor` dynamically switches dropdowns from "Spatial Ladder Stage" to **"Timeframe Confluence Stage"** with MetaTrader 5 horizons (`M1 Scalping`, `M5 Order Flow`, `M15 Trigger`, `H1 Trend`, `H4 Momentum`, `D1 Macro Confluence`).
-
-- **Kaggle Cloud Training & Live Monitoring Hub**:
-  - Interactive cloud training cards with detailed operational guidelines, manifold binding indicators, and checkpoint recovery metadata.
-  - Dedicated cloud action triggers: **"Start on Kaggle"** (`POST /api/training/kaggle/train`), **"Monitor Cloud"** (`POST /api/training/kaggle/monitor`), and **"Pull Checkpoints"** (`POST /api/training/kaggle/pull`).
-  - GPU Accelerator selector supporting Kaggle Dual-T4 (`nvidia-tesla-t4-x2`) and P100 (`nvidia-tesla-p100`) hardware clusters.
-  - Automated Cloud Artifact Sync toggle for zero-touch checkpoint recovery upon remote training completion.
-  - Contextual help badges with tooltips across all cloud notebook cards explaining dataset attaching, secret credentials (`SUITE_PAT`, `KAGGLE_KEY`), and execution parameters.
+- **Multi-Variation Kaggle Model Hub & Cloud Training**:
+  - Interactive cloud training dialog supporting Kaggle Dual-T4 and P100 hardware clusters.
+  - Automated staging and verification of 3 distinct isolated variations:
+    - Variation 1 (`pytorch`): PyTorch checkpoint binaries (`*.pt`).
+    - Variation 2 (`onnx_fp32`): High-precision standard ONNX exports (`*_FP32.onnx*`).
+    - Variation 3 (`onnx_fp16`): Edge-optimized half-precision ONNX exports (`*.onnx`).
+  - Pre-upload isolation checks and model documentation regeneration (`ModelDocumentationService`).
 
 - **Contextual UX Help & Interactive Hover Guidance**:
-  - Every interactive UI element (action buttons, navigation menu items, slider governors, toggle switches, form inputs, and status badges) features an inline help icon badge.
+  - Every interactive UI element features an inline help icon badge (`?`).
   - Hovering over any help icon displays an elevated glassmorphic tooltip card explaining the control's function, associated CLI/API command, and operational side effects.
 
-- **Real-Time Telemetry & Diagnostics**:
+- **Permanent Offline Documentation Hub**:
+  - Embedded local documentation server permanently available at `http://localhost:1420/documentation-hub/index.html` (and mirrored at `http://127.0.0.1:8000/documentation-hub/index.html`).
+  - Provides full offline access to all 46 scientific whitepapers, manuals, and architectural specifications with zero external internet dependencies.
+
+- **Embedded Real-Time Telemetry & Diagnostics**:
+  - 3-tab live console (Local Training, Remote Cloud, Ecosystem Mesh) embedded directly on individual operational panels.
   - Streaming WebSockets over `/ws/log` and `/api/ws/logs` with color-coded severity badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`).
   - Memory-efficient circular log buffers and smart auto-scroll controls.
 
