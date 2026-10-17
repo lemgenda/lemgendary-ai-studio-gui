@@ -1053,13 +1053,15 @@ export function isProgressLine(msg: string): boolean {
   if (!msg) return false;
   // Progress bar glyphs (e.g. 92% ──────── or ████ or |===|)
   const hasBar = /[\u2580-\u259F\u2500-\u257F━█─\-=]{3,}/.test(msg) && /\d+%/.test(msg);
-  // Iteration rate indicators (e.g. 7875/8479 3.7it/s or 500/1000 [00:10<00:05, 10.2it/s])
-  const hasRate = /\b\d+\/\d+\b\s+.*\b(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)\b/.test(msg);
+  // Iteration rate indicators (e.g. 7875/8479 3.7it/s or 500/1000 [00:10<00:05, 10.2it/s] or 31.7M/3.84G)
+  const hasRate = /\b\d+(?:\.\d+)?[KMGT]?\/\d+(?:\.\d+)?[KMGT]?\b\s+.*\b(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)\b/i.test(msg);
   // Estimated completion timer pattern (e.g. 48:05<2:43 or 00:01<00:00)
   const hasEta = /\d+:\d+<\d+:\d+/.test(msg);
-  // Classic tqdm formatting: 92%|████████  | 7875/8479
-  const hasTqdm = /\d+%\s*\|.*\|\s*\d+\/\d+/.test(msg);
-  return hasBar || hasRate || hasEta || hasTqdm;
+  // Classic tqdm formatting: 92%|████████  | 7875/8479 or |...| 92%
+  const hasTqdm = (/\d+%\s*\|/.test(msg) || /\|\s*\d+/.test(msg)) && (/\d+\/\d+/.test(msg) || /it\/s|B\/s/i.test(msg));
+  // Specific stages (Archiving, Uploading, Extraction) with percentage
+  const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING")) && msg.includes("%");
+  return hasBar || hasRate || hasEta || hasTqdm || hasStageProgress;
 }
 
 function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEvent | null {
