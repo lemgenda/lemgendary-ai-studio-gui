@@ -3,7 +3,7 @@ import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
 import { TelemetryProgressTracker } from "./common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../utils/progressParser";
-import { isProgressLine } from "../api/client";
+import { isProgressLine, rollupTelemetryEvents } from "../api/client";
 
 interface LogPanelProps {
   events: PipelineEvent[];
@@ -29,9 +29,9 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
     return null;
   }, [events]);
 
-  // Keep terminal monospace output clean: operational milestones only, no intermediate progress tick flood
+  // Roll up rapid progress ticks in-place while preserving all discrete logs and training metrics
   const cleanEvents = useMemo(() => {
-    return events.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+    return rollupTelemetryEvents(events);
   }, [events]);
 
   useEffect(() => {

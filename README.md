@@ -131,6 +131,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/components/HealthPanel.tsx` — Ecosystem Maintenance & Governance Card** — Added dedicated governance control card providing one-click buttons for "Safe Package Upgrade", "Upgrade Dry Run", "Deep Cache Purge" (`POST /api/clean`), "Install Git Hooks" (`POST /api/hooks/install`), and "Run Ecosystem Validation" (`POST /api/validate`).
 - **`src/api/client.ts` & `src/api/types.ts` — API Interface Expansion** — Added full TypeScript interfaces and asynchronous wrapper functions for all new sidecar capabilities across ports 8000, 8100, and 8200.
 
+### v2.8.7 — Card-Level Batch Size Overrides & Deterministic Port-Based Telemetry Routing
+
+- **`src/components/training/ModelManifoldCard.tsx` — Interactive Local Batch Size Selector** — Added a card-level batch size dropdown (`8`, `16`, `32`, `64`, `128`, `256`, `512`, `1024`) synchronized automatically with each model's SSOT configuration (`m.batch_size`). Enables operators to adjust minibatch sizes directly from the card before triggering local GPU training passes.
+- **`src/components/TrainingPanel.tsx` — Dynamic Batch Dispatch** — Forwarded `batchSize` through `handleStartLocalTrain` into `triggerQuickTrain({ model_key, batch_size })`, ensuring operator-selected batch sizes take precedence over generic presets.
+- **`src/api/types.ts` & `src/api/client.ts` — Deterministic Port Provenance Tracking** — Extended `PipelineEvent` with `origin` and `port` fields. Upgraded WebSocket listeners for all tripartite daemons (8000, 8100, 8200) to stamp incoming frames with their exact origin port. Replaced string keyword heuristics in `isCompilerEvent` and `isLocalTrainingEvent` with strict port-based routing, preventing training logs from leaking into the Dataset Compiler console.
+
 ### v2.8.6 — Telemetry Control Sequence Sanitation & Tag Flex Hardening
 
 - **`src/api/client.ts` — ANSI Sequence Cleanser Precision (`cleanAnsiAndControlChars`)** — Hardened regex replacement to require at least one numerical digit/parameter (`^\[[0-9;]+[a-zA-Z]`) when stripping remnant ANSI CSI sequences. Prevented zero-length match corruption that erroneously stripped the leading bracket and character from logging tags like `[PROGRESS]` and `[GOVERNOR]`.
@@ -221,3 +227,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **Clean Telemetry Output & Zero-Clutter Stream De-duplication** — Consecutive progress tick updates for active operations are rolled up in-place, preventing terminal scrolling flood while preserving discrete step start, milestone, artifact generation, and completion logs.
 - **Multi-Subsystem Stream Isolation** — Strictly segregated Dataset Compiler (`[Compiler]`), Local GPU Training (`[Local]`), and Remote Cloud Training (`[Cloud]`) streams across dedicated panels.
 - **Zero Warnings Root Cause Enforcement** — Resolved PyTorch non-writable tensor warning in `forex_dataset.py` by implementing `_safe_from_numpy(arr)` with buffer writeability checks, strictly prohibiting warning suppression or silencing.
+
+### v3.1.0 — Centralized Mesh Service Configuration, Telemetry Roll-Up & Progress Stream Governance
+
+- **Dynamic Mesh Configuration (`src/api/config.ts`)** — Centralized all tripartite sidecar endpoints into a typed single source of truth (`MESH_SERVICES`). Supports custom environment variables (`VITE_ENV_MANAGER_URL`, `VITE_DATASET_COMPILER_URL`, `VITE_TRAINING_SUITE_URL`) and automatic HTTP/HTTPS to WS/WSS protocol translation via `toWebSocketUrl()`.
+- **Elimination of Hardcoded Ports & Localhost Presumptions** — Removed hardcoded port numbers (`8000`, `8100`, `8200`) and URLs across `src/api/client.ts`, `src/App.tsx`, `StatusBar.tsx`, and `ServiceTiles.tsx`. Services can now reside on custom local ports, intranet hostnames, container networks, or remote cloud HTTPS/WSS URLs without frontend code changes.
+- **Protocol-Agnostic Origin Routing** — Shifted telemetry stream classification (`isLocalTrainingEvent`, `isCompilerEvent`) to rely purely on connection identity (`ev.origin`) rather than brittle port number or regex guessing, preventing stream cross-contamination regardless of network deployment topology.
+- **Single-Line In-Place Telemetry Roll-Up (`rollupTelemetryEvents`)** — Consecutive training batch progress lines (`[BATCH ...]`) and transient transfer ticks (`\r`) now update strictly in a single in-place line at the terminal cursor instead of flooding dozens of scroll lines, while preserving all discrete operational milestones, intra-epoch checkpoint saves, errors, and warnings in terminal history.
+- **Progress Tracker Metric & Badge Deduplication (`progressParser.ts`, `TelemetryProgressTracker.tsx`)** — Fixed duplicate percentage badge rendering where candidate percentages were mistakenly parsed as dataset targets. Prevented rate (`MB/s`) and ETA metric duplication when stats are already present in bracket descriptors.
+- **Documentation Synchronization** — Fully updated and synchronized `MANUAL_AI_STUDIO_GUI.md` / `ai-studio-manual.html` and `PAPER_AI_STUDIO_GUI.md` / `ai-studio-whitepaper.html` with 36/36 automated validation gates passed.

@@ -89,6 +89,8 @@ export interface PipelineEvent {
   message: string;
   is_progress?: boolean;
   data?: Record<string, unknown>;
+  origin?: "env-manager" | "training-suite" | "dataset-compiler";
+  port?: number;
 }
 
 export interface PipelineStatus {

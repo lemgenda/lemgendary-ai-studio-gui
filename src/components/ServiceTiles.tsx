@@ -1,7 +1,7 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { MeshStatus } from "../api/types";
-import { ENV_BASE, DATASETS_BASE, TRAINING_BASE } from "../api/client";
+import { ENV_BASE, DATASETS_BASE, TRAINING_BASE, MESH_SERVICES } from "../api/client";
 
 interface ServiceTilesProps {
   meshStatus: MeshStatus;
@@ -133,7 +133,7 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
     {
       id: "env-manager",
       name: "LemGendary Environment Manager",
-      port: 8000,
+      port: MESH_SERVICES["env-manager"].defaultPort,
       url: ENV_BASE,
       description:
         "Orchestrates virtual environments, system hardware audits, toolchain validation, and the 7-step clean install pipeline across all workspace projects.",
@@ -142,12 +142,12 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionAriaLabel: "Trigger a full system audit via the Environment Manager pipeline",
       onQuickAction: onRunAudit,
       helpContent:
-        "Port 8000 sidecar. Powers hardware profiling, project health audits, version drift matrices, and the deterministic clean install pipeline.",
+        `Port ${MESH_SERVICES["env-manager"].defaultPort} sidecar. Powers hardware profiling, project health audits, version drift matrices, and the deterministic clean install pipeline.`,
     },
     {
       id: "dataset-compiler",
       name: "LemGendary Dataset Compiler Suite",
-      port: 8100,
+      port: MESH_SERVICES["dataset-compiler"].defaultPort,
       url: DATASETS_BASE,
       description:
         "Manages the manifold catalog, streaming WebDataset and MDS shard compilation, multi-source ingestion from Kaggle, HuggingFace, Google Drive, and GitHub.",
@@ -156,12 +156,12 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionAriaLabel: "Navigate to the Dataset Compiler panel",
       onQuickAction: () => onNavigate("datasets"),
       helpContent:
-        "Port 8100 sidecar. Provides manifold format inspection, streaming compilation, and automated WebP transcoding for all 20 production manifolds.",
+        `Port ${MESH_SERVICES["dataset-compiler"].defaultPort} sidecar. Provides manifold format inspection, streaming compilation, and automated WebP transcoding for all 20 production manifolds.`,
     },
     {
       id: "training-suite",
       name: "LemGendary Model Training Suite",
-      port: 8200,
+      port: MESH_SERVICES["training-suite"].defaultPort,
       url: TRAINING_BASE,
       description:
         "Hosts the neural architecture registry, dynamic spatial ladder training dispatch, Sawtooth Governor VRAM telemetry, and ONNX export packaging.",
@@ -170,7 +170,7 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       quickActionAriaLabel: "Navigate to the Master Training Suite panel",
       onQuickAction: () => onNavigate("training"),
       helpContent:
-        "Port 8200 sidecar. Controls model training runs, architecture selection, hyperparameter configuration, and safetensors checkpoint export.",
+        `Port ${MESH_SERVICES["training-suite"].defaultPort} sidecar. Controls model training runs, architecture selection, hyperparameter configuration, and safetensors checkpoint export.`,
     },
   ];
 

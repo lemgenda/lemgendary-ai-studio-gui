@@ -1,6 +1,7 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { MeshStatus } from "../api/types";
+import { MESH_SERVICES } from "../api/config";
 
 interface StatusBarProps {
   meshStatus: MeshStatus;
@@ -17,17 +18,18 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const allOnline = meshStatus.envManager && meshStatus.datasetCompiler && meshStatus.trainingSuite;
   const anyOnline = meshStatus.envManager || meshStatus.datasetCompiler || meshStatus.trainingSuite;
+  const sidecars = [
+    { label: "Env Manager", port: MESH_SERVICES["env-manager"].defaultPort, online: meshStatus.envManager },
+    { label: "Dataset Compiler", port: MESH_SERVICES["dataset-compiler"].defaultPort, online: meshStatus.datasetCompiler },
+    { label: "Training Suite", port: MESH_SERVICES["training-suite"].defaultPort, online: meshStatus.trainingSuite },
+  ];
   return (
     <footer className="status-bar" role="contentinfo" aria-label="System Status Bar">
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }} role="status" aria-live="polite">
-          {([
-            { label: "Env Manager", port: 8000, online: meshStatus.envManager },
-            { label: "Dataset Compiler", port: 8100, online: meshStatus.datasetCompiler },
-            { label: "Training Suite", port: 8200, online: meshStatus.trainingSuite },
-          ] as const).map(({ label, port, online }) => (
-            <div key={port} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          {sidecars.map(({ label, port, online }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
               <span
                 className={`status-indicator ${online ? "status-online" : "status-offline"}`}
                 aria-hidden="true"
@@ -38,7 +40,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             </div>
           ))}
           <HelpTooltip
-            content={`Sidecar mesh: Env Manager :8000 ${meshStatus.envManager ? "ONLINE" : "OFFLINE"}, Dataset Compiler :8100 ${meshStatus.datasetCompiler ? "ONLINE" : "OFFLINE"}, Training Suite :8200 ${meshStatus.trainingSuite ? "ONLINE" : "OFFLINE"}.`}
+            content={`Sidecar mesh: Env Manager :${MESH_SERVICES["env-manager"].defaultPort} ${meshStatus.envManager ? "ONLINE" : "OFFLINE"}, Dataset Compiler :${MESH_SERVICES["dataset-compiler"].defaultPort} ${meshStatus.datasetCompiler ? "ONLINE" : "OFFLINE"}, Training Suite :${MESH_SERVICES["training-suite"].defaultPort} ${meshStatus.trainingSuite ? "ONLINE" : "OFFLINE"}.`}
           />
         </div>
 

@@ -3,7 +3,7 @@ import { HelpTooltip } from "../HelpTooltip";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../../api/types";
 import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../../utils/progressParser";
-import { isProgressLine } from "../../api/client";
+import { isProgressLine, rollupTelemetryEvents } from "../../api/client";
 
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
@@ -101,13 +101,13 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
     return null;
   }, [displayedRemoteEvents]);
 
-  // Clean log streams without intermediate progress tick noise
+  // Roll up rapid progress ticks in-place while preserving all discrete logs and training metrics
   const cleanLocalEvents = useMemo(() => {
-    return displayedLocalEvents.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+    return rollupTelemetryEvents(displayedLocalEvents);
   }, [displayedLocalEvents]);
 
   const cleanRemoteEvents = useMemo(() => {
-    return displayedRemoteEvents.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+    return rollupTelemetryEvents(displayedRemoteEvents);
   }, [displayedRemoteEvents]);
 
   return (

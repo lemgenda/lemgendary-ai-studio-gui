@@ -75,9 +75,9 @@ export const App: React.FC = () => {
       return true;
     } catch {
       const [em, dc, ts] = await Promise.all([
-        probeSidecarPort(8000),
-        probeSidecarPort(8100),
-        probeSidecarPort(8200),
+        probeSidecarPort("env-manager"),
+        probeSidecarPort("dataset-compiler"),
+        probeSidecarPort("training-suite"),
       ]);
       newMesh = { envManager: em, datasetCompiler: dc, trainingSuite: ts };
       setMeshStatus(newMesh);

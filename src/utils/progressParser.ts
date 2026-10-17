@@ -108,10 +108,21 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
       operation = trimmed.substring(0, colonIdx).trim();
       const afterColon = trimmed.substring(colonIdx + 1).trim();
       const spaceIdx = afterColon.indexOf(" ");
+      let candidateTarget = "";
       if (spaceIdx > 0) {
-        target = afterColon.substring(0, spaceIdx).trim();
+        candidateTarget = afterColon.substring(0, spaceIdx).trim();
       } else {
-        target = afterColon.split(/[-|[]/)[0].trim();
+        candidateTarget = afterColon.split(/[-|[]/)[0].trim();
+      }
+      // Target must be a genuine identifier (manifold, file, dataset), never a percentage or numeric rate
+      if (
+        candidateTarget &&
+        !candidateTarget.includes("%") &&
+        !PERCENT_REGEX.test(candidateTarget) &&
+        !/^\d+(\.\d+)?[KMGT]?(\/\d+(\.\d+)?[KMGT]?)?$/i.test(candidateTarget) &&
+        !/^(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)$/i.test(candidateTarget)
+      ) {
+        target = candidateTarget;
       }
     } else if (trimmed.toUpperCase().includes("EPOCH")) {
       operation = "TRAINING";

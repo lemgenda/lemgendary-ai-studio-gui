@@ -85,9 +85,13 @@ export type {
   LLMTrainResponse,
 };
 
-export const ENV_BASE = "http://127.0.0.1:8000";
-export const DATASETS_BASE = "http://127.0.0.1:8100";
-export const TRAINING_BASE = "http://127.0.0.1:8200";
+import { MESH_SERVICES, ServiceId } from "./config";
+export { MESH_SERVICES };
+export type { ServiceId };
+
+export const ENV_BASE = MESH_SERVICES["env-manager"].httpUrl;
+export const DATASETS_BASE = MESH_SERVICES["dataset-compiler"].httpUrl;
+export const TRAINING_BASE = MESH_SERVICES["training-suite"].httpUrl;
 
 // ─── Environment Manager (Port 8000) ─────────────────────────────────────────
 
@@ -155,11 +159,18 @@ export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
  * Uses a 1500 ms AbortController timeout so the UI never hangs waiting.
  * Falls back to false on any network error or timeout.
  */
-export async function probeSidecarPort(port: number): Promise<boolean> {
+export async function probeSidecarPort(target: number | ServiceId): Promise<boolean> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 2000);
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/api/health`, {
+    let url: string;
+    if (typeof target === "string" && target in MESH_SERVICES) {
+      url = `${MESH_SERVICES[target].httpUrl}/api/health`;
+    } else {
+      const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
+      url = match ? `${match.httpUrl}/api/health` : `http://127.0.0.1:${target}/api/health`;
+    }
+    const res = await fetch(url, {
       method: "GET",
       signal: controller.signal,
     });
@@ -207,7 +218,7 @@ export async function startService(serviceId: string): Promise<ServiceOperationR
     return {
       status: "started",
       message: `Started ${serviceId} background daemon.`,
-      port: serviceId === "env-manager" ? 8000 : serviceId === "dataset-compiler" ? 8100 : 8200,
+      port: MESH_SERVICES[serviceId as ServiceId]?.defaultPort || 8000,
     };
   }
 
@@ -383,7 +394,7 @@ export async function fetchDocsStatus(): Promise<DocsStatusResponse> {
   } catch {
     return {
       offline_available: false,
-      local_url: "http://127.0.0.1:8000/documentation-hub/index.html",
+      local_url: `${ENV_BASE}/documentation-hub/index.html`,
       online_url: "https://lemgenda.github.io/ai-training-whitepapers/index.html",
     };
   }
@@ -1022,11 +1033,12 @@ export async function trainLLM(config: LLMTrainingConfig): Promise<LLMTrainRespo
 
 // ─── Real-Time WebSocket Streaming ──────────────────────────────────────────
 
-const MESH_WEBSOCKET_URLS = [
-  { id: "env-manager", url: "ws://127.0.0.1:8000/ws/log", defaultStep: "EnvManager" },
-  { id: "training-suite", url: "ws://127.0.0.1:8200/api/ws/logs", defaultStep: "Training" },
-  { id: "dataset-compiler", url: "ws://127.0.0.1:8100/api/ws/events", defaultStep: "Compiler" },
-];
+const MESH_WEBSOCKET_URLS = Object.values(MESH_SERVICES).map((svc) => ({
+  id: svc.id,
+  url: svc.wsUrl,
+  defaultStep: svc.defaultStep,
+  port: svc.defaultPort,
+}));
 
 export function cleanAnsiAndControlChars(text: string): string {
   if (!text) return "";
@@ -1075,70 +1087,66 @@ export function isProgressLine(msg: string): boolean {
   return hasBar || hasRate || hasEta || hasTqdm || hasStageProgress || hasBatch;
 }
 
+/**
+ * Rolls up consecutive progress ticks and batch metrics in-place, mirroring stdout carriage-return (\r) semantics.
+ * Consecutive progress events (including [BATCH ...] training iterations, upload/download ticks, and tqdm frames)
+ * update in a single line in the terminal output, while discrete operational milestones, errors, warnings,
+ * and checkpoint saves are permanently preserved in terminal history.
+ */
+export function rollupTelemetryEvents(events: PipelineEvent[]): PipelineEvent[] {
+  if (events.length === 0) return [];
+  const result: PipelineEvent[] = [];
+
+  for (const ev of events) {
+    const msg = ev.message || "";
+    const isProg = ev.is_progress || isProgressLine(msg);
+
+    if (isProg && result.length > 0) {
+      const last = result[result.length - 1];
+      const lastIsProg = last.is_progress || isProgressLine(last.message || "");
+      if (lastIsProg && last.step_name === ev.step_name && last.origin === ev.origin) {
+        result[result.length - 1] = ev;
+        continue;
+      }
+    }
+
+    result.push(ev);
+  }
+
+  return result;
+}
+
 export function isCompilerEvent(ev: PipelineEvent): boolean {
   if (!ev) return false;
+  // Semantic origin routing - fully protocol-, host-, and port-agnostic
+  if (ev.origin) {
+    return ev.origin === "dataset-compiler";
+  }
   const step = (ev.step_name || "").toLowerCase();
-  const msg = (ev.message || "").toLowerCase();
-
-  // Training-tagged events always belong to the training stream
-  if (
-    step.includes("train") ||
-    msg.includes("[training]") ||
-    msg.includes("[train]") ||
-    msg.includes("[factory]") ||
-    msg.includes("[governor]") ||
-    msg.includes("[epoch") ||
-    msg.includes("[batch")
-  ) {
-    return false;
-  }
-
-  if (step.includes("compiler") || step.includes("dataset") || step.includes("archive")) {
-    return true;
-  }
-  if (
-    msg.includes("archiving:") ||
-    msg.includes("uploading:") ||
-    msg.includes("pushing:") ||
-    msg.includes("pulling:") ||
-    msg.includes("[compiler]") ||
-    msg.includes("kaggle extraction") ||
-    msg.includes("dataset compiler")
-  ) {
-    return true;
-  }
-  return false;
+  return step.includes("compiler");
 }
 
 export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
   if (!ev) return false;
-  const step = (ev.step_name || "").toLowerCase();
-  const msg = (ev.message || "").toLowerCase();
-  if (
-    step.includes("train") ||
-    step.includes("model") ||
-    step.includes("eval") ||
-    step.includes("export") ||
-    step.includes("governor") ||
-    msg.includes("[training]") ||
-    msg.includes("[train]") ||
-    msg.includes("[epoch") ||
-    msg.includes("[factory]") ||
-    msg.includes("[governor]") ||
-    msg.includes("forex_predictor")
-  ) {
-    return true;
+  // Semantic origin routing - fully protocol-, host-, and port-agnostic
+  if (ev.origin) {
+    return ev.origin === "training-suite";
   }
-  if (isCompilerEvent(ev)) return false;
-  return false;
+  const step = (ev.step_name || "").toLowerCase();
+  return step.includes("train");
 }
 
-function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEvent | null {
+function normalizeSocketMessage(
+  data: unknown,
+  defaultStep: string,
+  origin?: "env-manager" | "training-suite" | "dataset-compiler",
+  port?: number
+): PipelineEvent | null {
   if (!data || typeof data !== "object") return null;
 
   const raw = data as Record<string, unknown>;
 
-  // 1. Native PipelineEvent from env-manager
+  // 1. Native PipelineEvent from env-manager (Port 8000)
   if (typeof raw.step_name === "string" && typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
     if (!cleanMsg) return null;
@@ -1158,10 +1166,12 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
       is_progress: isProgress,
       timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
       data: (raw.data as Record<string, unknown>) || undefined,
+      origin: origin || "env-manager",
+      port: port || MESH_SERVICES["env-manager"].defaultPort,
     };
   }
 
-  // 2. Training Suite daemon broadcast ({"job_id": ..., "message": ...})
+  // 2. Training Suite daemon broadcast (Port 8200)
   if (typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
     if (!cleanMsg) return null;
@@ -1185,10 +1195,12 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
       is_progress: isProgress,
       timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
       data: raw.job_id || raw.job_type ? { job_id: raw.job_id, job_type: raw.job_type } : undefined,
+      origin: origin || "training-suite",
+      port: port || MESH_SERVICES["training-suite"].defaultPort,
     };
   }
 
-  // 3. Dataset Compiler chunk broadcast ({"chunk": ...})
+  // 3. Dataset Compiler chunk broadcast (Port 8100)
   if (typeof raw.chunk === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.chunk);
     if (!cleanMsg) return null;
@@ -1201,6 +1213,8 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
       message: cleanMsg,
       is_progress: isProgress,
       timestamp: new Date().toISOString(),
+      origin: origin || "dataset-compiler",
+      port: port || MESH_SERVICES["dataset-compiler"].defaultPort,
     };
   }
 
@@ -1236,7 +1250,7 @@ export function createLogWebSocket(
       ws.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          const normalized = normalizeSocketMessage(parsed, endpoint.defaultStep);
+          const normalized = normalizeSocketMessage(parsed, endpoint.defaultStep, endpoint.id, endpoint.port);
           if (normalized) {
             onEvent(normalized);
           }

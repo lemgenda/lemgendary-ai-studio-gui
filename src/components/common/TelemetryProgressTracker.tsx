@@ -122,12 +122,12 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
               [{numericStats}]
             </span>
           )}
-          {rate && (
+          {rate && (!numericStats || !numericStats.includes(rate)) && (
             <span style={{ color: "var(--accent-cyan, #00f0ff)" }}>
               {rate}
             </span>
           )}
-          {eta && (
+          {eta && (!numericStats || !numericStats.includes(eta)) && (
             <span style={{ color: "var(--accent-yellow, #ffd166)" }}>
               ETA {eta}
             </span>
