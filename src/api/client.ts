@@ -502,7 +502,7 @@ export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Pro
   return res.json();
 }
 
-export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<{ status: string; job_id?: string }> {
+export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<{ status: string; job_id?: string; id?: string }> {
   const res = await fetch(`${DATASETS_BASE}/api/kaggle/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -512,7 +512,8 @@ export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `Failed to trigger Kaggle upload: ${res.statusText}`);
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, status: data.status || "ok", job_id: data.job_id || data.id };
 }
 
 export interface KaggleMetadataPayload {
@@ -521,7 +522,7 @@ export interface KaggleMetadataPayload {
   all_datasets?: boolean;
 }
 
-export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<{ status: string; job_id?: string }> {
+export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<{ status: string; job_id?: string; id?: string }> {
   const res = await fetch(`${DATASETS_BASE}/api/kaggle/update-metadata`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -531,10 +532,11 @@ export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Prom
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `Failed to trigger metadata update: ${res.statusText}`);
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, status: data.status || "ok", job_id: data.job_id || data.id };
 }
 
-export async function updateAllKaggleMetadata(): Promise<{ status: string; job_id?: string }> {
+export async function updateAllKaggleMetadata(): Promise<{ status: string; job_id?: string; id?: string }> {
   return updateKaggleMetadata({ all_datasets: true });
 }
 

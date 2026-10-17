@@ -432,7 +432,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      setActionNotice(`Kaggle upload initiated for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+      const jobId = res.job_id || res.id || "Active";
+      setActionNotice(`Kaggle upload initiated for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setActionNotice(`Upload failed for ${dataset.display_name}: ${msg}`);
@@ -454,7 +455,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      setActionNotice(`Pushed dataset-metadata.json descriptors to Kaggle for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+      const jobId = res.job_id || res.id || "Active";
+      setActionNotice(`Pushed dataset-metadata.json descriptors to Kaggle for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setActionNotice(`Metadata update failed for ${dataset.display_name}: ${msg}`);
