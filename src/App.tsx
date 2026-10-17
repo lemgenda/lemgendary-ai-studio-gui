@@ -24,6 +24,7 @@ import {
   triggerPipelineStep,
   createLogWebSocket,
   isProgressLine,
+  isCompilerEvent,
   startService,
   startAllServices,
 } from "./api/client";
@@ -458,8 +459,8 @@ export const App: React.FC = () => {
             <>
               <CompilerPanel datasetCompilerOnline={meshStatus.datasetCompiler} />
               <LogPanel
-                events={events}
-                onClear={() => setEvents([])}
+                events={events.filter(isCompilerEvent)}
+                onClear={() => setEvents((prev) => prev.filter((e) => !isCompilerEvent(e)))}
                 isConnected={wsConnected}
               />
             </>

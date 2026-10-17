@@ -1,6 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
+import { TelemetryProgressTracker } from "./common/TelemetryProgressTracker";
+import { parseProgressMessage } from "../utils/progressParser";
+import { isProgressLine } from "../api/client";
 
 interface LogPanelProps {
   events: PipelineEvent[];
@@ -12,16 +15,35 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
   const containerRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
+  const activeProgress = useMemo(() => {
+    if (events.length === 0) return null;
+    for (let i = events.length - 1; i >= Math.max(0, events.length - 4); i--) {
+      const ev = events[i];
+      if (ev.is_progress || isProgressLine(ev.message)) {
+        const parsed = parseProgressMessage(ev.message, ev.step_name);
+        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }, [events]);
+
+  // Keep terminal monospace output clean: operational milestones only, no intermediate progress tick flood
+  const cleanEvents = useMemo(() => {
+    return events.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+  }, [events]);
+
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [events]);
+  }, [cleanEvents]);
 
   const handleCopy = async () => {
-    if (events.length === 0) return;
+    if (cleanEvents.length === 0) return;
 
-    const formattedLog = events
+    const formattedLog = cleanEvents
       .map((ev) => {
         const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--";
         const stepTag = ev.step_number > 0 ? `Step ${ev.step_number}` : "SYS";
@@ -92,6 +114,8 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
         </div>
       </div>
 
+      <TelemetryProgressTracker progress={activeProgress} />
+
       <div
         ref={containerRef}
         className="log-container"
@@ -102,12 +126,12 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
         aria-label="Real-time telemetry and pipeline stream log"
         style={{ userSelect: "text", WebkitUserSelect: "text" }}
       >
-        {events.length === 0 ? (
+        {cleanEvents.length === 0 ? (
           <div style={{ color: "var(--text-muted)", padding: "12px 0", userSelect: "none" }}>
             [Awaiting telemetry stream from sidecar server...]
           </div>
         ) : (
-          events.map((ev, index) => {
+          cleanEvents.map((ev, index) => {
             const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--";
             const tagClass =
               ev.status === "success"

@@ -1046,7 +1046,16 @@ export function cleanAnsiAndControlChars(text: string): string {
     .replace(/^\s*\[K\s*/, "")
     .replace(/^\[[0-9;]+[a-zA-Z]/, "")
     .replace(/^\[\?[0-9]+[a-zA-Z]/, "");
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+
+  // Strip outdated ASCII progress bars; the modern GUI progress tracker renders the bar
+  cleaned = cleaned
+    .replace(/(\|[ █━─\-=#]+?\||\[[ █━─\-=#]+?\])/g, "")
+    .replace(/^[ █━─\-=#|]+$/gm, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return cleaned;
 }
 
 export function isProgressLine(msg: string): boolean {
@@ -1064,6 +1073,54 @@ export function isProgressLine(msg: string): boolean {
   return hasBar || hasRate || hasEta || hasTqdm || hasStageProgress;
 }
 
+export function isCompilerEvent(ev: PipelineEvent): boolean {
+  if (!ev) return false;
+  const step = (ev.step_name || "").toLowerCase();
+  const msg = (ev.message || "").toLowerCase();
+  if (step.includes("compiler") || step.includes("dataset") || step.includes("sync") || step.includes("archive")) {
+    return true;
+  }
+  if (
+    msg.includes("archiving:") ||
+    msg.includes("uploading:") ||
+    msg.includes("pushing:") ||
+    msg.includes("pulling:") ||
+    msg.includes("[compiler]") ||
+    msg.includes("kaggle extraction") ||
+    msg.includes("lemgendized")
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
+  if (!ev) return false;
+  if (isCompilerEvent(ev)) return false;
+  const step = (ev.step_name || "").toLowerCase();
+  const msg = (ev.message || "").toLowerCase();
+  if (
+    step.includes("train") ||
+    step.includes("model") ||
+    step.includes("eval") ||
+    step.includes("export") ||
+    step.includes("governor")
+  ) {
+    return true;
+  }
+  if (
+    msg.includes("[training]") ||
+    msg.includes("[train]") ||
+    msg.includes("[epoch") ||
+    msg.includes("[factory]") ||
+    msg.includes("[governor]") ||
+    msg.includes("forex_predictor")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEvent | null {
   if (!data || typeof data !== "object") return null;
 
@@ -1072,6 +1129,7 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
   // 1. Native PipelineEvent from env-manager
   if (typeof raw.step_name === "string" && typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
+    if (!cleanMsg) return null;
     const isProgress = Boolean(raw.is_progress || isProgressLine(cleanMsg));
     const rawStatus = String(raw.status || "info").toLowerCase();
     const status: PipelineEvent["status"] =
@@ -1094,6 +1152,7 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
   // 2. Training Suite daemon broadcast ({"job_id": ..., "message": ...})
   if (typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
+    if (!cleanMsg) return null;
     const isProgress = Boolean(raw.is_progress || isProgressLine(cleanMsg));
     let status: PipelineEvent["status"] = "info";
     const msgLower = cleanMsg.toLowerCase();
@@ -1120,6 +1179,7 @@ function normalizeSocketMessage(data: unknown, defaultStep: string): PipelineEve
   // 3. Dataset Compiler chunk broadcast ({"chunk": ...})
   if (typeof raw.chunk === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.chunk);
+    if (!cleanMsg) return null;
     const isProgress = Boolean(isProgressLine(cleanMsg));
     return {
       step_number: 0,

@@ -210,3 +210,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **Independent Single Service Controls** — Each "Start Service" button on the ecosystem cards targets and launches strictly its corresponding single service without starting unwanted sidecars or re-running global setup pipelines.
 - **Unified Tauri Native & Dev Bridge** — Integrated `spawn_service` and `spawn_all_services` directly into `src/api/client.ts` with standard `Stdio::null()` redirection and resilient directory discovery across desktop environments.
 - **Clean Error Handling & Telemetry** — Removed shell-specific remediation copy buttons from error banners, providing unified cross-platform diagnostics across Windows, Linux, macOS, Unix, and mobile architectures.
+
+### v3.0.0 — Modern Telemetry Progress Architecture & Stream Governance
+
+- **Accessible Radix UI Progress Engine** — Integrated `@radix-ui/react-progress` installed and managed via `lemgendary-env-manager`, providing 100% WAI-ARIA accessible (`role="progressbar"`), zero-runtime overhead progress bars with hardware-accelerated CSS animations.
+- **Two-Line Progress Architecture** — Enforced universal two-line progress tracking across all components:
+  - **Line 1 (Unconstrained Operational Metrics)**: Operation title, target name, percentage, transfer size / epoch count, transfer rate, and ETA cleanly spaced without text clipping or truncation.
+  - **Line 2 (Visual Progress Bar Only)**: Full-width glowing gradient progress bar with cyber-cyan / emerald theme and dynamic pulse indicators.
+- **Clean Telemetry Output & Zero-Clutter Stream De-duplication** — Consecutive progress tick updates for active operations are rolled up in-place, preventing terminal scrolling flood while preserving discrete step start, milestone, artifact generation, and completion logs.
+- **Multi-Subsystem Stream Isolation** — Strictly segregated Dataset Compiler (`[Compiler]`), Local GPU Training (`[Local]`), and Remote Cloud Training (`[Cloud]`) streams across dedicated panels.
+- **Zero Warnings Root Cause Enforcement** — Resolved PyTorch non-writable tensor warning in `forex_dataset.py` by implementing `_safe_from_numpy(arr)` with buffer writeability checks, strictly prohibiting warning suppression or silencing.

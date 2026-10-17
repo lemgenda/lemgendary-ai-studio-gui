@@ -25,6 +25,7 @@ import {
   generateModelDocs,
   stageModelVariations,
   pushAllKaggleModels,
+  isLocalTrainingEvent,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
@@ -476,9 +477,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   };
 
   const displayedLocalEvents = useMemo(() => {
-    return (_recentEvents || []).filter(
-      (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedLocalTimestamp
-    );
+    return (_recentEvents || [])
+      .filter((ev) => isLocalTrainingEvent(ev))
+      .filter(
+        (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedLocalTimestamp
+      );
   }, [_recentEvents, clearedLocalTimestamp]);
 
   const displayedRemoteEvents = useMemo(() => {

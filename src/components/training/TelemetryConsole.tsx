@@ -1,6 +1,9 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../../api/types";
+import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
+import { parseProgressMessage } from "../../utils/progressParser";
+import { isProgressLine } from "../../api/client";
 
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
@@ -69,6 +72,43 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
 }) => {
   const localLogContainerRef = useRef<HTMLDivElement>(null);
   const remoteLogContainerRef = useRef<HTMLDivElement>(null);
+
+  const activeLocalProgress = useMemo(() => {
+    if (displayedLocalEvents.length === 0) return null;
+    for (let i = displayedLocalEvents.length - 1; i >= Math.max(0, displayedLocalEvents.length - 4); i--) {
+      const ev = displayedLocalEvents[i];
+      if (ev.is_progress || isProgressLine(ev.message)) {
+        const parsed = parseProgressMessage(ev.message, ev.step_name);
+        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }, [displayedLocalEvents]);
+
+  const activeRemoteProgress = useMemo(() => {
+    if (displayedRemoteEvents.length === 0) return null;
+    for (let i = displayedRemoteEvents.length - 1; i >= Math.max(0, displayedRemoteEvents.length - 4); i--) {
+      const ev = displayedRemoteEvents[i];
+      if (ev.is_progress || isProgressLine(ev.message)) {
+        const parsed = parseProgressMessage(ev.message, ev.step_name);
+        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }, [displayedRemoteEvents]);
+
+  // Clean log streams without intermediate progress tick noise
+  const cleanLocalEvents = useMemo(() => {
+    return displayedLocalEvents.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+  }, [displayedLocalEvents]);
+
+  const cleanRemoteEvents = useMemo(() => {
+    return displayedRemoteEvents.filter((ev) => !ev.is_progress && !isProgressLine(ev.message));
+  }, [displayedRemoteEvents]);
 
   return (
     <div id="telemetry-panel-anchor" style={{ marginTop: "28px" }}>
@@ -270,6 +310,9 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               </div>
             </div>
 
+            {/* Active Progress Tracker for Local Training */}
+            <TelemetryProgressTracker progress={activeLocalProgress} />
+
             {/* Local Training Monospace Stream */}
             <div
               ref={localLogContainerRef}
@@ -277,14 +320,14 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               role="log"
               style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}
             >
-              {displayedLocalEvents.length === 0 ? (
+              {cleanLocalEvents.length === 0 ? (
                 <div className="log-empty">
                   {localJobId
                     ? "Awaiting training stream packets from sidecar..."
                     : "No active local training stream. Launch a local model to monitor live execution."}
                 </div>
               ) : (
-                displayedLocalEvents.map((ev, idx) => (
+                cleanLocalEvents.map((ev, idx) => (
                   <div key={`local-${ev.timestamp}-${idx}`} className="log-line">
                     <span className="log-timestamp">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
@@ -294,6 +337,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                       className={`log-message ${
                         ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""
                       }`}
+                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                     >
                       {ev.message}
                     </span>
@@ -456,6 +500,9 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               </div>
             )}
 
+            {/* Active Progress Tracker for Remote/Cloud Training */}
+            <TelemetryProgressTracker progress={activeRemoteProgress} />
+
             {/* Remote Cloud Monospace Stream */}
             <div
               ref={remoteLogContainerRef}
@@ -463,12 +510,12 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               role="log"
               style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}
             >
-              {displayedRemoteEvents.length === 0 ? (
+              {cleanRemoteEvents.length === 0 ? (
                 <div className="log-empty">
                   No remote cloud telemetry received yet. Click &quot;Attach Stream&quot; on an active Kaggle kernel or dispatch a new cloud run above.
                 </div>
               ) : (
-                displayedRemoteEvents.map((ev, idx) => (
+                cleanRemoteEvents.map((ev, idx) => (
                   <div key={`remote-${ev.timestamp}-${idx}`} className="log-line">
                     <span className="log-timestamp">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
@@ -478,6 +525,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                       className={`log-message ${
                         ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""
                       }`}
+                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                     >
                       {ev.message}
                     </span>
