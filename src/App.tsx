@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useStudioStore } from "./store/useStudioStore";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
@@ -49,6 +49,7 @@ export const App: React.FC = () => {
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isRunningPipeline, setIsRunningPipeline] = useState<boolean>(false);
+  const runningSingleStepRef = useRef<number | null>(null);
   const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(false);
@@ -159,8 +160,29 @@ export const App: React.FC = () => {
           }
           return [...prev.slice(-199), ev];
         });
-        if (ev.step_name === "Health Matrix" && ev.status === "success") {
-          loadData();
+
+        const msg = typeof ev.message === "string" ? ev.message.toLowerCase() : "";
+        const isStep7Terminal =
+          (ev.step_name === "Health Matrix" || ev.step_number === 7) &&
+          (ev.status === "success" || ev.status === "warning" || ev.status === "error");
+        const isPipelineTerminal =
+          ev.step_name === "Pipeline Error" ||
+          isStep7Terminal ||
+          msg.includes("pipeline execution completed") ||
+          msg.includes("ecosystem healthy status");
+
+        const targetStep = runningSingleStepRef.current;
+        const isSingleStepTerminal =
+          targetStep !== null &&
+          ev.step_number === targetStep &&
+          (ev.status === "success" || ev.status === "warning" || ev.status === "error") &&
+          !ev.is_progress;
+
+        if (isPipelineTerminal || isSingleStepTerminal) {
+          setIsRunningPipeline(false);
+          runningSingleStepRef.current = null;
+          useStudioStore.getState().setIsRunningPipeline(false);
+          void loadData();
         }
       },
       (connected) => {
@@ -173,6 +195,26 @@ export const App: React.FC = () => {
       cleanupWs();
     };
   }, [loadData, refreshMeshStatus]);
+
+  // Safety polling to guarantee UI state termination when pipeline or step finishes
+  useEffect(() => {
+    if (!isRunningPipeline) return;
+    const pollInterval = setInterval(async () => {
+      try {
+        const pipeStatus = await fetchPipelineStatus();
+        if (pipeStatus && !pipeStatus.is_running) {
+          setIsRunningPipeline(false);
+          runningSingleStepRef.current = null;
+          useStudioStore.getState().setIsRunningPipeline(false);
+          void loadData();
+        }
+      } catch {
+        // Polling error ignored during active pipeline execution
+      }
+    }, 1500);
+
+    return () => clearInterval(pollInterval);
+  }, [isRunningPipeline, loadData]);
 
   // Auto-start any offline sidecars on GUI startup
   useEffect(() => {
@@ -217,6 +259,7 @@ export const App: React.FC = () => {
 
   const handleRunPipeline = async () => {
     try {
+      runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
       await triggerPipeline();
     } catch {
@@ -227,6 +270,7 @@ export const App: React.FC = () => {
 
   const handleReconcileProject = async (projectName: string) => {
     try {
+      runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
       await triggerPipeline(projectName);
     } catch {
@@ -237,10 +281,12 @@ export const App: React.FC = () => {
 
   const handleRunPipelineStep = async (stepNumber: number) => {
     try {
+      runningSingleStepRef.current = stepNumber;
       setIsRunningPipeline(true);
       await triggerPipelineStep(stepNumber);
     } catch {
       setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port 8000) is not reachable.`);
+      runningSingleStepRef.current = null;
       setIsRunningPipeline(false);
     }
   };

@@ -1072,19 +1072,30 @@ export function cleanAnsiAndControlChars(text: string): string {
 
 export function isProgressLine(msg: string): boolean {
   if (!msg) return false;
+  // Package and requirement installation operations
+  const hasPkgProgress =
+    msg.includes("INSTALLING:") ||
+    msg.includes("DOWNLOADING:") ||
+    msg.includes("RESOLVING:") ||
+    msg.includes("Installing requirements for") ||
+    msg.includes("Running npm install for") ||
+    msg.includes("Normalizing OpenCV provider") ||
+    msg.startsWith("Collecting ") ||
+    msg.startsWith("Requirement already satisfied:") ||
+    msg.startsWith("Installing collected packages:");
   // Progress bar glyphs (e.g. 92% ──────── or ████ or |===|)
   const hasBar = /[\u2580-\u259F\u2500-\u257F━█─\-=]{3,}/.test(msg) && /\d+%/.test(msg);
   // Iteration rate indicators (e.g. 7875/8479 3.7it/s or 500/1000 [00:10<00:05, 10.2it/s] or 31.7M/3.84G)
-  const hasRate = /\b\d+(?:\.\d+)?[KMGT]?\/\d+(?:\.\d+)?[KMGT]?\b\s+.*\b(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)\b/i.test(msg);
+  const hasRate = /\b\d+(?:\.\d+)?[KMGT]?\/\d+(?:\.\d+)?[KMGT]?\b\s+.*\b(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s|kB\/s)\b/i.test(msg);
   // Estimated completion timer pattern (e.g. 48:05<2:43 or 00:01<00:00)
   const hasEta = /\d+:\d+<\d+:\d+/.test(msg);
   // Classic tqdm formatting: 92%|████████  | 7875/8479 or |...| 92%
-  const hasTqdm = (/\d+%\s*\|/.test(msg) || /\|\s*\d+/.test(msg)) && (/\d+\/\d+/.test(msg) || /it\/s|B\/s/i.test(msg));
+  const hasTqdm = (/\d+%\s*\|/.test(msg) || /\|\s*\d+/.test(msg)) && (/\d+\/\d+/.test(msg) || /it\/s|B\/s|kB\/s/i.test(msg));
   // Specific stages (Archiving, Uploading, Extraction) with percentage
   const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING") || msg.includes("KAGGLE EXTRACTION") || msg.includes("EXTRACTION:")) && msg.includes("%");
   // Training and validation engine batch progression
   const hasBatch = /\[(?:VAL\s+)?BATCH\s+\d+\/\d+\]/i.test(msg);
-  return hasBar || hasRate || hasEta || hasTqdm || hasStageProgress || hasBatch;
+  return hasPkgProgress || hasBar || hasRate || hasEta || hasTqdm || hasStageProgress || hasBatch;
 }
 
 /**

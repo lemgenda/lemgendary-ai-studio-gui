@@ -250,3 +250,11 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/utils/progressParser.ts` — Kaggle Server-Side Extraction Parsing** — Extended operation and keyword detection to support `KAGGLE EXTRACTION` and `EXTRACTION:`. Properly assigns `source: "compiler"`, operation `KAGGLE EXTRACTION`, extracts target manifold names, numeric extraction stats, and percentage completion.
 - **`src/api/client.ts` — Stage Progress Detection** — Extended `isProgressLine` to recognize `KAGGLE EXTRACTION` and `EXTRACTION:` lines as live progress events for roll-up and tracking.
 - **Unit Test Coverage** — Added unit tests verifying Kaggle extraction progress parsing and 100% completion handling with 21/21 passing tests.
+
+### v3.4.0 — Real-Time Requirements Installation Progress Bar & Pipeline Telemetry
+
+- **`src/utils/progressParser.ts` — Package & Requirement Progression Parsing** — Added `REQ_RATIO_REGEX` (`/(\d+)\/(\d+)\s+requirements/i`) and `SIZE_RATIO_REGEX` (`/(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*\/\s*(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i`). Detects requirement installation (`INSTALLING:`, `PACKAGE INSTALLATION`, `requirements for`) and wheel downloads (`DOWNLOADING:`), accurately calculating percentage, current package target, download throughput, and ETA.
+- **`src/components/common/TelemetryProgressTracker.tsx` — Amber Pipeline Progress Theme** — Added dedicated high-contrast amber accent (`var(--accent-amber, #ffd166)`) and glowing gold-to-cyan gradient (`linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)`) for pipeline operations, providing immediate visual feedback and indeterminate in-flight progress when installations begin.
+- **`src/components/PipelineStepCards.tsx` — Active Step Card Progress Indicator** — Added responsive visual progress bar to running pipeline step cards during active execution.
+- **`src/api/client.ts` — Package Installation Telemetry Stream Roll-Up** — Updated `isProgressLine` to recognize live requirement ticks (`INSTALLING:`, `DOWNLOADING:`, `RESOLVING:`, `Collecting`, `Requirement already satisfied:`), ensuring real-time in-place progress roll-up without terminal clutter.
+- **Unit Test Coverage** — Added unit tests verifying requirement installation parsing, wheel download transfer metrics, and indeterminate in-flight progress rendering.

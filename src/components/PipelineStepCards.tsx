@@ -107,8 +107,19 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
         }}
       >
         {PIPELINE_STEPS.map((step) => {
-          const isStepRunning = (isRunning && activeStepNum === step.num) || runningStep === step.num;
           const latestEvent = getStepLatestEvent(step.num);
+          const isLatestCompleted = Boolean(
+            latestEvent && (
+              latestEvent.status === "success" ||
+              latestEvent.status === "error" ||
+              (latestEvent.status === "warning" && !latestEvent.is_progress) ||
+              (typeof latestEvent.message === "string" &&
+                latestEvent.message.toLowerCase().includes("completed"))
+            )
+          );
+          const isStepRunning =
+            !isLatestCompleted &&
+            ((isRunning && activeStepNum === step.num) || runningStep === step.num);
 
           let statusBadgeClass = "badge-info";
           let statusText = "READY";
@@ -187,6 +198,35 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
                 >
                   {step.shortDesc}
                 </p>
+
+                {isStepRunning && (
+                  <div
+                    style={{
+                      marginBottom: "10px",
+                      position: "relative",
+                      height: "5px",
+                      borderRadius: "9999px",
+                      backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      overflow: "hidden",
+                    }}
+                    role="progressbar"
+                    aria-label={`Step ${step.num} execution progress`}
+                    aria-busy="true"
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        bottom: 0,
+                        width: "50%",
+                        background: "linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)",
+                        borderRadius: "9999px",
+                        boxShadow: "0 0 8px rgba(255, 209, 102, 0.5)",
+                        animation: "telemetry-indeterminate-sweep 1.8s infinite ease-in-out",
+                      }}
+                    />
+                  </div>
+                )}
 
                 {latestEvent && (
                   <div

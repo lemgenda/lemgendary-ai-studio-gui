@@ -20,6 +20,8 @@ const BRACKET_STATS_REGEX = /\[([^\]]+)\]/;
 const STEP_RATIO_REGEX = /\[Step\s+(\d+)\/(\d+)\]/i;
 const BATCH_RATIO_REGEX = /\[(?:VAL\s+)?BATCH\s+(\d+)\/(\d+)\]/i;
 const EPOCH_BATCH_REGEX = /(\d+)\/(\d+)\s+(?:batches|epochs|steps|samples)/i;
+const REQ_RATIO_REGEX = /(\d+)\/(\d+)\s+requirements/i;
+const SIZE_RATIO_REGEX = /(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*\/\s*(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i;
 
 export function parseProgressMessage(message: string, stepName?: string): ParsedProgress | null {
   if (!message || typeof message !== "string") return null;
@@ -61,11 +63,30 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     }
   }
 
+  // 5. Requirements ratio check (e.g. [12/44 requirements])
+  const reqMatch = trimmed.match(REQ_RATIO_REGEX);
+  if (percentage < 0 && reqMatch) {
+    const current = parseInt(reqMatch[1], 10);
+    const total = parseInt(reqMatch[2], 10);
+    if (total > 0) {
+      percentage = Math.min(100, Math.round((current / total) * 100));
+    }
+  }
+
+  // 6. Download size ratio check (e.g. 1.2/2.4 GB)
+  const sizeMatch = trimmed.match(SIZE_RATIO_REGEX);
+  if (percentage < 0 && sizeMatch) {
+    const current = parseFloat(sizeMatch[1]);
+    const total = parseFloat(sizeMatch[3]);
+    if (total > 0) {
+      percentage = Math.min(100, (current / total) * 100);
+    }
+  }
+
   // Determine source
   let source: ParsedProgress["source"] = "general";
   if (
     stepLower.includes("compiler") ||
-    stepLower.includes("sync") ||
     stepLower.includes("dataset") ||
     trimmed.toUpperCase().includes("KAGGLE") ||
     trimmed.toUpperCase().includes("EXTRACT")
@@ -80,13 +101,30 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     trimmed.includes("EPOCH")
   ) {
     source = "training";
-  } else if (stepLower.includes("step") || stepLower.includes("pipeline") || stepLower.includes("audit")) {
+  } else if (
+    stepLower.includes("step") ||
+    stepLower.includes("pipeline") ||
+    stepLower.includes("audit") ||
+    stepLower.includes("package") ||
+    stepLower.includes("installation") ||
+    stepLower.includes("requirements") ||
+    stepLower.includes("sync") ||
+    trimmed.startsWith("INSTALLING:") ||
+    trimmed.startsWith("DOWNLOADING:") ||
+    trimmed.startsWith("RESOLVING:") ||
+    trimmed.includes("npm install") ||
+    trimmed.includes("Installing requirements for") ||
+    trimmed.includes("Running npm install for")
+  ) {
     source = "pipeline";
   }
 
   // Check if message signifies active progress
   const hasVisualBar = trimmed.includes("|") && (trimmed.includes("=") || trimmed.includes(" ") || trimmed.includes("#"));
   const hasProgressKeyword =
+    trimmed.startsWith("INSTALLING") ||
+    trimmed.startsWith("DOWNLOADING") ||
+    trimmed.startsWith("RESOLVING") ||
     trimmed.startsWith("ARCHIVING") ||
     trimmed.startsWith("PUSHING") ||
     trimmed.startsWith("EXTRACTING") ||
@@ -98,7 +136,14 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     trimmed.includes("batches") ||
     trimmed.includes("ETA:") ||
     trimmed.includes("it/s") ||
-    trimmed.includes("MB/s");
+    trimmed.includes("MB/s") ||
+    trimmed.includes("kB/s") ||
+    trimmed.includes("requirements") ||
+    trimmed.includes("Installing requirements for") ||
+    trimmed.includes("Running npm install for") ||
+    stepLower.includes("package") ||
+    stepLower.includes("installation") ||
+    stepLower.includes("requirements");
 
   if (percentage < 0 && !hasVisualBar && !hasProgressKeyword) {
     return null;
@@ -112,6 +157,18 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     const isVal = /VAL\s+BATCH/i.test(trimmed) || trimmed.toUpperCase().includes("VALLOSS");
     operation = isVal ? "VALIDATION" : "TRAINING";
     target = `${isVal ? "Val Batch" : "Batch"} ${batchRatioMatch[1]}/${batchRatioMatch[2]}`;
+  } else if (trimmed.includes("Installing requirements for")) {
+    const reqForMatch = trimmed.match(/Installing requirements for\s+([a-zA-Z0-9_-]+)/i);
+    operation = "PACKAGE INSTALLATION";
+    if (reqForMatch) {
+      target = reqForMatch[1].trim();
+    }
+  } else if (trimmed.includes("Running npm install for")) {
+    const npmForMatch = trimmed.match(/Running npm install for\s+([a-zA-Z0-9_-]+)/i);
+    operation = "NPM INSTALL";
+    if (npmForMatch) {
+      target = npmForMatch[1].trim();
+    }
   } else {
     const colonIdx = trimmed.indexOf(":");
     if (colonIdx > 0 && colonIdx < 30) {
@@ -124,7 +181,7 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
       } else {
         candidateTarget = afterColon.split(/[-|[]/)[0].trim();
       }
-      // Target must be a genuine identifier (manifold, file, dataset), never a percentage or numeric rate
+      // Target must be a genuine identifier (manifold, file, dataset, package), never a percentage or numeric rate
       if (
         candidateTarget &&
         !candidateTarget.includes("%") &&
@@ -156,13 +213,17 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
   const statsMatch = trimmed.match(BRACKET_STATS_REGEX);
   if (statsMatch) {
     numericStats = statsMatch[1].trim();
+  } else if (trimmed.includes("Installing requirements for")) {
+    numericStats = "Resolving & installing dependencies...";
+  } else if (trimmed.includes("Running npm install for")) {
+    numericStats = "Running npm install...";
   }
 
   // Extract rate and ETA
   let rate: string | undefined;
   let eta: string | undefined;
 
-  const rateMatch = trimmed.match(/(\d+(?:\.\d+)?\s*(?:MB\/s|KB\/s|GB\/s|it\/s|s\/it))/i);
+  const rateMatch = trimmed.match(/(\d+(?:\.\d+)?\s*(?:MB\/s|KB\/s|GB\/s|kB\/s|it\/s|s\/it))/i);
   if (rateMatch) {
     rate = rateMatch[1].trim();
   }

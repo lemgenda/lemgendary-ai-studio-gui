@@ -246,4 +246,62 @@ describe("TelemetryProgressTracker & progressParser", () => {
     expect(rolled[2].message).toBe("[EPOCH 1/50] Initiating training pass...");
     expect(rolled[3].message).toContain("[BATCH 2/100]");
   });
+
+  it("parses requirement installation progress correctly and renders pipeline amber badge and percentage", () => {
+    const raw = "INSTALLING: lemgendary-datasets - 25.0% [11/44 requirements, Collecting torch...]";
+    const parsed = parseProgressMessage(raw, "Package Installation");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(25.0);
+    expect(parsed?.operation).toBe("INSTALLING");
+    expect(parsed?.target).toBe("lemgendary-datasets");
+    expect(parsed?.source).toBe("pipeline");
+    expect(parsed?.numericStats).toBe("11/44 requirements, Collecting torch...");
+    expect(parsed?.isIndeterminate).toBe(false);
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("INSTALLING");
+    expect(html).toContain("lemgendary-datasets");
+    expect(html).toContain("25.0%");
+    expect(html).toContain("11/44 requirements, Collecting torch...");
+  });
+
+  it("parses live wheel download transfer rate and ratio correctly", () => {
+    const raw = "DOWNLOADING: torch - 1.2/2.4 GB 25.1 MB/s eta 0:00:48";
+    const parsed = parseProgressMessage(raw, "Package Installation");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(50);
+    expect(parsed?.operation).toBe("DOWNLOADING");
+    expect(parsed?.target).toBe("torch");
+    expect(parsed?.rate).toBe("25.1 MB/s");
+    expect(parsed?.eta).toBe("0:00:48");
+    expect(parsed?.source).toBe("pipeline");
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("DOWNLOADING");
+    expect(html).toContain("torch");
+    expect(html).toContain("50.0%");
+    expect(html).toContain("25.1 MB/s");
+    expect(html).toContain("ETA 0:00:48");
+  });
+
+  it("parses initial requirements installation as indeterminate in-flight progress", () => {
+    const raw = "Installing requirements for lemgendary-datasets ...";
+    const parsed = parseProgressMessage(raw, "Package Installation");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.isIndeterminate).toBe(true);
+    expect(parsed?.operation).toBe("PACKAGE INSTALLATION");
+    expect(parsed?.target).toBe("lemgendary-datasets");
+    expect(parsed?.source).toBe("pipeline");
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("PACKAGE INSTALLATION");
+    expect(html).toContain("lemgendary-datasets");
+    expect(html).toContain("IN-FLIGHT");
+  });
 });

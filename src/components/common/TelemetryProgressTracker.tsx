@@ -28,6 +28,8 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
       ? "var(--accent-cyan, #00f0ff)"
       : source === "training"
       ? "var(--accent-purple, #bf7af0)"
+      : source === "pipeline"
+      ? "var(--accent-amber, #ffd166)"
       : "var(--accent-emerald, #00ff88)";
 
   const gradient =
@@ -37,6 +39,8 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
       ? "linear-gradient(90deg, #00d2ff 0%, #00f0ff 60%, #00ff88 100%)"
       : source === "training"
       ? "linear-gradient(90deg, #8a2be2 0%, #bf7af0 60%, #00f0ff 100%)"
+      : source === "pipeline"
+      ? "linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)"
       : "linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%)";
 
   return (

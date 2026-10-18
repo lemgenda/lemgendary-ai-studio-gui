@@ -17,7 +17,21 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
 
   const activeProgress = useMemo(() => {
     if (events.length === 0) return null;
-    for (let i = events.length - 1; i >= Math.max(0, events.length - 4); i--) {
+    const lastEv = events[events.length - 1];
+    // If the latest event is a final error, warning milestone, or completed event, do not show stale progress
+    const isTerminal =
+      lastEv.status === "error" ||
+      (lastEv.status === "success" && !lastEv.is_progress) ||
+      (lastEv.status === "warning" && !lastEv.is_progress) ||
+      (typeof lastEv.message === "string" &&
+        (lastEv.message.toLowerCase().includes("completed") ||
+         lastEv.message.toLowerCase().includes("pipeline execution completed") ||
+         lastEv.message.toLowerCase().includes("ecosystem healthy status")));
+
+    if (isTerminal) {
+      return null;
+    }
+    for (let i = events.length - 1; i >= Math.max(0, events.length - 6); i--) {
       const ev = events[i];
       if (ev.is_progress || isProgressLine(ev.message)) {
         const parsed = parseProgressMessage(ev.message, ev.step_name);
