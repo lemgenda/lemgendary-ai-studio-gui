@@ -79,7 +79,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
       const ev = displayedLocalEvents[i];
       if (ev.is_progress || isProgressLine(ev.message)) {
         const parsed = parseProgressMessage(ev.message, ev.step_name);
-        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+        if (parsed) {
           return parsed;
         }
       }
@@ -93,7 +93,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
       const ev = displayedRemoteEvents[i];
       if (ev.is_progress || isProgressLine(ev.message)) {
         const parsed = parseProgressMessage(ev.message, ev.step_name);
-        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+        if (parsed) {
           return parsed;
         }
       }

@@ -1081,7 +1081,7 @@ export function isProgressLine(msg: string): boolean {
   // Classic tqdm formatting: 92%|████████  | 7875/8479 or |...| 92%
   const hasTqdm = (/\d+%\s*\|/.test(msg) || /\|\s*\d+/.test(msg)) && (/\d+\/\d+/.test(msg) || /it\/s|B\/s/i.test(msg));
   // Specific stages (Archiving, Uploading, Extraction) with percentage
-  const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING")) && msg.includes("%");
+  const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING") || msg.includes("KAGGLE EXTRACTION") || msg.includes("EXTRACTION:")) && msg.includes("%");
   // Training and validation engine batch progression
   const hasBatch = /\[(?:VAL\s+)?BATCH\s+\d+\/\d+\]/i.test(msg);
   return hasBar || hasRate || hasEta || hasTqdm || hasStageProgress || hasBatch;

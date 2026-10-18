@@ -119,6 +119,41 @@ describe("TelemetryProgressTracker & progressParser", () => {
     expect(rateCount).toBe(1);
   });
 
+  it("parses Kaggle server-side extraction progress and renders compiler badge and percentage", () => {
+    const raw = "KAGGLE EXTRACTION: lemtreursi/manifold_eurusd_1m - 45% [18s, PROCESSING (45% files)]";
+    const parsed = parseProgressMessage(raw, "Compiler");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(45);
+    expect(parsed?.operation).toBe("KAGGLE EXTRACTION");
+    expect(parsed?.target).toBe("lemtreursi/manifold_eurusd_1m");
+    expect(parsed?.numericStats).toBe("18s, PROCESSING (45% files)");
+    expect(parsed?.source).toBe("compiler");
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("KAGGLE EXTRACTION");
+    expect(html).toContain("lemtreursi/manifold_eurusd_1m");
+    expect(html).toContain("45.0%");
+    expect(html).toContain("18s, PROCESSING (45% files)");
+  });
+
+  it("parses 100% completion progress event cleanly and renders completion", () => {
+    const raw = "KAGGLE EXTRACTION: lemtreursi/manifold_eurusd_1m - 100% [42s, COMPLETE]";
+    const parsed = parseProgressMessage(raw, "Compiler");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(100);
+    expect(parsed?.operation).toBe("KAGGLE EXTRACTION");
+    expect(parsed?.isIndeterminate).toBe(false);
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("KAGGLE EXTRACTION");
+    expect(html).toContain("100.0%");
+    expect(html).toContain("COMPLETE");
+  });
+
   it("returns null when progress object is null", () => {
     const html = renderToStaticMarkup(
       <TelemetryProgressTracker progress={null} />

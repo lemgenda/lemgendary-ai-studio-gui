@@ -243,3 +243,10 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/components/common/TelemetryProgressTracker.tsx` — Dynamic Emerald Validation Theme** — Added dedicated emerald accent styling (`var(--accent-emerald, #00ff88)`) and high-contrast green-to-cyan gradient for the `VALIDATION` operation, giving the operator instant visual confirmation when an epoch transitions from the purple training bar to evaluation.
 - **`src/api/client.ts` — In-Place Validation Stream Roll-Up** — Extended `isProgressLine` batch progression detection to recognize `[VAL BATCH ...]`, rolling up consecutive validation progress ticks in-place without terminal scroll churn.
 - **`src/components/common/__tests__/TelemetryProgressTracker.test.tsx` — Test Coverage** — Added comprehensive test cases verifying validation batch ratio extraction, percentage calculation, operation classification, and rendered ARIA progress bar components. All 19 tests passing with 0 errors.
+
+### v3.3.0 — Progress Tracker Real-Time Synchronization & Kaggle Extraction Pipeline Support
+
+- **`src/components/LogPanel.tsx` & `src/components/training/TelemetryConsole.tsx` — Progress Bar Lag & Stale Fallback Elimination** — Removed the sub-100% conditional filter (`percentage < 100`) from the active progress event picker. The progress tracker now immediately returns the most recent parsed progress event in the event buffer, preventing the bar from skipping 100% completion ticks and falling back to older sub-100% states.
+- **`src/utils/progressParser.ts` — Kaggle Server-Side Extraction Parsing** — Extended operation and keyword detection to support `KAGGLE EXTRACTION` and `EXTRACTION:`. Properly assigns `source: "compiler"`, operation `KAGGLE EXTRACTION`, extracts target manifold names, numeric extraction stats, and percentage completion.
+- **`src/api/client.ts` — Stage Progress Detection** — Extended `isProgressLine` to recognize `KAGGLE EXTRACTION` and `EXTRACTION:` lines as live progress events for roll-up and tracking.
+- **Unit Test Coverage** — Added unit tests verifying Kaggle extraction progress parsing and 100% completion handling with 21/21 passing tests.

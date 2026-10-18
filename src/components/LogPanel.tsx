@@ -21,7 +21,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
       const ev = events[i];
       if (ev.is_progress || isProgressLine(ev.message)) {
         const parsed = parseProgressMessage(ev.message, ev.step_name);
-        if (parsed && (parsed.percentage < 100 || parsed.isIndeterminate)) {
+        if (parsed) {
           return parsed;
         }
       }

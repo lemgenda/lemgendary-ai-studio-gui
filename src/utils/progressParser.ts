@@ -63,7 +63,13 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
 
   // Determine source
   let source: ParsedProgress["source"] = "general";
-  if (stepLower.includes("compiler") || stepLower.includes("sync") || stepLower.includes("dataset")) {
+  if (
+    stepLower.includes("compiler") ||
+    stepLower.includes("sync") ||
+    stepLower.includes("dataset") ||
+    trimmed.toUpperCase().includes("KAGGLE") ||
+    trimmed.toUpperCase().includes("EXTRACT")
+  ) {
     source = "compiler";
   } else if (
     stepLower.includes("training") ||
@@ -85,6 +91,8 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     trimmed.startsWith("PUSHING") ||
     trimmed.startsWith("EXTRACTING") ||
     trimmed.startsWith("COMPILING") ||
+    trimmed.toUpperCase().includes("KAGGLE") ||
+    trimmed.toUpperCase().includes("EXTRACTION") ||
     trimmed.includes("EPOCH") ||
     trimmed.includes("BATCH") ||
     trimmed.includes("batches") ||
@@ -125,6 +133,12 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
         !/^(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)$/i.test(candidateTarget)
       ) {
         target = candidateTarget;
+      }
+    } else if (trimmed.toUpperCase().includes("KAGGLE EXTRACTION") || trimmed.toUpperCase().includes("[KAGGLE EXTRACTION]")) {
+      operation = "KAGGLE EXTRACTION";
+      const extractMatch = trimmed.match(/KAGGLE\s+EXTRACTION(?:\s*\([^)]+\))?[:\s-]+([^\s-]+)/i);
+      if (extractMatch && !extractMatch[1].includes("%")) {
+        target = extractMatch[1].trim();
       }
     } else if (trimmed.toUpperCase().includes("EPOCH")) {
       operation = "TRAINING";
