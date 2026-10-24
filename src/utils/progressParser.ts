@@ -26,7 +26,9 @@ const SIZE_RATIO_REGEX = /(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*\/\s*(\d+(?:\.\d+)?)\s
 export function parseProgressMessage(message: string, stepName?: string): ParsedProgress | null {
   if (!message || typeof message !== "string") return null;
 
-  const trimmed = message.trim();
+  // Strip timestamp and subsystem prefix (e.g. "11:11:36 PM [LOCAL] [TRAINING]: ")
+  const cleaned = message.replace(/^\s*\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?\s*(?:\[[^\]]+\]\s*)*:?\s*/i, "");
+  const trimmed = cleaned.trim();
   const stepLower = (stepName || "").toLowerCase();
 
   // 1. Percentage check
@@ -176,8 +178,9 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     }
   } else {
     const colonIdx = trimmed.indexOf(":");
-    if (colonIdx > 0 && colonIdx < 30) {
-      operation = trimmed.substring(0, colonIdx).trim();
+    const candOp = colonIdx > 0 && colonIdx < 30 ? trimmed.substring(0, colonIdx).trim() : "";
+    if (candOp && !/^\d+$/i.test(candOp) && !/^\d+:\d+/i.test(candOp)) {
+      operation = candOp;
       const afterColon = trimmed.substring(colonIdx + 1).trim();
       const spaceIdx = afterColon.indexOf(" ");
       let candidateTarget = "";
@@ -243,7 +246,9 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     rate = rateMatch[1].trim();
   }
 
-  const etaMatch = trimmed.match(/ETA:?\s*(\d+:\d+(?::\d+)?|(?:\d+[hms])+)/i);
+  const etaMatch =
+    trimmed.match(/ETA:?\s*(\d+:\d+(?::\d+)?|(?:\d+[hms])+)/i) ||
+    trimmed.match(/\d+:\d+(?::\d+)?<(\d+:\d+(?::\d+)?)/);
   if (etaMatch) {
     eta = etaMatch[1].trim();
   }

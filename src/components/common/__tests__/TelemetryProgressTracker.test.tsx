@@ -138,6 +138,24 @@ describe("TelemetryProgressTracker & progressParser", () => {
     expect(html).toContain("18s, PROCESSING (45% files)");
   });
 
+  it("parses Ultralytics YOLO tqdm progress bar and extracts ETA and rate", () => {
+    const raw = "11:11:36 PM [LOCAL] [TRAINING]:  68/150 2.02G 0.88 1.021 1.056 81 640: 10% |████      | 1298/12718 2.1it/s 8:06<1:29:22";
+    const parsed = parseProgressMessage(raw, "Training");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.percentage).toBe(10);
+    expect(parsed?.operation).toBe("TRAINING");
+    expect(parsed?.rate).toBe("2.1it/s");
+    expect(parsed?.eta).toBe("1:29:22");
+
+    const html = renderToStaticMarkup(
+      <TelemetryProgressTracker progress={parsed} />
+    );
+    expect(html).toContain("TRAINING");
+    expect(html).toContain("10.0%");
+    expect(html).toContain("2.1it/s");
+    expect(html).toContain("ETA 1:29:22");
+  });
+
   it("parses 100% completion progress event cleanly and renders completion", () => {
     const raw = "KAGGLE EXTRACTION: lemtreursi/manifold_eurusd_1m - 100% [42s, COMPLETE]";
     const parsed = parseProgressMessage(raw, "Compiler");

@@ -258,3 +258,9 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/components/PipelineStepCards.tsx` — Active Step Card Progress Indicator** — Added responsive visual progress bar to running pipeline step cards during active execution.
 - **`src/api/client.ts` — Package Installation Telemetry Stream Roll-Up** — Updated `isProgressLine` to recognize live requirement ticks (`INSTALLING:`, `DOWNLOADING:`, `RESOLVING:`, `Collecting`, `Requirement already satisfied:`), ensuring real-time in-place progress roll-up without terminal clutter.
 - **Unit Test Coverage** — Added unit tests verifying requirement installation parsing, wheel download transfer metrics, and indeterminate in-flight progress rendering.
+
+### v3.5.0 — Ultralytics / TQDM Progress Stream Parsing & Dynamic ETA Extraction
+
+- **`src/utils/progressParser.ts` — TQDM / Ultralytics `<remaining` ETA Syntax Parser** — Extended ETA regex matching to support standard tqdm and Ultralytics console telemetry formats (`elapsed<remaining`, e.g., `00:15<01:29:22` or `01:22<02:45`). Accurately extracts the remaining duration (`01:29:22`) directly into the progress tracker state as ETA.
+- **`src/utils/progressParser.ts` — Timestamp Prefix Stripping & Clean Operation Extraction** — Added stripping for leading log timestamp prefixes (such as `11:11:36 PM` or ISO formats) and guarded candidate operation strings against pure numeric or clock-like tokens (`!/^\d+$/` and `!/^\d+:\d+/`). Ensures YOLO and vision training streams cleanly resolve to operation `TRAINING` rather than time tokens.
+- **Unit Test Coverage (`TelemetryProgressTracker.test.tsx`)** — Added unit tests verifying Ultralytics YOLO progress parsing with epoch ratios, percentage calculation, ETA extraction from `<remaining` strings, and ARIA progress bar rendering. All 14 test suites passing cleanly.
