@@ -855,7 +855,7 @@ export async function monitorKaggleKernel(payload: KaggleMonitorPayload): Promis
   return res.json();
 }
 
-export async function pullKaggleModelArtifacts(model: string): Promise<{ status: string; model: string; message: string }> {
+export async function pullKaggleModelArtifacts(model: string): Promise<{ job_id: string; status: string; model: string; message: string }> {
   const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/pull`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -868,7 +868,7 @@ export async function pullKaggleModelArtifacts(model: string): Promise<{ status:
   return res.json();
 }
 
-export async function pushKaggleModelArtifacts(model: string): Promise<{ status: string; model: string; message: string }> {
+export async function pushKaggleModelArtifacts(model: string): Promise<{ job_id: string; status: string; model: string; message: string }> {
   const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1092,7 +1092,7 @@ export function isProgressLine(msg: string): boolean {
   // Classic tqdm formatting: 92%|████████  | 7875/8479 or |...| 92%
   const hasTqdm = (/\d+%\s*\|/.test(msg) || /\|\s*\d+/.test(msg)) && (/\d+\/\d+/.test(msg) || /it\/s|B\/s|kB\/s/i.test(msg));
   // Specific stages (Archiving, Uploading, Extraction) with percentage
-  const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING") || msg.includes("KAGGLE EXTRACTION") || msg.includes("EXTRACTION:")) && msg.includes("%");
+  const hasStageProgress = (msg.includes("ARCHIVING:") || msg.includes("Uploading:") || msg.includes("EXTRACTING") || msg.includes("UNPACKING") || msg.includes("KAGGLE EXTRACTION") || msg.includes("EXTRACTION:") || (msg.includes("[UPLOAD]") && msg.includes("%")) || (msg.includes("[DOWNLOAD]") && msg.includes("%"))) && msg.includes("%");
   // Training and validation engine batch progression
   const hasBatch = /\[(?:VAL\s+)?BATCH\s+\d+\/\d+\]/i.test(msg);
   return hasPkgProgress || hasBar || hasRate || hasEta || hasTqdm || hasStageProgress || hasBatch;

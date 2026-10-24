@@ -11,9 +11,7 @@ import {
   fetchRunningTrainingJobs,
   cancelTrainingJob,
   fetchKaggleSuiteStatus,
-  fetchKaggleKernels,
   launchKaggleTrain,
-  monitorKaggleKernel,
   pullKaggleModelArtifacts,
   pushKaggleModelArtifacts,
   fetchLiveModelTelemetry,
@@ -27,7 +25,7 @@ import {
   pushAllKaggleModels,
   isLocalTrainingEvent,
 } from "../api/client";
-import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../api/types";
+import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
 
 interface TrainingPanelProps {
@@ -61,7 +59,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
   // Attached remote kernel & busy states
-  const [attachedKernelRef, setAttachedKernelRef] = useState<string | null>(null);
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
@@ -85,13 +82,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   // Pinned SOTA target details
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
 
-  // Cloud modal & quick-dispatch state
+  // Cloud modal state
   const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
-  const [selectedCloudLaunchModel, setSelectedCloudLaunchModel] = useState<string>("");
-  const [cloudGpu, setCloudGpu] = useState<"T4" | "P100">("T4");
   const [kaggleAuthStatus, setKaggleAuthStatus] = useState<KaggleSuiteStatus | null>(null);
-  const [kaggleKernels, setKaggleKernels] = useState<KaggleKernelItem[]>([]);
 
   // Active telemetry tab: "local" | "remote" | "mesh"
   const [activeTelemetryTab, setActiveTelemetryTab] = useState<"local" | "remote" | "mesh">("local");
@@ -121,12 +115,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const loadKaggleData = useCallback(async () => {
     try {
-      const [kStatus, kKernels] = await Promise.all([
-        fetchKaggleSuiteStatus(),
-        fetchKaggleKernels(),
-      ]);
+      const kStatus = await fetchKaggleSuiteStatus();
       setKaggleAuthStatus(kStatus);
-      setKaggleKernels(kKernels);
     } catch {
       // Offline mode
     }
@@ -297,7 +287,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         username: kaggleAuthStatus?.username || undefined,
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
-      setAttachedKernelRef(res.job_id);
       setActiveTelemetryTab("remote");
       setStatusNotice(`Dispatched Kaggle training for ${modelKey} (Kernel: ${res.job_id}). Stream attached.`);
       await loadKaggleData();
@@ -312,9 +301,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handlePushArtifacts = async (modelKey: string) => {
     setActionBusyKey(`push_${modelKey}`);
+    setActiveTelemetryTab("local");
     try {
       const res = await pushKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Pushed checkpoints for ${modelKey}: ${res.message || "Success"}.`);
+      setLocalJob({ jobId: res.job_id, modelKey });
+      setStatusNotice(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatusNotice(`Failed pushing artifacts for ${modelKey}: ${msg}`);
@@ -325,13 +316,14 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handlePullArtifacts = async (modelKey: string) => {
     setActionBusyKey(`pull_${modelKey}`);
+    setActiveTelemetryTab("local");
     try {
       const res = await pullKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Pulled checkpoints for ${modelKey}: ${res.message || "Success"}.`);
-      await loadTrainingData();
+      setLocalJob({ jobId: res.job_id, modelKey });
+      setStatusNotice(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed pulling artifacts for ${modelKey}: ${msg}`);
+      setStatusNotice(`Failed pulling model for ${modelKey}: ${msg}`);
     } finally {
       setActionBusyKey(null);
     }
@@ -448,11 +440,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handlePushAllKaggle = async () => {
     setIsPushingAllKaggle(true);
-    setActiveTelemetryTab("remote");
+    setActiveTelemetryTab("local");
     try {
       const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
-      setRemoteJob({ jobId: res.job_id, modelKey: "all_models" });
-      setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Remote telemetry streaming.`);
+      setLocalJob({ jobId: res.job_id, modelKey: "all_models" });
+      setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatusNotice(`Failed to enqueue fleet Kaggle push: ${msg}`);
@@ -461,20 +453,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
   };
 
-  const handleAttachKernelStream = async (k: KaggleKernelItem) => {
-    setActionBusyKey(`attach_${k.ref}`);
-    setAttachedKernelRef(k.ref);
-    setActiveTelemetryTab("remote");
-    try {
-      const res = await monitorKaggleKernel({ kernel_slug: k.ref });
-      setStatusNotice(`Attached stream to ${k.title || k.ref} (Status: ${res.status}).`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed attaching stream: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
 
   const displayedLocalEvents = useMemo(() => {
     return (_recentEvents || [])
@@ -709,7 +687,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         localJobModel={localJob.modelKey}
         remoteJobId={remoteJob.jobId}
         remoteJobModel={remoteJob.modelKey}
-        attachedKernelRef={attachedKernelRef}
         displayedLocalEvents={displayedLocalEvents}
         displayedRemoteEvents={displayedRemoteEvents}
         onCopyLocalStream={handleCopyLocalStream}
@@ -720,22 +697,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         onCopyRemoteStream={handleCopyRemoteStream}
         remoteCopied={remoteCopied}
         onClearRemoteStream={handleClearRemoteStream}
-        models={models}
-        selectedCloudLaunchModel={selectedCloudLaunchModel}
-        onSelectCloudLaunchModel={setSelectedCloudLaunchModel}
-        cloudGpu={cloudGpu}
-        onChangeCloudGpu={setCloudGpu}
-        onLaunchCloudRun={() => {
-          if (selectedCloudLaunchModel) {
-            handleLaunchKaggle(selectedCloudLaunchModel, cloudGpu, true);
-          }
-        }}
-        onOpenCloudModal={handleOpenCloudModal}
-        kaggleAuthStatus={kaggleAuthStatus}
-        kaggleKernels={kaggleKernels}
-        onAttachKernelStream={handleAttachKernelStream}
-        onPullKernelArtifacts={handlePullArtifacts}
-        actionBusyKey={actionBusyKey}
         logSlot={logSlot}
       />
 

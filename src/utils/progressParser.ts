@@ -129,6 +129,8 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
     trimmed.startsWith("PUSHING") ||
     trimmed.startsWith("EXTRACTING") ||
     trimmed.startsWith("COMPILING") ||
+    trimmed.includes("[UPLOAD]") ||
+    trimmed.includes("[DOWNLOAD]") ||
     trimmed.toUpperCase().includes("KAGGLE") ||
     trimmed.toUpperCase().includes("EXTRACTION") ||
     trimmed.includes("EPOCH") ||
@@ -155,7 +157,10 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
 
   if (batchRatioMatch) {
     const isVal = /VAL\s+BATCH/i.test(trimmed) || trimmed.toUpperCase().includes("VALLOSS");
-    operation = isVal ? "VALIDATION" : "TRAINING";
+    const isFastForward = trimmed.toUpperCase().includes("FAST-FORWARD");
+    operation = isFastForward
+      ? (isVal ? "FAST-FORWARD VAL" : "FAST-FORWARD TRAIN")
+      : (isVal ? "VALIDATION" : "TRAINING");
     target = `${isVal ? "Val Batch" : "Batch"} ${batchRatioMatch[1]}/${batchRatioMatch[2]}`;
   } else if (trimmed.includes("Installing requirements for")) {
     const reqForMatch = trimmed.match(/Installing requirements for\s+([a-zA-Z0-9_-]+)/i);
@@ -190,6 +195,16 @@ export function parseProgressMessage(message: string, stepName?: string): Parsed
         !/^(it\/s|s\/it|B\/s|KB\/s|MB\/s|GB\/s)$/i.test(candidateTarget)
       ) {
         target = candidateTarget;
+      }
+    } else if (trimmed.includes("[UPLOAD]") || trimmed.includes("[DOWNLOAD]") || trimmed.startsWith("PUSHING") || trimmed.includes("PUSHING ")) {
+      const isPull = trimmed.includes("[DOWNLOAD]") || trimmed.includes("PULLING");
+      operation = isPull ? "DOWNLOAD" : "UPLOAD";
+      const pushMatch = trimmed.match(/(?:PUSHING|PULLING)\s+([a-zA-Z0-9_-]+)(?:\s*\[([^\]]+)\])?/i);
+      const fleetMatch = trimmed.match(/FLEET\s+([a-zA-Z0-9_-]+)/i);
+      if (pushMatch) {
+        target = pushMatch[2] ? `${pushMatch[1]} [${pushMatch[2]}]` : pushMatch[1];
+      } else if (fleetMatch) {
+        target = `Fleet: ${fleetMatch[1]}`;
       }
     } else if (trimmed.toUpperCase().includes("KAGGLE EXTRACTION") || trimmed.toUpperCase().includes("[KAGGLE EXTRACTION]")) {
       operation = "KAGGLE EXTRACTION";

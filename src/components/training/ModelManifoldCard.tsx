@@ -426,14 +426,14 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           <span>Cloud Training</span>
         </button>
 
-        {/* Push Checkpoint */}
+        {/* Push Model */}
         <button
           type="button"
           className="btn btn-vault-push"
           onClick={() => onPushArtifacts(m.key)}
           disabled={isBusy}
           style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
-          title="Pushes latest checkpoint to Cloud Checkpoint Vault"
+          title="Pushes all 4 model variations (PyTorch Checkpoints, PyTorch FP32, ONNX FP16, ONNX FP32) to Kaggle Models Hub"
         >
           <svg
             width="12"
@@ -451,17 +451,17 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          <span>Push Checkpoint</span>
+          <span>Push Model</span>
         </button>
 
-        {/* Pull Checkpoint */}
+        {/* Pull Model */}
         <button
           type="button"
           className="btn btn-vault-pull"
           onClick={() => onPullArtifacts(m.key)}
           disabled={isBusy}
           style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
-          title="Pulls latest checkpoint from Kaggle Models repository into local LemGendaryModels"
+          title="Downloads the latest model variation from Kaggle Models Hub into local LemGendaryModels"
         >
           <svg
             width="12"
@@ -479,7 +479,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span>Pull Checkpoint</span>
+          <span>Pull Model</span>
         </button>
 
         {/* Training Notebook */}
@@ -653,31 +653,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           <span>{actionBusyKey === `stage_${m.key}` ? "Staging..." : "Stage Variations"}</span>
         </button>
 
-        {/* Sync Kaggle Models Hub */}
-        <button
-          type="button"
-          className="btn btn-vault-push"
-          onClick={() => onOpenCloudModal(m)}
-          disabled={isBusy}
-          style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600, gridColumn: "span 2" }}
-          title="Opens Kaggle Models Hub isolated variation staging and push dialog"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            style={{ flexShrink: 0 }}
-          >
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-          <span>Sync Kaggle Models Hub</span>
-        </button>
+
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { HelpTooltip } from "../HelpTooltip";
-import { ModelItem, PipelineEvent, KaggleKernelItem, KaggleSuiteStatus } from "../../api/types";
+import { PipelineEvent } from "../../api/types";
 import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../../utils/progressParser";
 import { isProgressLine, rollupTelemetryEvents } from "../../api/client";
@@ -12,7 +12,6 @@ export interface TelemetryConsoleProps {
   localJobModel: string | null;
   remoteJobId: string | null;
   remoteJobModel: string | null;
-  attachedKernelRef: string | null;
   displayedLocalEvents: PipelineEvent[];
   displayedRemoteEvents: PipelineEvent[];
   onCopyLocalStream: () => void;
@@ -23,18 +22,6 @@ export interface TelemetryConsoleProps {
   onCopyRemoteStream: () => void;
   remoteCopied: boolean;
   onClearRemoteStream: () => void;
-  models: ModelItem[];
-  selectedCloudLaunchModel: string;
-  onSelectCloudLaunchModel: (modelKey: string) => void;
-  cloudGpu: "T4" | "P100";
-  onChangeCloudGpu: (gpu: "T4" | "P100") => void;
-  onLaunchCloudRun: () => void;
-  onOpenCloudModal: (model: ModelItem) => void;
-  kaggleAuthStatus: KaggleSuiteStatus | null;
-  kaggleKernels: KaggleKernelItem[];
-  onAttachKernelStream: (k: KaggleKernelItem) => void;
-  onPullKernelArtifacts: (kernelTitleOrRef: string) => void;
-  actionBusyKey: string | null;
   logSlot?: React.ReactNode;
 }
 
@@ -45,7 +32,6 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
   localJobModel,
   remoteJobId,
   remoteJobModel,
-  attachedKernelRef,
   displayedLocalEvents,
   displayedRemoteEvents,
   onCopyLocalStream,
@@ -56,18 +42,6 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
   onCopyRemoteStream,
   remoteCopied,
   onClearRemoteStream,
-  models,
-  selectedCloudLaunchModel,
-  onSelectCloudLaunchModel,
-  cloudGpu,
-  onChangeCloudGpu,
-  onLaunchCloudRun,
-  onOpenCloudModal,
-  kaggleAuthStatus,
-  kaggleKernels,
-  onAttachKernelStream,
-  onPullKernelArtifacts,
-  actionBusyKey,
   logSlot,
 }) => {
   const localLogContainerRef = useRef<HTMLDivElement>(null);
@@ -172,13 +146,12 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                     width: "7px",
                     height: "7px",
                     borderRadius: "50%",
-                    background: remoteJobId || attachedKernelRef ? "var(--accent-cyan, #06b6d4)" : "#64748b",
-                    animation: remoteJobId || attachedKernelRef ? "pulse 1.5s infinite" : "none",
+                    background: remoteJobId ? "var(--accent-cyan, #06b6d4)" : "#64748b",
+                    animation: remoteJobId ? "pulse 1.5s infinite" : "none",
                   }}
                 />
                 <span>
-                  Remote Cloud{" "}
-                  {remoteJobModel ? `(${remoteJobModel})` : kaggleKernels.length > 0 ? `(${kaggleKernels.length})` : ""}
+                  Remote Cloud{remoteJobModel ? ` (${remoteJobModel})` : ""}
                 </span>
               </button>
 
@@ -260,17 +233,6 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                 </button>
                 <HelpTooltip content="Flush remote cloud terminal event buffer. Clears displayed messages to isolate diagnostics for new operations." />
 
-                <button
-                  type="button"
-                  className="btn btn-cloud"
-                  onClick={() => {
-                    const target = models.find((m) => m.key === selectedCloudLaunchModel) || models[0];
-                    if (target) onOpenCloudModal(target);
-                  }}
-                  style={{ fontSize: "11px", padding: "4px 12px" }}
-                >
-                  Launch Cloud Run
-                </button>
               </>
             )}
           </div>
@@ -351,154 +313,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
         {/* ─── TAB 2: REMOTE / CLOUD TRAINING (KAGGLE & COLAB) ────────────── */}
         {activeTelemetryTab === "remote" && (
           <div>
-            {/* Cloud Pre-Flight & Quick Dispatch Bar */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "10px",
-                background: "rgba(255,255,255,0.02)",
-                padding: "10px 14px",
-                borderRadius: "6px",
-                border: "1px solid var(--border-color)",
-                marginBottom: "12px",
-                fontSize: "12px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className={`badge ${kaggleAuthStatus?.authenticated ? "badge-success" : "badge-error"}`}>
-                  {kaggleAuthStatus?.authenticated ? `KAGGLE: @${kaggleAuthStatus.username}` : "KAGGLE OFFLINE"}
-                </span>
-                {attachedKernelRef && (
-                  <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>
-                    Attached: <code>{attachedKernelRef}</code>
-                  </span>
-                )}
-              </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <select
-                  className="select-filter"
-                  value={selectedCloudLaunchModel}
-                  onChange={(e) => onSelectCloudLaunchModel(e.target.value)}
-                  style={{ fontSize: "11px", padding: "4px 8px" }}
-                >
-                  <option value="">Select Model for Cloud Dispatch...</option>
-                  {models.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.display_name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="select-filter"
-                  value={cloudGpu}
-                  onChange={(e) => onChangeCloudGpu(e.target.value as "T4" | "P100")}
-                  style={{ fontSize: "11px", padding: "4px 8px" }}
-                >
-                  <option value="T4">NVIDIA T4 (16GB)</option>
-                  <option value="P100">NVIDIA P100 (16GB)</option>
-                </select>
-
-                <button
-                  type="button"
-                  className="btn btn-cloud"
-                  disabled={!selectedCloudLaunchModel || actionBusyKey !== null}
-                  onClick={onLaunchCloudRun}
-                  style={{ fontSize: "11px", padding: "4px 10px" }}
-                >
-                  Dispatch to Kaggle
-                </button>
-              </div>
-            </div>
-
-            {/* Active Kaggle Kernels Table */}
-            {kaggleKernels.length > 0 && (
-              <div
-                style={{
-                  marginBottom: "12px",
-                  background: "rgba(17, 24, 39, 0.7)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  padding: "10px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: "var(--text-secondary)",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Active &amp; Recent Cloud Kernels (Kaggle GPU):
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "150px", overflowY: "auto" }}>
-                  {kaggleKernels.map((k) => (
-                    <div
-                      key={k.ref}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        background: "rgba(255,255,255,0.03)",
-                        padding: "6px 10px",
-                        borderRadius: "4px",
-                        fontSize: "11px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span
-                          className={`badge ${
-                            k.status === "complete"
-                              ? "badge-success"
-                              : k.status === "running"
-                              ? "badge-info"
-                              : "badge-neutral"
-                          }`}
-                        >
-                          {k.status}
-                        </span>
-                        <span style={{ fontWeight: 600 }}>{k.title || k.ref}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => onAttachKernelStream(k)}
-                          disabled={actionBusyKey === `attach_${k.ref}`}
-                          style={{ fontSize: "10px", padding: "2px 8px" }}
-                        >
-                          {actionBusyKey === `attach_${k.ref}` ? "Attaching..." : "Attach Stream"}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-vault-pull"
-                          onClick={() => onPullKernelArtifacts(k.title || k.ref)}
-                          disabled={actionBusyKey === `pull_${k.title || k.ref}`}
-                          style={{ fontSize: "10px", padding: "2px 8px" }}
-                        >
-                          Pull Checkpoints
-                        </button>
-                        <a
-                          href={`https://www.kaggle.com/code/${k.ref}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-secondary"
-                          style={{ fontSize: "10px", padding: "2px 8px", textDecoration: "none" }}
-                        >
-                          Open ↗
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Active Progress Tracker for Remote/Cloud Training */}
             <TelemetryProgressTracker progress={activeRemoteProgress} />
@@ -512,7 +327,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             >
               {cleanRemoteEvents.length === 0 ? (
                 <div className="log-empty">
-                  No remote cloud telemetry received yet. Click &quot;Attach Stream&quot; on an active Kaggle kernel or dispatch a new cloud run above.
+                  No remote cloud telemetry received yet. Launch cloud training via the Cloud Training button on a model card to stream output here.
                 </div>
               ) : (
                 cleanRemoteEvents.map((ev, idx) => (
