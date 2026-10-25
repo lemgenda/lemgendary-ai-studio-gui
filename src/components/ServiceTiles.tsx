@@ -8,7 +8,9 @@ interface ServiceTilesProps {
   onNavigate: (tab: string) => void;
   onRunAudit: () => void;
   onStartService: (serviceId: string) => Promise<void> | void;
+  onStopService: (serviceId: string) => Promise<void> | void;
   startingServiceId?: string | null;
+  stoppingServiceId?: string | null;
 }
 
 interface ServiceCardProps {
@@ -22,7 +24,9 @@ interface ServiceCardProps {
   quickActionAriaLabel: string;
   onQuickAction: () => void;
   onStartService: (id: string) => void;
+  onStopService: (id: string) => void;
   isStarting?: boolean;
+  isStopping?: boolean;
   helpContent: string;
 }
 
@@ -37,7 +41,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   quickActionAriaLabel,
   onQuickAction,
   onStartService,
+  onStopService,
   isStarting,
+  isStopping,
   helpContent,
 }) => {
   const headingId = `service-card-title-${id}`;
@@ -105,7 +111,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           {quickActionLabel}
         </button>
 
-        {!online && (
+        {!online ? (
           <button
             type="button"
             className="btn btn-primary"
@@ -115,6 +121,17 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             onClick={() => onStartService(id)}
           >
             {isStarting ? "Starting Service..." : "Start Service"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-danger"
+            style={{ width: "100%", fontSize: "12px" }}
+            aria-label={`Stop ${name} background daemon`}
+            disabled={isStopping}
+            onClick={() => onStopService(id)}
+          >
+            {isStopping ? "Stopping Service..." : "Stop Service"}
           </button>
         )}
       </div>
@@ -127,9 +144,11 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
   onNavigate,
   onRunAudit,
   onStartService,
+  onStopService,
   startingServiceId,
+  stoppingServiceId,
 }) => {
-  const services: Omit<ServiceCardProps, "onStartService" | "isStarting">[] = [
+  const services: Omit<ServiceCardProps, "onStartService" | "onStopService" | "isStarting" | "isStopping">[] = [
     {
       id: "env-manager",
       name: "LemGendary Environment Manager",
@@ -189,7 +208,9 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
             key={svc.id}
             {...svc}
             onStartService={onStartService}
+            onStopService={onStopService}
             isStarting={startingServiceId === svc.id || startingServiceId === "all"}
+            isStopping={stoppingServiceId === svc.id || stoppingServiceId === "all"}
           />
         ))}
       </div>

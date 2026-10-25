@@ -26,6 +26,7 @@ import {
   isProgressLine,
   isCompilerEvent,
   startService,
+  stopService,
   startAllServices,
 } from "./api/client";
 import { HardwareProfile, HealthAuditReport, MeshStatus, PipelineEvent, ProjectHealth } from "./api/types";
@@ -293,6 +294,7 @@ export const App: React.FC = () => {
 
 
   const [startingServiceId, setStartingServiceId] = useState<string | null>(null);
+  const [stoppingServiceId, setStoppingServiceId] = useState<string | null>(null);
 
   const handleStartService = async (serviceId: string) => {
     try {
@@ -316,6 +318,31 @@ export const App: React.FC = () => {
       setRefreshError(`Failed to start ${serviceId}: ${message}`);
     } finally {
       setStartingServiceId(null);
+    }
+  };
+
+  const handleStopService = async (serviceId: string) => {
+    try {
+      setStoppingServiceId(serviceId);
+      setRefreshError(null);
+
+      await stopService(serviceId);
+
+      // Poll mesh status to confirm offline state
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await refreshMeshStatus();
+        const check = await fetchEcosystemMesh().catch(() => null);
+        if (serviceId === "env-manager" && !check?.env_manager?.reachable) break;
+        if (serviceId === "dataset-compiler" && !check?.dataset_compiler?.reachable) break;
+        if (serviceId === "training-suite" && !check?.training_suite?.reachable) break;
+      }
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRefreshError(`Failed to stop ${serviceId}: ${message}`);
+    } finally {
+      setStoppingServiceId(null);
     }
   };
 
@@ -459,7 +486,9 @@ export const App: React.FC = () => {
                 onNavigate={setCurrentTab}
                 onRunAudit={handleRunPipeline}
                 onStartService={handleStartService}
+                onStopService={handleStopService}
                 startingServiceId={startingServiceId}
+                stoppingServiceId={stoppingServiceId}
               />
 
               <div className="card-grid card-grid-dashboard">
