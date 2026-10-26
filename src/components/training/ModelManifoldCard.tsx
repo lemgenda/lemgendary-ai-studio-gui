@@ -296,20 +296,37 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           </span>
         </div>
 
-        {/* 6. Data Fraction */}
+        {/* 6. Data Fraction or Walk-Forward Fold (Forex) */}
         <div className="metric-row">
-          <span className="metric-label">Data Fraction</span>
+          <span className="metric-label">
+            {m.is_forex ? "Walk-Forward Fold" : "Data Fraction"}
+          </span>
           <span
             className="metric-value"
             style={{
               color:
-                m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99
+                m.is_forex
+                  ? (m.active_fold ?? m.active_res ?? 1) >= (m.total_folds ?? 6)
+                    ? "var(--accent-emerald)"
+                    : undefined
+                  : m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99
                   ? "var(--accent-emerald)"
                   : undefined,
               fontWeight: 600,
             }}
           >
-            {m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99
+            {m.is_forex
+              ? (() => {
+                  const fold = m.active_fold ?? m.active_res ?? 1;
+                  const total = m.total_folds ?? 6;
+                  const yearsLabel =
+                    m.fold_years_label ??
+                    (fold >= 1 && fold <= 6
+                      ? `${2019}-${2019 + fold} -> ${2019 + fold + 1}`
+                      : null);
+                  return `Fold ${fold} / ${total}${yearsLabel ? ` (${yearsLabel})` : ""}`;
+                })()
+              : m.data_fraction_passed && (m.data_fraction_completed ?? 0) >= 0.99
               ? "100% (Passed)"
               : `${Math.round((m.data_fraction_completed ?? 0) * 100)}%`}
           </span>

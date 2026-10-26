@@ -272,6 +272,9 @@ export interface ModelItem {
   active_res?: number | null;
   max_res_completed?: number | null;
   target_res?: number | null;
+  active_fold?: number | null;
+  total_folds?: number | null;
+  fold_years_label?: string | null;
   active_data_fraction?: number | null;
   data_fraction_completed?: number;
   data_fraction_passed?: boolean;
