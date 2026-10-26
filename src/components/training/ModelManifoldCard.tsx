@@ -274,10 +274,14 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           )}
         </HoverPinPopover>
 
-        {/* 5. Resolution Ladder */}
+        {/* 5. Resolution / Confluence / Context Ladder */}
         <div className="metric-row">
           <span className="metric-label">
-            {m.is_forex || m.ladder_type === "timeframe" ? "Confluence Ladder" : "Resolution Ladder"}
+            {m.is_llm || m.ladder_type === "context_tokens"
+              ? "Context Window"
+              : m.is_forex || m.ladder_type === "timeframe"
+              ? "Confluence Ladder"
+              : "Resolution Ladder"}
           </span>
           <span
             className="metric-value"
@@ -286,7 +290,9 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
               fontWeight: 600,
             }}
           >
-            {m.ladder_passed
+            {m.is_llm || m.ladder_type === "context_tokens"
+              ? `${m.target_res ?? 2048} tokens (Full)`
+              : m.ladder_passed
               ? m.is_forex || m.ladder_type === "timeframe"
                 ? "Full Confluence (D1)"
                 : `Full (${m.target_res ?? 512}px)`
@@ -296,16 +302,22 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           </span>
         </div>
 
-        {/* 6. Data Fraction or Walk-Forward Fold (Forex) */}
+        {/* 6. Data Fraction, Walk-Forward Fold (Forex), or Instruction Corpus (LLM) */}
         <div className="metric-row">
           <span className="metric-label">
-            {m.is_forex ? "Walk-Forward Fold" : "Data Fraction"}
+            {m.is_llm || m.ladder_type === "context_tokens"
+              ? "Training Dataset"
+              : m.is_forex
+              ? "Walk-Forward Fold"
+              : "Data Fraction"}
           </span>
           <span
             className="metric-value"
             style={{
               color:
-                m.is_forex
+                m.is_llm || m.ladder_type === "context_tokens"
+                  ? "var(--accent-emerald)"
+                  : m.is_forex
                   ? (m.active_fold ?? m.active_res ?? 1) >= (m.total_folds ?? 6)
                     ? "var(--accent-emerald)"
                     : undefined
@@ -315,7 +327,9 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
               fontWeight: 600,
             }}
           >
-            {m.is_forex
+            {m.is_llm || m.ladder_type === "context_tokens"
+              ? "LemGendizedAIHelperLemGend"
+              : m.is_forex
               ? (() => {
                   const fold = m.active_fold ?? m.active_res ?? 1;
                   const total = m.total_folds ?? 6;

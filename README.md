@@ -123,6 +123,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.1 — Domain-Aware Causal LLM Card Telemetry & Context Window Specialization
+
+- **`src/components/training/ModelManifoldCard.tsx` — Domain-Specific Causal LLM Progress Layout** — Specialized telemetry rows for LLMs: replaced the spatial "Resolution Ladder" row with "Context Window: 2048 tokens (Full)" and replaced the image "Data Fraction" percentage with "Training Dataset: LemGendizedAIHelperLemGend". Eliminated computer vision pixel artifacts (`2048px / 2048px`, `0%`) on LLM instruction tuning cards.
+- **`src/api/types.ts` — TypeScript Interface Alignment** — Extended `ModelItem` interface with `ladder_type?: "spatial" | "timeframe" | "context_tokens"` and `is_llm?: boolean`. Synchronized with Training Suite sidecar API on port 8200.
+
+---
+
 ### v2.10.0 — Modernization Queue Subtabs, Scale Reduction, Fleet Diagnostics & Ecosystem Governance Cards
 
 - **`src/components/CompilerPanel.tsx` — Modernization Queue & Scale Reduction Subtabs** — Structured Section 2 into three sub-tabs: "Manifolds Catalog" (21 production manifolds), "Modernization Queue & Transcode" (interactive scan of datasets needing WebP transcoding, worker pool slider, push to Kaggle, dry-run, force flags, and batch execution), and "Scale Reduction (Downsample)" (downsampled dataset derivation with 10%, 25%, 50%, 75% scale presets). Added top toolbar buttons: "Update All Kaggle Metadata" (bulk Kaggle push) and "Regenerate Manifolds Index".

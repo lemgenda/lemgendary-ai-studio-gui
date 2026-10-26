@@ -266,8 +266,9 @@ export interface ModelItem {
   canonical_format?: string;
   parameters_m?: number;
   spatial_ladder?: number[];
-  ladder_type?: "spatial" | "timeframe";
+  ladder_type?: "spatial" | "timeframe" | "context_tokens";
   is_forex?: boolean;
+  is_llm?: boolean;
   ladder_passed?: boolean;
   active_res?: number | null;
   max_res_completed?: number | null;
