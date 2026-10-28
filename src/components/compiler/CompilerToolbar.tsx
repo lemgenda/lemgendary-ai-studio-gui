@@ -115,6 +115,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
         {/* Global Action Buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
           <button
+            id="comp-btn-update-all-kaggle"
             type="button"
             className="btn btn-secondary"
             onClick={onUpdateAllMetadata}
@@ -126,6 +127,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           </button>
 
           <button
+            id="comp-btn-regen-manifolds"
             type="button"
             className="btn btn-secondary"
             onClick={onRegenerateIndex}
@@ -137,6 +139,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           </button>
 
           <button
+            id="comp-btn-refresh-catalog"
             type="button"
             className="btn btn-secondary"
             onClick={onRefreshCatalog}

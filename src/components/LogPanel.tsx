@@ -3,6 +3,7 @@ import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
 import { TelemetryProgressTracker } from "./common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../utils/progressParser";
+import { copyTextToClipboard } from "../utils/clipboard";
 import { isProgressLine, rollupTelemetryEvents } from "../api/client";
 
 interface LogPanelProps {
@@ -65,24 +66,10 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
       })
       .join("\n");
 
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(formattedLog);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = formattedLog;
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
+    const copiedOk = await copyTextToClipboard(formattedLog);
+    if (copiedOk) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch (err) {
-      console.error("Failed to copy telemetry logs to clipboard:", err);
     }
   };
 

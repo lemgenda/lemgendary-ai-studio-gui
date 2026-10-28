@@ -616,12 +616,16 @@ interface RawModelData {
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
   latest_checkpoint_epoch?: number | null;
-  ladder_type?: "spatial" | "timeframe";
+  ladder_type?: "spatial" | "timeframe" | "context_tokens";
   is_forex?: boolean;
+  is_llm?: boolean;
   ladder_passed?: boolean;
   active_res?: number | null;
   max_res_completed?: number | null;
   target_res?: number | null;
+  active_fold?: number | null;
+  total_folds?: number | null;
+  fold_years_label?: string | null;
   active_data_fraction?: number | null;
   data_fraction_completed?: number;
   data_fraction_passed?: boolean;
@@ -635,6 +639,8 @@ interface RawModelData {
   sota_targets_met?: number;
   sota_all_met?: boolean;
   sota_details?: import("./types").SotaMetricDetail[];
+  best_metrics_details?: import("./types").BestMetricDetail[];
+  is_fully_trained?: boolean;
   training_status?: string;
   learning_rate?: number;
   batch_size?: number;
@@ -667,9 +673,11 @@ export async function fetchModels(): Promise<ModelItem[]> {
     );
 
     return enrichedList.map(({ item, liveTel }) => {
-      const isForex = item.is_forex ?? (item.key === "forex_predictor" || item.category === "forex" || item.task_type === "forex");
-      const ladderType = item.ladder_type ?? (isForex ? "timeframe" : "spatial");
-      const defaultLadder = isForex ? [1, 5, 15, 60, 240, 1440] : [256, 384, 512];
+      const modelKey = item.key || item.model_key || "";
+      const isForex = item.is_forex ?? (modelKey === "forex_predictor" || item.category === "forex" || item.task_type === "forex");
+      const isLlm = item.is_llm ?? (modelKey === "ai_helper_lemgend" || item.category === "llm" || item.task_type === "llm" || item.task_type === "text_instruction");
+      const ladderType = item.ladder_type ?? (isForex ? "timeframe" : isLlm ? "context_tokens" : "spatial");
+      const defaultLadder = isForex ? [1, 5, 15, 60, 240, 1440] : isLlm ? [2048] : [256, 384, 512];
       const spatialLadder: number[] = Array.isArray(item.spatial_ladder) && item.spatial_ladder.length > 0
         ? item.spatial_ladder
         : Array.isArray(item.resolution)
@@ -678,7 +686,6 @@ export async function fetchModels(): Promise<ModelItem[]> {
         ? [item.resolution]
         : defaultLadder;
 
-      const modelKey = item.key || item.model_key || "";
       const displayName = item.display_name || item.name || modelKey;
       const arch = item.architecture || item.architecture_type || item.class_name || "PyTorch Architecture";
       const task = item.task_type || item.category || "general";
@@ -701,10 +708,11 @@ export async function fetchModels(): Promise<ModelItem[]> {
         : (typeof item.data_fraction_completed === "number" ? item.data_fraction_completed : 0);
 
       // Data fraction is only passed if current rung >= 99% AND ladder is passed (or SOTA reached with checkpoint)
-      const dataFractionPassed = (dataFractionCompleted >= 0.99 && ladderPassed) || (sotaReached && ckptExists);
+      const dataFractionPassed = item.data_fraction_passed ?? ((dataFractionCompleted >= 0.99 && ladderPassed) || (sotaReached && ckptExists));
+      const isFullyTrained = item.is_fully_trained ?? (completedEpochs >= 20 && sotaReached && ladderPassed && dataFractionPassed);
 
       const status = item.training_status || (
-        (sotaReached && ladderPassed && dataFractionPassed)
+        isFullyTrained
           ? "fully_trained"
           : completedEpochs > 0
           ? "partially_trained"
@@ -724,16 +732,21 @@ export async function fetchModels(): Promise<ModelItem[]> {
         spatial_ladder: spatialLadder,
         ladder_type: ladderType,
         is_forex: isForex,
+        is_llm: isLlm,
         ladder_passed: ladderPassed,
         active_res: activeRes,
         max_res_completed: item.max_res_completed ?? null,
         target_res: targetRes,
+        active_fold: item.active_fold ?? null,
+        total_folds: item.total_folds ?? null,
+        fold_years_label: item.fold_years_label ?? null,
         active_data_fraction: item.active_data_fraction ?? null,
         data_fraction_completed: dataFractionCompleted,
         data_fraction_passed: dataFractionPassed,
         kaggle_ref: item.kaggle_ref,
         kaggle_dataset_urls: item.kaggle_dataset_urls,
         checkpoint_exists: ckptExists,
+        is_fully_trained: isFullyTrained,
         preferred_parallel: parallelMode,
         epochs_completed: completedEpochs,
         best_metric: metricVal,
@@ -744,6 +757,7 @@ export async function fetchModels(): Promise<ModelItem[]> {
         sota_targets_met: item.sota_targets_met,
         sota_all_met: item.sota_all_met,
         sota_details: item.sota_details,
+        best_metrics_details: item.best_metrics_details,
         training_status: status,
         learning_rate: typeof item.learning_rate === "number" ? item.learning_rate : undefined,
         batch_size: typeof item.batch_size === "number" ? item.batch_size : undefined,
@@ -1040,6 +1054,8 @@ const MESH_WEBSOCKET_URLS = Object.values(MESH_SERVICES).map((svc) => ({
   port: svc.defaultPort,
 }));
 
+const ANSI_CSI_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`, "g");
+
 export function cleanAnsiAndControlChars(text: string): string {
   if (!text) return "";
   // If text contains carriage return(s), take the latest line segment
@@ -1049,9 +1065,8 @@ export function cleanAnsiAndControlChars(text: string): string {
       text = segments[segments.length - 1];
     }
   }
-  // Strip ANSI escape sequences (\x1b[...] or \u001b[...)
-  // eslint-disable-next-line no-control-regex
-  let cleaned = text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+  // Strip ANSI escape sequences (\x1b[...] or \u001b[...])
+  let cleaned = text.replace(ANSI_CSI_REGEX, "");
   // Strip leftover control characters like leading [K or cursor controls with parameter numbers (e.g. [2K, [0m)
   // Require at least one digit or semicolon so bracketed tags like [PROGRESS] or [GOVERNOR] are never truncated
   cleaned = cleaned

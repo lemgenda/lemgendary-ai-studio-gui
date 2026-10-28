@@ -1,10 +1,7 @@
 /// <reference types="vite/client" />
 
-export {};
-
-declare global {
-  interface Window {
-    __setCurrentTab?: (tab: string) => void;
-    __setKaggleActiveTab?: (tab: "download" | "upload" | "metadata" | "notebooks") => void;
-  }
+interface Window {
+  __TAURI_IPC__?: unknown;
+  __TAURI_METADATA__?: unknown;
+  __TAURI__?: unknown;
 }

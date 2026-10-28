@@ -198,6 +198,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
       >
         {/* Top Row: Update Metadata & Audit Notebooks */}
         <button
+          id={`comp-btn-meta-${d.key}`}
           type="button"
           className="btn btn-primary"
           onClick={() => onUpdateMetadataSingle(d)}
@@ -261,6 +262,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
 
         {/* Bottom Row: Download from Kaggle & Upload to Kaggle */}
         <button
+          id={`comp-btn-pull-${d.key}`}
           type="button"
           className="btn btn-vault-pull"
           onClick={() => onDownloadManifold(d)}
@@ -288,6 +290,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         </button>
 
         <button
+          id={`comp-btn-push-${d.key}`}
           type="button"
           className="btn btn-vault-push"
           onClick={() => onUploadManifold(d)}

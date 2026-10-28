@@ -404,6 +404,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         {/* Local Training */}
         {isCurrentlyTrainingThis ? (
           <button
+            id={`train-btn-stop-${m.key}`}
             type="button"
             className="btn btn-danger"
             onClick={onStopLocalTrain}
@@ -417,6 +418,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           </button>
         ) : (
           <button
+            id={`train-btn-start-${m.key}`}
             type="button"
             className="btn btn-primary"
             onClick={() => onStartLocalTrain(m, selectedBatchSize)}
@@ -433,6 +435,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Cloud Training */}
         <button
+          id={`train-btn-cloud-${m.key}`}
           type="button"
           className="btn btn-cloud"
           onClick={() => onOpenCloudModal(m)}
@@ -459,6 +462,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Push Model */}
         <button
+          id={`train-btn-pub-model-${m.key}`}
           type="button"
           className="btn btn-vault-push"
           onClick={() => onPushArtifacts(m.key)}
@@ -487,6 +491,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Pull Model */}
         <button
+          id={`train-btn-pull-model-${m.key}`}
           type="button"
           className="btn btn-vault-pull"
           onClick={() => onPullArtifacts(m.key)}
@@ -515,6 +520,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Training Notebook */}
         <button
+          id={`train-btn-gen-nb-${m.key}`}
           type="button"
           className="btn btn-notebook-train"
           onClick={() => onGenerateTrainingNotebook(m.key)}
@@ -544,6 +550,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Usage Notebook */}
         <button
+          id={`train-btn-usage-nb-${m.key}`}
           type="button"
           className="btn btn-notebook-usage"
           onClick={() => onGenerateUsageNotebook(m.key)}
@@ -573,6 +580,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Evaluate Model */}
         <button
+          id={`train-btn-eval-${m.key}`}
           type="button"
           className="btn btn-secondary"
           onClick={() => onEvaluateModel(m.key)}
@@ -601,6 +609,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         {/* Export Model */}
         <button
+          id={`train-btn-export-${m.key}`}
           type="button"
           className="btn btn-secondary"
           onClick={() => onExportModel(m.key)}

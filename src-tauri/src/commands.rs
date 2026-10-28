@@ -1,6 +1,6 @@
 // LemGendary AI Studio - Tauri Native Commands
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 #[cfg(target_os = "windows")]

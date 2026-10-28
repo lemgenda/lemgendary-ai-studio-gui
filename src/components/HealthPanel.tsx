@@ -309,6 +309,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
           <button
+            id="health-btn-safe-upgrade"
             type="button"
             className="btn btn-primary"
             onClick={() => handleSafeUpdate(false)}
@@ -319,6 +320,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </button>
 
           <button
+            id="health-btn-upgrade-dry-run"
             type="button"
             className="btn btn-secondary"
             onClick={() => handleSafeUpdate(true)}
@@ -329,6 +331,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </button>
 
           <button
+            id="health-btn-deep-clean"
             type="button"
             className="btn btn-secondary"
             onClick={handleDeepClean}
@@ -339,6 +342,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </button>
 
           <button
+            id="health-btn-install-hooks"
             type="button"
             className="btn btn-secondary"
             onClick={handleInstallHooks}
@@ -349,6 +353,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </button>
 
           <button
+            id="health-btn-validate-ecosystem"
             type="button"
             className="btn btn-secondary"
             onClick={handleValidateEcosystem}

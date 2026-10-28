@@ -24,6 +24,7 @@ import { DatasetCompilationForm } from "./compiler/DatasetCompilationForm";
 import { DatasetManifoldCard } from "./compiler/DatasetManifoldCard";
 import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
+import { FALLBACK_COMPILER_PRESETS, FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
 
 interface CompilerPanelProps {
@@ -117,154 +118,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setSelectedManifold((prev) => prev || dsList[0].key);
         setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
-        const fallbackDatasets: DatasetItem[] = [
-          {
-            key: "upn_v2",
-            display_name: "Unified Perceptual Net V2",
-            format: "webdataset",
-            canonical_format: "webdataset",
-            total_samples: 1378070,
-            total_size_mb: 53600,
-            format_breakdown: { webp: 1378070, jpg: 0, png: 0, parquet: 0, other: 0 },
-            shards_count: 285,
-            is_compiled: true,
-            task: "restoration",
-            modernized_folder: "LemGendizedUpnV2",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedupnv2",
-            sources: [
-              { name: "DPED", count: 344517, type: "SOURCE" },
-              { name: "Adobe FiveK", count: 344517, type: "SOURCE" },
-              { name: "DIV2K", count: 344517, type: "KAGGLE" },
-              { name: "Flickr2K", count: 344519, type: "KAGGLE" },
-            ],
-          },
-          {
-            key: "mirnet_exposure",
-            display_name: "MIRNet Low-Light & Exposure",
-            format: "webdataset",
-            canonical_format: "webdataset",
-            total_samples: 1416459,
-            total_size_mb: 87840,
-            format_breakdown: { webp: 1416459, jpg: 0, png: 0, parquet: 0, other: 0 },
-            shards_count: 283,
-            is_compiled: true,
-            task: "restoration",
-            modernized_folder: "LemGendizedMirNetExposure",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedmirnetexposure",
-            sources: [
-              { name: "SICE Dataset", count: 850000, type: "SOURCE" },
-              { name: "Exposure Correction", count: 566459, type: "KAGGLE" },
-            ],
-          },
-          {
-            key: "nima_aesthetic",
-            display_name: "NIMA Perceptual Aesthetics",
-            format: "parquet",
-            canonical_format: "parquet",
-            total_samples: 321369,
-            total_size_mb: 18200,
-            format_breakdown: { webp: 321369, jpg: 0, png: 0, parquet: 65, other: 0 },
-            shards_count: 65,
-            is_compiled: true,
-            task: "quality",
-            modernized_folder: "LemGendizedNimaAesthetic",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizednimaaesthetic",
-            sources: [
-              { name: "AVA Benchmark", count: 255500, type: "KAGGLE" },
-              { name: "TAD66K", count: 45000, type: "HUGGINGFACE" },
-              { name: "SPAQ", count: 11125, type: "HUGGINGFACE" },
-              { name: "KonIQ-10k", count: 9744, type: "KAGGLE" },
-            ],
-          },
-          {
-            key: "professional_multitask_restoration",
-            display_name: "Multitask Restoration Pro",
-            format: "mds",
-            canonical_format: "mds",
-            total_samples: 343911,
-            total_size_mb: 45200,
-            format_breakdown: { webp: 343911, jpg: 0, png: 0, parquet: 0, other: 0 },
-            shards_count: 85,
-            is_compiled: true,
-            task: "restoration",
-            modernized_folder: "LemGendizedMultitaskRestorationPro",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedmultitaskrestorationpro",
-            sources: [
-              { name: "NAFNet Deblurring", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "NAFNet Denoising", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "MPRNet Deraining", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "FFANet Indoor", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "FFANet Outdoor", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "MIRNet Low-Light", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "MIRNet Exposure", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "UltraZoom", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "Film Restorer", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "CodeFormer", count: 31264, type: "SUB-MANIFOLD" },
-              { name: "ParseNet", count: 31271, type: "SUB-MANIFOLD" },
-            ],
-          },
-          {
-            key: "classification_master_manifold",
-            display_name: "Classification Master Manifold",
-            format: "mds",
-            canonical_format: "mds",
-            total_samples: 788034,
-            total_size_mb: 61800,
-            format_breakdown: { webp: 788034, jpg: 0, png: 0, parquet: 0, other: 0 },
-            shards_count: 136,
-            is_compiled: true,
-            task: "classification",
-            modernized_folder: "LemGendizedClassificationMaster",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedclassificationmaster",
-            sources: [
-              { name: "Anime DB Rating (Danbooru)", count: 262678, type: "HUGGINGFACE" },
-              { name: "General NSFW", count: 262678, type: "HUGGINGFACE" },
-              { name: "Food-101 Baseline", count: 262678, type: "HUGGINGFACE" },
-            ],
-          },
-          {
-            key: "yolov8n",
-            display_name: "YOLOv8n Detection & Segmentation",
-            format: "directory",
-            canonical_format: "directory",
-            total_samples: 153972,
-            total_size_mb: 12400,
-            format_breakdown: { webp: 0, jpg: 135659, png: 18313, parquet: 0, other: 0 },
-            shards_count: 2,
-            is_compiled: true,
-            task: "detection",
-            modernized_folder: "LemGendizedYoloV8n",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedyolov8n",
-            sources: [
-              { name: "COCO 2017", count: 118287, type: "KAGGLE" },
-              { name: "Pascal VOC 2012", count: 17125, type: "KAGGLE" },
-              { name: "CrowdPose Dataset", count: 10000, type: "SOURCE" },
-              { name: "KITTI Benchmark", count: 7481, type: "SOURCE" },
-              { name: "MPII Human Pose", count: 1079, type: "SOURCE" },
-            ],
-          },
-          {
-            key: "film_restorer",
-            display_name: "Film Restorer & Scratch Removal",
-            format: "webdataset",
-            canonical_format: "webdataset",
-            total_samples: 67542,
-            total_size_mb: 28500,
-            format_breakdown: { webp: 67542, jpg: 0, png: 0, parquet: 0, other: 0 },
-            shards_count: 14,
-            is_compiled: true,
-            task: "restoration",
-            modernized_folder: "LemGendizedFilmRestorer",
-            kaggle_ref: "kaggle://lemtreursi/lemgendizedfilmrestorer",
-            sources: [
-              { name: "Old Film Restoration", count: 28000, type: "KAGGLE" },
-              { name: "Vintage Photos", count: 22542, type: "KAGGLE" },
-              { name: "Bringing-Old-Photos-Back-to-Life", count: 17000, type: "HUGGINGFACE" },
-            ],
-          },
-        ];
-        setDatasets(fallbackDatasets);
-        setCachedDatasets(fallbackDatasets);
+        setDatasets(FALLBACK_DATASETS);
+        setCachedDatasets(FALLBACK_DATASETS);
         setSelectedManifold((prev) => prev || "upn_v2");
         if (!datasetCompilerOnline) {
           setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying cached registry catalog.");
@@ -274,12 +129,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       if (prList.length > 0) {
         setPresets(prList);
       } else {
-        setPresets([
-          { id: "streaming-webdataset", name: "Streaming WebDataset Shards (.data)", description: "High-throughput sequential chunking with lossless WebP encoding and zero NTFS lock contention.", target_format: "webdataset", shard_size: 5000, lossless: true },
-          { id: "columnar-parquet", name: "Columnar HuggingFace Parquet (.parquet)", description: "Memory-mapped columnar binary format with snappy compression.", target_format: "parquet", shard_size: 10000, lossless: true },
-          { id: "mosaicml-mds", name: "MosaicML Streaming Shards (.mds)", description: "Zero-latency streaming with zstd compression and fast random access.", target_format: "mds", shard_size: 5000, lossless: true },
-          { id: "lightning-litdata", name: "PyTorch Lightning LitData (chunk*.bin)", description: "Optimized direct tensor serialization for distributed cloud storage.", target_format: "litdata", shard_size: 5000, lossless: true },
-        ]);
+        setPresets(FALLBACK_COMPILER_PRESETS);
       }
     } catch {
       setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");

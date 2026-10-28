@@ -27,6 +27,7 @@ import {
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
+import { copyTextToClipboard } from "../utils/clipboard";
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
@@ -478,24 +479,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       })
       .join("\n");
 
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
+    const copiedOk = await copyTextToClipboard(text);
+    if (copiedOk) {
       setLocalCopied(true);
       setTimeout(() => setLocalCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy local training stream logs:", err);
     }
   };
 
@@ -512,24 +499,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       })
       .join("\n");
 
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
+    const copiedOk = await copyTextToClipboard(text);
+    if (copiedOk) {
       setRemoteCopied(true);
       setTimeout(() => setRemoteCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy remote cloud stream logs:", err);
     }
   };
 

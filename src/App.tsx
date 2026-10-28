@@ -29,7 +29,7 @@ import {
   stopService,
   startAllServices,
 } from "./api/client";
-import { HardwareProfile, HealthAuditReport, MeshStatus, PipelineEvent, ProjectHealth } from "./api/types";
+import { MeshStatus, ProjectHealth } from "./api/types";
 
 const FALLBACK_PROJECTS: ProjectHealth[] = [
   { name: "lemgendary-env-manager", project_dir: "./lemgendary-env-manager", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
@@ -40,26 +40,27 @@ const FALLBACK_PROJECTS: ProjectHealth[] = [
 ];
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<string>("dashboard");
+  const currentTab = useStudioStore((s) => s.currentTab);
+  const setCurrentTab = useStudioStore((s) => s.setCurrentTab);
+  const hardware = useStudioStore((s) => s.hardware);
+  const setHardware = useStudioStore((s) => s.setHardware);
+  const health = useStudioStore((s) => s.health);
+  const setHealth = useStudioStore((s) => s.setHealth);
+  const events = useStudioStore((s) => s.events);
+  const setEvents = useStudioStore((s) => s.setEvents);
+  const clearEvents = useStudioStore((s) => s.clearEvents);
+  const isRunningPipeline = useStudioStore((s) => s.isRunningPipeline);
+  const setIsRunningPipeline = useStudioStore((s) => s.setIsRunningPipeline);
+  const wsConnected = useStudioStore((s) => s.wsConnected);
+  const setWsConnected = useStudioStore((s) => s.setWsConnected);
+  const meshStatus = useStudioStore((s) => s.meshStatus);
+  const setMeshStatus = useStudioStore((s) => s.setMeshStatus);
 
-  useEffect(() => {
-    window.__setCurrentTab = (tab: string) => setCurrentTab(tab);
-  }, []);
-  const [hardware, setHardware] = useState<HardwareProfile | null>(null);
-  const [health, setHealth] = useState<HealthAuditReport | null>(null);
-  const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [isRunningPipeline, setIsRunningPipeline] = useState<boolean>(false);
   const runningSingleStepRef = useRef<number | null>(null);
-  const [wsConnected, setWsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const [meshStatus, setMeshStatus] = useState<MeshStatus>({
-    envManager: false,
-    datasetCompiler: false,
-    trainingSuite: false,
-  });
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
 
@@ -73,7 +74,6 @@ export const App: React.FC = () => {
         trainingSuite: mesh.training_suite.reachable,
       };
       setMeshStatus(newMesh);
-      useStudioStore.getState().setMeshStatus(newMesh);
       return true;
     } catch {
       const [em, dc, ts] = await Promise.all([
@@ -83,10 +83,9 @@ export const App: React.FC = () => {
       ]);
       newMesh = { envManager: em, datasetCompiler: dc, trainingSuite: ts };
       setMeshStatus(newMesh);
-      useStudioStore.getState().setMeshStatus(newMesh);
       return em || dc || ts;
     }
-  }, []);
+  }, [setMeshStatus]);
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
@@ -102,22 +101,14 @@ export const App: React.FC = () => {
 
       if (hwData) {
         setHardware(hwData);
-        useStudioStore.getState().setHardware(hwData);
       }
       if (healthData) {
         setHealth(healthData);
-        useStudioStore.getState().setHealth(healthData);
       }
       if (pipeStatus) {
         setIsRunningPipeline(pipeStatus.is_running);
-        useStudioStore.getState().setIsRunningPipeline(pipeStatus.is_running);
         if (pipeStatus.recent_events && pipeStatus.recent_events.length > 0) {
           setEvents((prev) => {
-            const combined = [...prev, ...pipeStatus.recent_events];
-            const unique = Array.from(new Set(combined.map((e) => JSON.stringify(e)))).map((s) => JSON.parse(s));
-            return unique.slice(-200);
-          });
-          useStudioStore.getState().setEvents((prev) => {
             const combined = [...prev, ...pipeStatus.recent_events];
             const unique = Array.from(new Set(combined.map((e) => JSON.stringify(e)))).map((s) => JSON.parse(s));
             return unique.slice(-200);
@@ -136,7 +127,7 @@ export const App: React.FC = () => {
     } finally {
       setIsRefreshing(false);
     }
-  }, [refreshMeshStatus]);
+  }, [refreshMeshStatus, setEvents, setHardware, setHealth, setIsRunningPipeline]);
 
   useEffect(() => {
     loadData();
@@ -182,7 +173,6 @@ export const App: React.FC = () => {
         if (isPipelineTerminal || isSingleStepTerminal) {
           setIsRunningPipeline(false);
           runningSingleStepRef.current = null;
-          useStudioStore.getState().setIsRunningPipeline(false);
           void loadData();
         }
       },
@@ -195,7 +185,7 @@ export const App: React.FC = () => {
       clearInterval(meshInterval);
       cleanupWs();
     };
-  }, [loadData, refreshMeshStatus]);
+  }, [loadData, refreshMeshStatus, setEvents, setIsRunningPipeline, setWsConnected]);
 
   // Safety polling to guarantee UI state termination when pipeline or step finishes
   useEffect(() => {
@@ -206,7 +196,6 @@ export const App: React.FC = () => {
         if (pipeStatus && !pipeStatus.is_running) {
           setIsRunningPipeline(false);
           runningSingleStepRef.current = null;
-          useStudioStore.getState().setIsRunningPipeline(false);
           void loadData();
         }
       } catch {
@@ -215,7 +204,7 @@ export const App: React.FC = () => {
     }, 1500);
 
     return () => clearInterval(pollInterval);
-  }, [isRunningPipeline, loadData]);
+  }, [isRunningPipeline, loadData, setIsRunningPipeline]);
 
   // Auto-start any offline sidecars on GUI startup
   useEffect(() => {
@@ -397,7 +386,6 @@ export const App: React.FC = () => {
       <Sidebar
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
-        onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
         meshStatus={meshStatus}
       />
 
@@ -524,7 +512,7 @@ export const App: React.FC = () => {
 
               <LogPanel
                 events={events}
-                onClear={() => setEvents([])}
+                onClear={clearEvents}
                 isConnected={wsConnected}
               />
             </>
@@ -550,7 +538,7 @@ export const App: React.FC = () => {
               logSlot={
                 <LogPanel
                   events={events}
-                  onClear={() => setEvents([])}
+                  onClear={clearEvents}
                   isConnected={wsConnected}
                 />
               }
@@ -578,7 +566,7 @@ export const App: React.FC = () => {
               />
               <LogPanel
                 events={events}
-                onClear={() => setEvents([])}
+                onClear={clearEvents}
                 isConnected={wsConnected}
               />
             </>
@@ -589,7 +577,7 @@ export const App: React.FC = () => {
               <HealthPanel report={health} onStartEnvManager={() => handleStartService("env-manager")} />
               <LogPanel
                 events={events}
-                onClear={() => setEvents([])}
+                onClear={clearEvents}
                 isConnected={wsConnected}
               />
             </>

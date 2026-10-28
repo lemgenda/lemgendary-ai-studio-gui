@@ -123,6 +123,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.2 — Zustand Single Source of Truth Consolidation, Canonical Control Registry & Zero-Suppression Hardening
+
+- **Zustand Single Source of Truth State Consolidation (`src/store/useStudioStore.ts`)** — Consolidated split-brain store states across sidecars into a single authoritative Zustand store. Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200), hardware accelerator metrics, running local/cloud training jobs, model and dataset cache manifolds, and real-time ANSI telemetry buffers without prop drilling.
+- **Modular Offline Fallback Extraction (`src/data/fallbackModels.ts`, `src/data/fallbackDatasets.ts`)** — Decoupled large static mock arrays from the central store into dedicated, strongly typed data modules, ensuring deterministic offline hydration without code duplication.
+- **Canonical DOM Test Control Registry Alignment** — Standardized all 32 core interactive buttons, tabs, modal dialogs, and inputs with canonical `id` attributes matching `lemgendary-docs/GUI_CONTROL_REGISTRY.md` (e.g. `dashboard-tab-btn`, `datasets-tab-btn`, `training-tab-btn`, `install-tab-btn`, `health-tab-btn`, `theme-toggle-btn`).
+- **Zero-Loss Clipboard Export Utility (`src/utils/clipboard.ts`)** — Extracted unified clipboard export logic supporting asynchronous `navigator.clipboard.writeText` with resilient legacy fallback for secure contexts and webview environments.
+- **Zero-Suppression ESLint & TypeScript Hardening** — Verified 100% compliance with zero `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, or `eslint-disable` comment directives. 42/42 Vitest unit and component tests passing cleanly.
+
+---
+
 ### v2.10.1 — Domain-Aware Causal LLM Card Telemetry & Context Window Specialization
 
 - **`src/components/training/ModelManifoldCard.tsx` — Domain-Specific Causal LLM Progress Layout** — Specialized telemetry rows for LLMs: replaced the spatial "Resolution Ladder" row with "Context Window: 2048 tokens (Full)" and replaced the image "Data Fraction" percentage with "Training Dataset: LemGendizedAIHelperLemGend". Eliminated computer vision pixel artifacts (`2048px / 2048px`, `0%`) on LLM instruction tuning cards.

@@ -1,6 +1,7 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
+import { PIPELINE_STEPS } from "./PipelineStepCards";
 
 interface PipelinePanelProps {
   isRunning: boolean;
@@ -15,19 +16,9 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
   recentEvents,
   envManagerOnline,
 }) => {
-  const steps = [
-    { num: 1, name: "Hardware Discovery", desc: "Detects CUDA devices, driver levels, CPU architecture, and recommended PyTorch wheel index." },
-    { num: 2, name: "Toolchain Audit", desc: "Verifies Python 3.12, Git, Node.js LTS, and winget package manager availability." },
-    { num: 3, name: "Virtual Environments", desc: "Recreates and verifies isolated .venv virtual environments across all projects." },
-    { num: 4, name: "Requirements Sync & Install", desc: "Propagates centralized SSOT dependencies and installs wheels deterministically." },
-    { num: 5, name: "Dependency Audit & Upgrades", desc: "Identifies cross-project package version drift and performs safe semver upgrade dry-runs." },
-    { num: 6, name: "Codebase Verification", desc: "Compiles bytecode and runs full compliance checks (py_compile, linting, markdownlint)." },
-    { num: 7, name: "Health Matrix", desc: "Generates final multi-project health verification matrix and publishes system state." },
-  ];
-
   const lastEvent = recentEvents[recentEvents.length - 1];
   const activeStep = lastEvent ? lastEvent.step_number : 0;
-  const currentStepName = steps[activeStep - 1]?.name || "Ready";
+  const currentStepName = PIPELINE_STEPS[activeStep - 1]?.name || "Ready";
 
   return (
     <section className="card" aria-labelledby="pipeline-panel-title">
@@ -61,7 +52,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         aria-valuetext={isRunning ? `Step ${activeStep} of 7: ${currentStepName}` : "Pipeline ready to execute"}
         style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}
       >
-        {steps.map((s) => {
+        {PIPELINE_STEPS.map((s) => {
           const isCurrent = isRunning && activeStep === s.num;
           // A step is DONE if: the pipeline is still running and we're past it,
           // OR the pipeline finished and we've reached or passed this step number.
@@ -90,7 +81,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
                 <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
-                <HelpTooltip content={`Step ${s.num}: ${s.desc}`} position="top" />
+                <HelpTooltip content={`Step ${s.num}: ${s.shortDesc}`} position="top" />
               </div>
             </div>
           );
@@ -99,6 +90,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
 
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <button
+          id="dash-btn-run-pipeline"
           type="button"
           className="btn btn-primary"
           onClick={onRunPipeline}

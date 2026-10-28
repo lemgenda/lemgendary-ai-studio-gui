@@ -14,6 +14,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   isRefreshing,
   onOpenConfigEditor,
+  envManagerOnline,
 }) => {
   const handleOpenDocs = () => {
     // Opens the local offline documentation hub directly (zero internet connection required)
@@ -56,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <button
+            id="dash-btn-refresh-audit"
             type="button"
             className="btn btn-secondary"
             onClick={onRefresh}
@@ -65,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isRefreshing ? "Refreshing..." : "Refresh Audit"}
           </button>
-          <HelpTooltip content="Query all active sidecars (ports 8000, 8100, 8200) to refresh hardware metrics, virtual environments, and pipeline states." />
+          <HelpTooltip content={`Query all active sidecars (ports 8000, 8100, 8200) to refresh hardware metrics, virtual environments, and pipeline states. Environment Manager status: ${envManagerOnline ? "Online" : "Offline"}.`} />
         </div>
       </div>
     </header>

@@ -282,6 +282,7 @@ export interface ModelItem {
   kaggle_ref?: string;
   kaggle_dataset_urls?: string[];
   checkpoint_exists?: boolean;
+  is_fully_trained?: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
   best_metric?: number;

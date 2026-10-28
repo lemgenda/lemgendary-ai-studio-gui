@@ -7,7 +7,6 @@ import lemgendaLogo from "../branding/lemgenda-logo.svg";
 interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
-  onOpenConfigEditor?: () => void;
   meshStatus: MeshStatus;
 }
 

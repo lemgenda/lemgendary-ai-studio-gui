@@ -219,7 +219,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             >
               <div className="form-group">
                 <label
-                  htmlFor="manifold-select"
+                  htmlFor="comp-select-manifold"
                   style={{
                     fontSize: "11px",
                     color: "var(--text-muted)",
@@ -232,7 +232,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
                   Target Manifold:
                 </label>
                 <select
-                  id="manifold-select"
+                  id="comp-select-manifold"
                   className="editor-select"
                   value={selectedManifold}
                   onChange={(e) => onSelectManifold(e.target.value)}
@@ -327,6 +327,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
 
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button
+                id="comp-btn-compile"
                 type="button"
                 className="btn btn-primary"
                 onClick={onCompile}
