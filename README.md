@@ -123,6 +123,15 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.3 — Automated Headless Screenshot Pipeline, Callout Badges & Dual-Modal Hardening
+
+- **Automated Physical Screenshot Pipeline** — Integrated headless Chromium screenshot capture against built application assets, generating authentic high-resolution captures across all 5 navigation tabs (`dashboard`, `datasets`, `training`, `pipeline`, `health`) and modal topologies.
+- **Numbered Callout Badge Alignment** — Applied deterministic circular callout badges matching `MANUAL_AI_STUDIO_GUI.md` and `ai-studio-manual.html` references 1-to-1 across all 19 official figures in `lemgendary-docs/assets/gui/`.
+- **Dual-Modal Topology Integration (`ConfigEditorModal.tsx`)** — Hardened dynamic query param routing (`?modal=config`, `?modal=secrets`) for direct operator inspection of manifest schemas, environment configurations, and the universal secrets vault.
+- **Offline Documentation Preview Parity** — Verified offline documentation hub rendering (`/docs/index.html`) with zero broken stylesheet or SVG vector asset links.
+
+---
+
 ### v2.10.2 — Zustand Single Source of Truth Consolidation, Canonical Control Registry & Zero-Suppression Hardening
 
 - **Zustand Single Source of Truth State Consolidation (`src/store/useStudioStore.ts`)** — Consolidated split-brain store states across sidecars into a single authoritative Zustand store. Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200), hardware accelerator metrics, running local/cloud training jobs, model and dataset cache manifolds, and real-time ANSI telemetry buffers without prop drilling.

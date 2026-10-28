@@ -14,7 +14,8 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<"manifests" | "secrets">("manifests");
+  const initialSubtab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("subtab") : null;
+  const [activeTab, setActiveTab] = useState<"manifests" | "secrets">(initialSubtab === "secrets" ? "secrets" : "manifests");
 
   // Manifests state
   const [manifests, setManifests] = useState<ManifestItem[]>([]);

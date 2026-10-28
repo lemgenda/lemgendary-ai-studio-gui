@@ -59,7 +59,8 @@ export const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const runningSingleStepRef = useRef<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(false);
+  const initialModal = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("modal") : null;
+  const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(initialModal === "config" || initialModal === "secrets");
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;

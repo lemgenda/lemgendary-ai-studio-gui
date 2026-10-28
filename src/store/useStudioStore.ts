@@ -62,8 +62,19 @@ export interface StudioState {
 
 const MAX_EVENTS_BUFFER = 200;
 
+const getInitialTab = (): string => {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && ["dashboard", "datasets", "training", "pipeline", "health"].includes(tab)) {
+      return tab;
+    }
+  }
+  return "dashboard";
+};
+
 export const useStudioStore = create<StudioState>((set) => ({
-  currentTab: "dashboard",
+  currentTab: getInitialTab(),
   setCurrentTab: (tab) => set({ currentTab: tab }),
 
   meshStatus: {
