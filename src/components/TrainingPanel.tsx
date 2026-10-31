@@ -152,9 +152,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       try {
         const running = await fetchRunningTrainingJobs();
         if (!isCancelled && running.length > 0) {
-          const active = running.find((j) => j.status === "running") || running[0];
-          const activeKey = active.model_key || (active.params?.model as string) || null;
-          setLocalJob({ jobId: active.id, modelKey: activeKey });
+          // Strictly look for active training jobs ("train") to avoid clobbering training state with background push/pull/eval
+          const trainJobs = running.filter((j) => j.job_type === "train" || (!j.job_type && j.status === "running"));
+          if (trainJobs.length > 0) {
+            const active = trainJobs.find((j) => j.status === "running") || trainJobs[0];
+            const activeKey = active.model_key || (active.params?.model as string) || null;
+            setLocalJob({ jobId: active.id, modelKey: activeKey });
+          }
         }
       } catch {
         // Ignored in offline mode
@@ -305,7 +309,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setActiveTelemetryTab("local");
     try {
       const res = await pushKaggleModelArtifacts(modelKey);
-      setLocalJob({ jobId: res.job_id, modelKey });
       setStatusNotice(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -320,7 +323,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setActiveTelemetryTab("local");
     try {
       const res = await pullKaggleModelArtifacts(modelKey);
-      setLocalJob({ jobId: res.job_id, modelKey });
       setStatusNotice(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -444,7 +446,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setActiveTelemetryTab("local");
     try {
       const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
-      setLocalJob({ jobId: res.job_id, modelKey: "all_models" });
       setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

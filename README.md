@@ -296,3 +296,8 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **`src/components/ServiceTiles.tsx` — Stop Service Control Action Buttons** — Added bidirectional daemon management to ecosystem sidecar cards. When a service is active (`ONLINE`), cards now display a high-contrast danger action button (`btn btn-danger`, "Stop Service" / "Stopping Service..."), enabling operators to cleanly terminate sidecars directly from the dashboard without shell interaction or terminal commands.
 - **`src/App.tsx` — Non-Blocking Stop Handler & Mesh Re-Verification** — Integrated `handleStopService`, executing `stopService(serviceId)` via `POST /api/services/{service_id}/stop` and polling the mesh status loop to confirm clean offline state before updating UI tiles.
 - **`src/api/client.ts` — Full Client Support** — Bound `stopService` cleanly with error handling, status reporting, and typed parameters.
+
+### v3.7.0 — Training Panel State Collision Isolation & Fleet Job Filtering
+
+- **`src/components/TrainingPanel.tsx` — Local Training State Isolation** — Resolved state collision where clicking **"Push Model"**, **"Pull Model"**, or **"Push Fleet to Kaggle"** clobbered the active `localJob` in Zustand (`useStudioStore`). Preserved `localJob` exclusively for active local PyTorch training sessions, preventing remote/background tasks from hijacking model card indicators, "Stop Training" buttons, or the local telemetry stream.
+- **`src/components/TrainingPanel.tsx` — Active Training Job Filtering** — Hardened the startup running-job query to filter specifically for `j.job_type === "train"`, ensuring that concurrent background tasks (such as Kaggle pushes, pulls, or exports) registered in the persistent database do not falsely trigger local training UI state on panel load.
