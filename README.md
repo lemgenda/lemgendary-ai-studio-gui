@@ -123,6 +123,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.4 — Pareto Model Soup Client Integration & Documentation Parity
+
+- **Pareto Model Soup Client (`src/api/client.ts`)** — Added typed `blendModelSoup(modelKey)` client method communicating with `POST /api/models/{model_key}/soup` on the Training Suite sidecar (port 8200) for on-disk blending of multi-objective Pareto vault checkpoints (`vault_psnr.pth`, `vault_lpips.pth`, etc.).
+- **Desktop GUI Manual & HTML Sync** — Updated `MANUAL_AI_STUDIO_GUI.md` and companion publication `ai-studio-manual.html` documenting the `blendModelSoup` client method, operational behavior, and safeguards.
+
+---
+
 ### v2.10.3 — Automated Headless Screenshot Pipeline, Callout Badges & Dual-Modal Hardening
 
 - **Automated Physical Screenshot Pipeline** — Integrated headless Chromium screenshot capture against built application assets, generating authentic high-resolution captures across all 5 navigation tabs (`dashboard`, `datasets`, `training`, `pipeline`, `health`) and modal topologies.

@@ -1323,3 +1323,13 @@ export function createLogWebSocket(
     sockets.clear();
   };
 }
+
+export async function blendModelSoup(modelKey: string): Promise<{ model_key: string; success: boolean; soup_checkpoint: string | null }> {
+  const res = await fetch(`${TRAINING_BASE}/api/models/${modelKey}/soup`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to blend model soup: ${res.statusText}`);
+  }
+  return res.json();
+}
