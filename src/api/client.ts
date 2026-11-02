@@ -123,11 +123,22 @@ export async function fetchPipelineStatus(): Promise<PipelineStatus> {
   return res.json();
 }
 
-export async function triggerPipeline(targetProject?: string): Promise<{ status: string; message?: string }> {
+export interface TriggerPipelineOptions {
+  /** Destructive: deletes every venv and node_modules. Required so callers decide explicitly. */
+  clean: boolean;
+  targetProject?: string;
+}
+
+export async function triggerPipeline(
+  options: TriggerPipelineOptions
+): Promise<{ status: string; message?: string }> {
   const res = await sidecarFetch(`${ENV_BASE}/api/pipeline/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ target_project: targetProject || null }),
+    body: JSON.stringify({
+      target_project: options.targetProject || null,
+      clean: options.clean,
+    }),
   });
   if (!res.ok) throw new Error(`Failed to trigger pipeline: ${res.statusText}`);
   return res.json();
@@ -135,8 +146,8 @@ export async function triggerPipeline(targetProject?: string): Promise<{ status:
 
 export async function triggerPipelineStep(
   stepNumber: number,
-  targetProject?: string,
-  clean?: boolean
+  clean: boolean,
+  targetProject?: string
 ): Promise<{ status: string; message?: string }> {
   const res = await sidecarFetch(`${ENV_BASE}/api/pipeline/run-step`, {
     method: "POST",
@@ -144,7 +155,7 @@ export async function triggerPipelineStep(
     body: JSON.stringify({
       step_number: stepNumber,
       target_project: targetProject || null,
-      clean: Boolean(clean),
+      clean,
     }),
   });
   if (!res.ok) throw new Error(`Failed to trigger pipeline step ${stepNumber}: ${res.statusText}`);

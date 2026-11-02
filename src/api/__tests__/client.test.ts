@@ -5,6 +5,8 @@ import {
   rollupTelemetryEvents,
   fetchModels,
   MESH_SERVICES,
+  triggerPipeline,
+  triggerPipelineStep,
 } from "../client";
 import { PipelineEvent } from "../types";
 
@@ -140,5 +142,19 @@ describe("API Client & Telemetry Utilities", () => {
     expect(llm?.is_llm).toBe(true);
     expect(llm?.ladder_type).toBe("context_tokens");
     expect(llm?.parameters_m).toBe(1500.0);
+  });
+  it("always sends an explicit clean flag for project and single-step runs", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ status: "accepted" })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await triggerPipeline({ clean: false, targetProject: "lemgendary-datasets" });
+    await triggerPipelineStep(3, false);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+    expect(bodies).toEqual([
+      { target_project: "lemgendary-datasets", clean: false },
+      { step_number: 3, target_project: null, clean: false },
+    ]);
+    vi.unstubAllGlobals();
   });
 });

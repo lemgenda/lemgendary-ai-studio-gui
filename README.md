@@ -9,7 +9,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
 1. **Environment Manager Sidecar (`lemgendary-env-manager` on Port 8000)**:
    - System hardware detection (`GET /api/system/hardware`).
    - Multi-project virtual environment lifecycle management and drift matrix.
-   - Deterministic 7-step clean install orchestrator (`POST /api/pipeline/install`).
+   - Deterministic 7-step install pipeline (`POST /api/pipeline/run`). "Run Pipeline" is non-destructive (`clean: false`); "Clean Install..." deletes every `.venv` and `node_modules` and needs confirmation (`clean: true`).
    - Ecosystem-wide compliance validation.
 
 2. **Dataset Compiler Sidecar (`lemgendary-datasets` on Port 8100)**:
@@ -133,6 +133,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.12 - Non-Destructive Run Pipeline and Clean Install Confirmation
+
+- **Explicit `clean` Flag (src/api/client.ts, src/App.tsx)**: `triggerPipeline` takes `{ clean, targetProject }` with `clean` required, and `triggerPipelineStep` takes a required `clean` argument. Every entry point sends it explicitly: Run Pipeline, the Environment Manager quick audit, per-project reconcile and single-step runs send `clean: false` (review finding D-03 in the env manager: a plain Run Pipeline click deleted all venvs and `node_modules`).
+- **Clean Install Confirmation (src/components/PipelinePanel.tsx, src/components/CleanInstallConfirmDialog.tsx)**: the main button is now "Run Pipeline" (non-destructive). A separate "Clean Install..." button (`pipeline-btn-clean-install`) opens an accessible confirmation dialog (`role="dialog"`, `aria-modal`, labelled and described, Escape cancels, focus starts on Cancel) that lists what will be deleted. Only "Delete and reinstall" (`pipeline-btn-clean-confirm`) sends `clean: true`.
+- **Styles (src/index.css)**: new `modal-content-compact`, `modal-footer` and `modal-deletion-list` classes.
+- **Tests**: `jsdom` 25.0.1 added as a dev dependency for DOM interaction tests. `PipelinePanel.cleanInstall.test.tsx` covers the default `clean: false` run, the dialog semantics and focus, Confirm sending `clean: true`, and Cancel or Escape sending nothing; `client.test.ts` checks the explicit flag for project and single-step runs.
 
 ### v2.10.11 - Content Security Policy, App Icons and Build Hygiene
 

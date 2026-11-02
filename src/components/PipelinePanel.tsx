@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { CleanInstallConfirmDialog } from "./CleanInstallConfirmDialog";
 import { PipelineEvent } from "../api/types";
 import { PIPELINE_STEPS } from "./PipelineStepCards";
 
 interface PipelinePanelProps {
   isRunning: boolean;
-  onRunPipeline: () => void;
+  /** `clean: true` only after the user confirmed the clean install dialog. */
+  onRunPipeline: (clean: boolean) => void;
   recentEvents: PipelineEvent[];
   envManagerOnline: boolean;
 }
@@ -19,6 +21,14 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
   const lastEvent = recentEvents[recentEvents.length - 1];
   const activeStep = lastEvent ? lastEvent.step_number : 0;
   const currentStepName = PIPELINE_STEPS[activeStep - 1]?.name || "Ready";
+  const [isCleanDialogOpen, setIsCleanDialogOpen] = useState(false);
+  const isDisabled = isRunning || !envManagerOnline;
+
+  const handleCancelClean = useCallback(() => setIsCleanDialogOpen(false), []);
+  const handleConfirmClean = useCallback(() => {
+    setIsCleanDialogOpen(false);
+    onRunPipeline(true);
+  }, [onRunPipeline]);
 
   return (
     <section className="card" aria-labelledby="pipeline-panel-title">
@@ -93,15 +103,32 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           id="dash-btn-run-pipeline"
           type="button"
           className="btn btn-primary"
-          onClick={onRunPipeline}
-          disabled={isRunning || !envManagerOnline}
-          aria-label={isRunning ? "Pipeline execution in progress" : !envManagerOnline ? "Pipeline unavailable: Environment Manager offline" : "Execute Full Clean Install Pipeline across all projects"}
+          onClick={() => onRunPipeline(false)}
+          disabled={isDisabled}
+          aria-label={isRunning ? "Pipeline execution in progress" : !envManagerOnline ? "Pipeline unavailable: Environment Manager offline" : "Run the install pipeline across all projects, keeping existing environments"}
           aria-busy={isRunning}
         >
-          {isRunning ? "Executing Pipeline..." : "Execute Full Clean Install Pipeline"}
+          {isRunning ? "Executing Pipeline..." : "Run Pipeline"}
         </button>
-        <HelpTooltip content="Initiates the 7-step clean install sequence across all workspace projects. Reclaims site-packages and installs frozen wheels from SSOT manifests." />
+        <HelpTooltip content="Runs the 7-step pipeline across all workspace projects. Non-destructive: valid virtual environments and node_modules are kept; only missing or broken ones are created." />
+        <button
+          id="pipeline-btn-clean-install"
+          type="button"
+          className="btn btn-danger"
+          onClick={() => setIsCleanDialogOpen(true)}
+          disabled={isDisabled}
+          aria-haspopup="dialog"
+        >
+          Clean Install...
+        </button>
+        <HelpTooltip content="Deletes every virtual environment and node_modules folder, stops processes running from them, then reinstalls from scratch. Asks for confirmation first." />
       </div>
+
+      <CleanInstallConfirmDialog
+        isOpen={isCleanDialogOpen}
+        onConfirm={handleConfirmClean}
+        onCancel={handleCancelClean}
+      />
 
       {!envManagerOnline && (
         <p

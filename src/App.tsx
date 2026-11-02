@@ -251,11 +251,11 @@ export const App: React.FC = () => {
     };
   }, [loadData, refreshMeshStatus]);
 
-  const handleRunPipeline = async () => {
+  const handleRunPipeline = async (clean: boolean) => {
     try {
       runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
-      await triggerPipeline();
+      await triggerPipeline({ clean });
     } catch {
       setRefreshError("Pipeline trigger failed: Environment Manager (Port 8000) is not reachable.");
       setIsRunningPipeline(false);
@@ -266,7 +266,7 @@ export const App: React.FC = () => {
     try {
       runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
-      await triggerPipeline(projectName);
+      await triggerPipeline({ clean: false, targetProject: projectName });
     } catch {
       setRefreshError(`Reconcile failed for ${projectName}: Environment Manager (Port 8000) is not reachable.`);
       setIsRunningPipeline(false);
@@ -277,7 +277,7 @@ export const App: React.FC = () => {
     try {
       runningSingleStepRef.current = stepNumber;
       setIsRunningPipeline(true);
-      await triggerPipelineStep(stepNumber);
+      await triggerPipelineStep(stepNumber, false);
     } catch {
       setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port 8000) is not reachable.`);
       runningSingleStepRef.current = null;
@@ -476,7 +476,7 @@ export const App: React.FC = () => {
               <ServiceTiles
                 meshStatus={meshStatus}
                 onNavigate={setCurrentTab}
-                onRunAudit={handleRunPipeline}
+                onRunAudit={() => handleRunPipeline(false)}
                 onStartService={handleStartService}
                 onStopService={handleStopService}
                 startingServiceId={startingServiceId}
