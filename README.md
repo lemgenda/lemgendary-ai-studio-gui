@@ -1,4 +1,4 @@
-# LemGendary AI Studio GUI
+﻿# LemGendary AI Studio GUI
 
 Modern cross-platform desktop user interface for the LemGendary AI ecosystem, built with Tauri v2, React 18, TypeScript, and Vite.
 
@@ -123,15 +123,22 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.8 - Batch Size Minimum Lowered to 1
+
+- **LLM-Compatible Batch Size Selector (src/components/training/ModelManifoldCard.tsx)**:
+  - Extended batch size `select` options to include `1`, `2`, and `4` below the previous minimum of `8`.
+  - Full option range is now: `1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024`.
+  - Enables setting `batch_size: 2` for LLM fine-tuning on memory-constrained GPUs (e.g., GTX 1650, 4 GB VRAM) with gradient accumulation to maintain effective batch sizes.
+
 ### v2.10.7 - Stop Service Unlocking, UI Test Button Cleanup & Manifold Footprint
 
-- **Tripartite Sidecar Stop Service Activation (`src/components/ServiceTiles.tsx`)**:
+- **Tripartite Sidecar Stop Service Activation (src/components/ServiceTiles.tsx)**:
   - Restored active 'Stop Service' danger action button on the LemGendary Environment Manager card (port 8000), allowing operators to stop any of the three ecosystem sidecars directly from the GUI.
-- **Top Header & Toolbar Test Button Elimination (`src/components/Header.tsx`, `src/components/training/TrainingToolbar.tsx`, `src/components/TrainingPanel.tsx`)**:
+- **Top Header & Toolbar Test Button Elimination (src/components/Header.tsx, src/components/training/TrainingToolbar.tsx, src/components/TrainingPanel.tsx)**:
   - Completely removed the 'Run Tests' button and associated tooltip from the top navigation header bar across all panels.
   - Completely removed the 'Unit Test All Models' button and its props from the Model Training toolbar.
-- **Dynamic Manifold Disk Footprint Formatting (`src/components/compiler/DatasetManifoldCard.tsx`)**:
-  - Enhanced disk footprint formatting to automatically render in MB for lightweight instruction and tabular datasets under 100 MB (`2.9 MB`) rather than rounding down to `0.0 GB`.
+- **Dynamic Manifold Disk Footprint Formatting (src/components/compiler/DatasetManifoldCard.tsx)**:
+  - Enhanced disk footprint formatting to automatically render in MB for lightweight instruction and tabular datasets under 100 MB (2.9 MB) rather than rounding down to  .0 GB.
 
 ### v2.10.6 - Pipeline Step 5 Safe Dependency Upgrade Alignment
 
@@ -151,188 +158,188 @@ lem-env validate --project lemgendary-ai-studio-gui
   - Synchronized `MANUAL_AI_STUDIO_GUI.md` (Section 3.4), `PAPER_AI_STUDIO_GUI.md` (Section 6.6), `ai-studio-manual.html`, and `ai-studio-whitepaper.html`.
   - Registered all 8 interactive test controls in `GUI_CONTROL_REGISTRY.md` and companion publication `gui-control-registry.html`.
 
-### v2.10.4 — Pareto Model Soup Client Integration & Documentation Parity
+### v2.10.4 â€” Pareto Model Soup Client Integration & Documentation Parity
 
-- **Pareto Model Soup Client (`src/api/client.ts`)** — Added typed `blendModelSoup(modelKey)` client method communicating with `POST /api/models/{model_key}/soup` on the Training Suite sidecar (port 8200) for on-disk blending of multi-objective Pareto vault checkpoints (`vault_psnr.pth`, `vault_lpips.pth`, etc.).
-- **Desktop GUI Manual & HTML Sync** — Updated `MANUAL_AI_STUDIO_GUI.md` and companion publication `ai-studio-manual.html` documenting the `blendModelSoup` client method, operational behavior, and safeguards.
-
----
-
-### v2.10.3 — Automated Headless Screenshot Pipeline, Callout Badges & Dual-Modal Hardening
-
-- **Automated Physical Screenshot Pipeline** — Integrated headless Chromium screenshot capture against built application assets, generating authentic high-resolution captures across all 5 navigation tabs (`dashboard`, `datasets`, `training`, `pipeline`, `health`) and modal topologies.
-- **Numbered Callout Badge Alignment** — Applied deterministic circular callout badges matching `MANUAL_AI_STUDIO_GUI.md` and `ai-studio-manual.html` references 1-to-1 across all 19 official figures in `lemgendary-docs/assets/gui/`.
-- **Dual-Modal Topology Integration (`ConfigEditorModal.tsx`)** — Hardened dynamic query param routing (`?modal=config`, `?modal=secrets`) for direct operator inspection of manifest schemas, environment configurations, and the universal secrets vault.
-- **Offline Documentation Preview Parity** — Verified offline documentation hub rendering (`/docs/index.html`) with zero broken stylesheet or SVG vector asset links.
+- **Pareto Model Soup Client (`src/api/client.ts`)** â€” Added typed `blendModelSoup(modelKey)` client method communicating with `POST /api/models/{model_key}/soup` on the Training Suite sidecar (port 8200) for on-disk blending of multi-objective Pareto vault checkpoints (`vault_psnr.pth`, `vault_lpips.pth`, etc.).
+- **Desktop GUI Manual & HTML Sync** â€” Updated `MANUAL_AI_STUDIO_GUI.md` and companion publication `ai-studio-manual.html` documenting the `blendModelSoup` client method, operational behavior, and safeguards.
 
 ---
 
-### v2.10.2 — Zustand Single Source of Truth Consolidation, Canonical Control Registry & Zero-Suppression Hardening
+### v2.10.3 â€” Automated Headless Screenshot Pipeline, Callout Badges & Dual-Modal Hardening
 
-- **Zustand Single Source of Truth State Consolidation (`src/store/useStudioStore.ts`)** — Consolidated split-brain store states across sidecars into a single authoritative Zustand store. Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200), hardware accelerator metrics, running local/cloud training jobs, model and dataset cache manifolds, and real-time ANSI telemetry buffers without prop drilling.
-- **Modular Offline Fallback Extraction (`src/data/fallbackModels.ts`, `src/data/fallbackDatasets.ts`)** — Decoupled large static mock arrays from the central store into dedicated, strongly typed data modules, ensuring deterministic offline hydration without code duplication.
-- **Canonical DOM Test Control Registry Alignment** — Standardized all 32 core interactive buttons, tabs, modal dialogs, and inputs with canonical `id` attributes matching `lemgendary-docs/GUI_CONTROL_REGISTRY.md` (e.g. `dashboard-tab-btn`, `datasets-tab-btn`, `training-tab-btn`, `install-tab-btn`, `health-tab-btn`, `theme-toggle-btn`).
-- **Zero-Loss Clipboard Export Utility (`src/utils/clipboard.ts`)** — Extracted unified clipboard export logic supporting asynchronous `navigator.clipboard.writeText` with resilient legacy fallback for secure contexts and webview environments.
-- **Zero-Suppression ESLint & TypeScript Hardening** — Verified 100% compliance with zero `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, or `eslint-disable` comment directives. 42/42 Vitest unit and component tests passing cleanly.
-
----
-
-### v2.10.1 — Domain-Aware Causal LLM Card Telemetry & Context Window Specialization
-
-- **`src/components/training/ModelManifoldCard.tsx` — Domain-Specific Causal LLM Progress Layout** — Specialized telemetry rows for LLMs: replaced the spatial "Resolution Ladder" row with "Context Window: 2048 tokens (Full)" and replaced the image "Data Fraction" percentage with "Training Dataset: LemGendizedAIHelperLemGend". Eliminated computer vision pixel artifacts (`2048px / 2048px`, `0%`) on LLM instruction tuning cards.
-- **`src/api/types.ts` — TypeScript Interface Alignment** — Extended `ModelItem` interface with `ladder_type?: "spatial" | "timeframe" | "context_tokens"` and `is_llm?: boolean`. Synchronized with Training Suite sidecar API on port 8200.
+- **Automated Physical Screenshot Pipeline** â€” Integrated headless Chromium screenshot capture against built application assets, generating authentic high-resolution captures across all 5 navigation tabs (`dashboard`, `datasets`, `training`, `pipeline`, `health`) and modal topologies.
+- **Numbered Callout Badge Alignment** â€” Applied deterministic circular callout badges matching `MANUAL_AI_STUDIO_GUI.md` and `ai-studio-manual.html` references 1-to-1 across all 19 official figures in `lemgendary-docs/assets/gui/`.
+- **Dual-Modal Topology Integration (`ConfigEditorModal.tsx`)** â€” Hardened dynamic query param routing (`?modal=config`, `?modal=secrets`) for direct operator inspection of manifest schemas, environment configurations, and the universal secrets vault.
+- **Offline Documentation Preview Parity** â€” Verified offline documentation hub rendering (`/docs/index.html`) with zero broken stylesheet or SVG vector asset links.
 
 ---
 
-### v2.10.0 — Modernization Queue Subtabs, Scale Reduction, Fleet Diagnostics & Ecosystem Governance Cards
+### v2.10.2 â€” Zustand Single Source of Truth Consolidation, Canonical Control Registry & Zero-Suppression Hardening
 
-- **`src/components/CompilerPanel.tsx` — Modernization Queue & Scale Reduction Subtabs** — Structured Section 2 into three sub-tabs: "Manifolds Catalog" (21 production manifolds), "Modernization Queue & Transcode" (interactive scan of datasets needing WebP transcoding, worker pool slider, push to Kaggle, dry-run, force flags, and batch execution), and "Scale Reduction (Downsample)" (downsampled dataset derivation with 10%, 25%, 50%, 75% scale presets). Added top toolbar buttons: "Update All Kaggle Metadata" (bulk Kaggle push) and "Regenerate Manifolds Index".
-- **`src/components/TrainingPanel.tsx` — Fleet Diagnostics, Batch Notebooks & Card Actions** — Added global toolbar buttons: "Run 1-Epoch Diagnostic (All 22 Models)" (`POST /api/training/unit-test-all`) and "Generate All Notebooks" (`POST /api/notebooks/generate-all`). Added per-model action buttons: "Evaluate Model" (`POST /api/training/evaluate`) and "Export Binaries" (`POST /api/training/export`).
-- **`src/components/CloudTrainModal.tsx` — Checkpoint Upload to Kaggle Models** — Added third cloud option tab "Upload Checkpoints" allowing operators to stage and publish trained model weights directly to Kaggle Models repositories with live status reporting.
-- **`src/components/HealthPanel.tsx` — Ecosystem Maintenance & Governance Card** — Added dedicated governance control card providing one-click buttons for "Safe Package Upgrade", "Upgrade Dry Run", "Deep Cache Purge" (`POST /api/clean`), "Install Git Hooks" (`POST /api/hooks/install`), and "Run Ecosystem Validation" (`POST /api/validate`).
-- **`src/api/client.ts` & `src/api/types.ts` — API Interface Expansion** — Added full TypeScript interfaces and asynchronous wrapper functions for all new sidecar capabilities across ports 8000, 8100, and 8200.
+- **Zustand Single Source of Truth State Consolidation (`src/store/useStudioStore.ts`)** â€” Consolidated split-brain store states across sidecars into a single authoritative Zustand store. Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200), hardware accelerator metrics, running local/cloud training jobs, model and dataset cache manifolds, and real-time ANSI telemetry buffers without prop drilling.
+- **Modular Offline Fallback Extraction (`src/data/fallbackModels.ts`, `src/data/fallbackDatasets.ts`)** â€” Decoupled large static mock arrays from the central store into dedicated, strongly typed data modules, ensuring deterministic offline hydration without code duplication.
+- **Canonical DOM Test Control Registry Alignment** â€” Standardized all 32 core interactive buttons, tabs, modal dialogs, and inputs with canonical `id` attributes matching `lemgendary-docs/GUI_CONTROL_REGISTRY.md` (e.g. `dashboard-tab-btn`, `datasets-tab-btn`, `training-tab-btn`, `install-tab-btn`, `health-tab-btn`, `theme-toggle-btn`).
+- **Zero-Loss Clipboard Export Utility (`src/utils/clipboard.ts`)** â€” Extracted unified clipboard export logic supporting asynchronous `navigator.clipboard.writeText` with resilient legacy fallback for secure contexts and webview environments.
+- **Zero-Suppression ESLint & TypeScript Hardening** â€” Verified 100% compliance with zero `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, or `eslint-disable` comment directives. 42/42 Vitest unit and component tests passing cleanly.
 
-### v2.8.7 — Card-Level Batch Size Overrides & Deterministic Port-Based Telemetry Routing
+---
 
-- **`src/components/training/ModelManifoldCard.tsx` — Interactive Local Batch Size Selector** — Added a card-level batch size dropdown (`8`, `16`, `32`, `64`, `128`, `256`, `512`, `1024`) synchronized automatically with each model's SSOT configuration (`m.batch_size`). Enables operators to adjust minibatch sizes directly from the card before triggering local GPU training passes.
-- **`src/components/TrainingPanel.tsx` — Dynamic Batch Dispatch** — Forwarded `batchSize` through `handleStartLocalTrain` into `triggerQuickTrain({ model_key, batch_size })`, ensuring operator-selected batch sizes take precedence over generic presets.
-- **`src/api/types.ts` & `src/api/client.ts` — Deterministic Port Provenance Tracking** — Extended `PipelineEvent` with `origin` and `port` fields. Upgraded WebSocket listeners for all tripartite daemons (8000, 8100, 8200) to stamp incoming frames with their exact origin port. Replaced string keyword heuristics in `isCompilerEvent` and `isLocalTrainingEvent` with strict port-based routing, preventing training logs from leaking into the Dataset Compiler console.
+### v2.10.1 â€” Domain-Aware Causal LLM Card Telemetry & Context Window Specialization
 
-### v2.8.6 — Telemetry Control Sequence Sanitation & Tag Flex Hardening
+- **`src/components/training/ModelManifoldCard.tsx` â€” Domain-Specific Causal LLM Progress Layout** â€” Specialized telemetry rows for LLMs: replaced the spatial "Resolution Ladder" row with "Context Window: 2048 tokens (Full)" and replaced the image "Data Fraction" percentage with "Training Dataset: LemGendizedAIHelperLemGend". Eliminated computer vision pixel artifacts (`2048px / 2048px`, `0%`) on LLM instruction tuning cards.
+- **`src/api/types.ts` â€” TypeScript Interface Alignment** â€” Extended `ModelItem` interface with `ladder_type?: "spatial" | "timeframe" | "context_tokens"` and `is_llm?: boolean`. Synchronized with Training Suite sidecar API on port 8200.
 
-- **`src/api/client.ts` — ANSI Sequence Cleanser Precision (`cleanAnsiAndControlChars`)** — Hardened regex replacement to require at least one numerical digit/parameter (`^\[[0-9;]+[a-zA-Z]`) when stripping remnant ANSI CSI sequences. Prevented zero-length match corruption that erroneously stripped the leading bracket and character from logging tags like `[PROGRESS]` and `[GOVERNOR]`.
-- **`src/components/LogPanel.tsx` & `src/index.css` — Log Tag Squeeze Prevention** — Applied `flex-shrink: 0` and `white-space: nowrap` to `.log-tag-*` indicators within `.log-line` flex layouts, ensuring step and system indicators (`[SYS] [TRAINING]:`) remain unclipped across long monospace telemetry payloads.
+---
 
-### v2.8.5 — Telemetry Stream Positioning & Sub-Second Training Cancellation UI
+### v2.10.0 â€” Modernization Queue Subtabs, Scale Reduction, Fleet Diagnostics & Ecosystem Governance Cards
 
-- **`src/components/TrainingPanel.tsx` — Direct Telemetry Stream Slot (`logSlot`)** — Moved the live `Real-time Telemetry & Pipeline Stream` panel directly above the `Registered Architectures & Checkpoint Telemetry` models list via an injected `logSlot` component prop. Operators no longer need to scroll past 20 model cards to monitor streaming training logs.
-- **`src/App.tsx` — Unified Training Tab Layout** — Replaced the bottom-anchored log panel with inline injection into `TrainingPanel`, delivering a cohesive top-down workflow: Training Controls -> Live Telemetry Stream -> Registered Architecture Cards.
-- **`src/components/TrainingPanel.tsx` — Responsive Job Cancellation Handshake** — Connected the `Stop Training` action button to instant minibatch-level cancellation on the sidecar daemon. Polling automatically syncs job status when cancellation completes, reverting the button to `Start Training`.
+- **`src/components/CompilerPanel.tsx` â€” Modernization Queue & Scale Reduction Subtabs** â€” Structured Section 2 into three sub-tabs: "Manifolds Catalog" (21 production manifolds), "Modernization Queue & Transcode" (interactive scan of datasets needing WebP transcoding, worker pool slider, push to Kaggle, dry-run, force flags, and batch execution), and "Scale Reduction (Downsample)" (downsampled dataset derivation with 10%, 25%, 50%, 75% scale presets). Added top toolbar buttons: "Update All Kaggle Metadata" (bulk Kaggle push) and "Regenerate Manifolds Index".
+- **`src/components/TrainingPanel.tsx` â€” Fleet Diagnostics, Batch Notebooks & Card Actions** â€” Added global toolbar buttons: "Run 1-Epoch Diagnostic (All 22 Models)" (`POST /api/training/unit-test-all`) and "Generate All Notebooks" (`POST /api/notebooks/generate-all`). Added per-model action buttons: "Evaluate Model" (`POST /api/training/evaluate`) and "Export Binaries" (`POST /api/training/export`).
+- **`src/components/CloudTrainModal.tsx` â€” Checkpoint Upload to Kaggle Models** â€” Added third cloud option tab "Upload Checkpoints" allowing operators to stage and publish trained model weights directly to Kaggle Models repositories with live status reporting.
+- **`src/components/HealthPanel.tsx` â€” Ecosystem Maintenance & Governance Card** â€” Added dedicated governance control card providing one-click buttons for "Safe Package Upgrade", "Upgrade Dry Run", "Deep Cache Purge" (`POST /api/clean`), "Install Git Hooks" (`POST /api/hooks/install`), and "Run Ecosystem Validation" (`POST /api/validate`).
+- **`src/api/client.ts` & `src/api/types.ts` â€” API Interface Expansion** â€” Added full TypeScript interfaces and asynchronous wrapper functions for all new sidecar capabilities across ports 8000, 8100, and 8200.
 
-### v2.8.0 — SSOT Config-Governed Readonly Parameters & Dynamic Start/Stop Action Toggle
+### v2.8.7 â€” Card-Level Batch Size Overrides & Deterministic Port-Based Telemetry Routing
 
-- **`src/components/TrainingPanel.tsx` — Single Source of Truth (SSOT) Parameter Locking** — Locked `Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Spatial Ladder Stage` / `Timeframe Confluence Stage` into read-only controls (`.editor-input-readonly`) for all models. Parameters are strictly governed by canonical manifests (`unified_models_v2.yaml` / `presets.yaml`). Added the prominent `.config-governed-banner` with direct shortcut navigation to the Config Editor Modal (`onOpenConfigEditor`).
-- **`src/components/TrainingPanel.tsx` — Dynamic Start/Stop Action Toggle** — Replaced static one-way dispatch button with a reactive run-state toggle. Automatically polls `fetchRunningTrainingJobs()` (`GET /api/jobs?status=running`) every 3 seconds. While a training job is actively executing, the button switches to `Stop Training` with high-visibility `.btn-danger` styling and routes to `cancelTrainingJob(runningJobId)` (`POST /api/jobs/{job_id}/cancel`). Reverts to `Start Training` (`.btn-primary`) when idle or completed.
-- **`src/App.tsx` — Config Editor Modal Wiring** — Passed `onOpenConfigEditor={() => setIsConfigEditorOpen(true)}` to `TrainingPanel`, providing seamless in-app access to view and adjust authoritative model manifests.
-- **`src/index.css` — Readonly Controls & Action Button Styling** — Added `.btn-danger` gradient and focus states (`#ef4444` to `#dc2626`), `.editor-input-readonly` background and border styling, and `.config-governed-banner` responsive layout.
+- **`src/components/training/ModelManifoldCard.tsx` â€” Interactive Local Batch Size Selector** â€” Added a card-level batch size dropdown (`8`, `16`, `32`, `64`, `128`, `256`, `512`, `1024`) synchronized automatically with each model's SSOT configuration (`m.batch_size`). Enables operators to adjust minibatch sizes directly from the card before triggering local GPU training passes.
+- **`src/components/TrainingPanel.tsx` â€” Dynamic Batch Dispatch** â€” Forwarded `batchSize` through `handleStartLocalTrain` into `triggerQuickTrain({ model_key, batch_size })`, ensuring operator-selected batch sizes take precedence over generic presets.
+- **`src/api/types.ts` & `src/api/client.ts` â€” Deterministic Port Provenance Tracking** â€” Extended `PipelineEvent` with `origin` and `port` fields. Upgraded WebSocket listeners for all tripartite daemons (8000, 8100, 8200) to stamp incoming frames with their exact origin port. Replaced string keyword heuristics in `isCompilerEvent` and `isLocalTrainingEvent` with strict port-based routing, preventing training logs from leaking into the Dataset Compiler console.
 
-### v2.7.0 — Training Orchestration Form Stabilization & Dynamic Model Defaults
+### v2.8.6 â€” Telemetry Control Sequence Sanitation & Tag Flex Hardening
 
-- **`src/components/TrainingPanel.tsx` — Layout Collision Resolution** — Separated `Target Architecture` into a dedicated hero selector row with real-time architectural metadata badges (task category, parameter count, canonical format, preferred parallel mode). Restructured training parameters (`Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Ladder Stage`) into a dedicated 4-column responsive grid with `min-width: 0` constraints, eliminating horizontal overlap and input clipping.
-- **`src/components/TrainingPanel.tsx` — Dynamic Hyperparameter Synchronization** — Implemented `applyModelDefaults` to automatically populate model-specific defaults when switching architectures (e.g., YOLOv8n sets 300 epochs, 0.01 learning rate, 16 batch size, and 640px stage; Forex Predictor sets 50 epochs, 0.0001 learning rate, 128 batch size, and D1 macro horizon).
-- **`src/components/TrainingPanel.tsx` — Governor Toggle Card & Dispatch Wiring** — Upgraded the Sawtooth VRAM Governor into a dedicated glassmorphic card with live active sentinel status badge. Forwarded `ladder_stage` and `enable_sawtooth` parameters through `triggerQuickTrain` to the training suite sidecar.
-- **`src/index.css` — Form Control Hardening** — Added `.form-group` and `.form-group .editor-select, .editor-input` width constraints (`box-sizing: border-box; width: 100%; min-width: 0`) preventing select boxes with long option titles from blowing out grid layouts.
+- **`src/api/client.ts` â€” ANSI Sequence Cleanser Precision (`cleanAnsiAndControlChars`)** â€” Hardened regex replacement to require at least one numerical digit/parameter (`^\[[0-9;]+[a-zA-Z]`) when stripping remnant ANSI CSI sequences. Prevented zero-length match corruption that erroneously stripped the leading bracket and character from logging tags like `[PROGRESS]` and `[GOVERNOR]`.
+- **`src/components/LogPanel.tsx` & `src/index.css` â€” Log Tag Squeeze Prevention** â€” Applied `flex-shrink: 0` and `white-space: nowrap` to `.log-tag-*` indicators within `.log-line` flex layouts, ensuring step and system indicators (`[SYS] [TRAINING]:`) remain unclipped across long monospace telemetry payloads.
 
-### v2.1.0 — Tripartite Sidecar Mesh Status Integration (GUI Remediation Phase A1)
+### v2.8.5 â€” Telemetry Stream Positioning & Sub-Second Training Cancellation UI
 
-- **`src/api/types.ts` — `MeshStatus` Interface** — Added shared `MeshStatus` interface (`{ envManager: boolean; datasetCompiler: boolean; trainingSuite: boolean }`) used across `App`, `Sidebar`, and `StatusBar` for unified per-port awareness.
-- **`src/api/client.ts` — `probeSidecarPort(port)`** — Added lightweight HEAD-request reachability probe with a 1500 ms `AbortController` timeout as a fallback for when port 8000 is itself offline and `fetchEcosystemMesh()` cannot be called. Also re-exports `MeshStatus` for convenience.
-- **`src/App.tsx` — Mesh State Hydration** — Added `meshStatus` state (initially all `false`). `loadData()` now attempts `fetchEcosystemMesh()` first; on failure it falls back to three parallel `probeSidecarPort()` calls covering ports 8000, 8100, and 8200. Passes `meshStatus` to `Sidebar` and `StatusBar`.
-- **`src/components/Sidebar.tsx` — Per-Tab Sidecar Status Dots** — Added `meshStatus: MeshStatus` prop. Each navigation tab now renders a colored `.status-indicator` dot reflecting the reachability of its dependent sidecar (Dataset Compiler tab → port 8100, Training Suite tab → port 8200, all others → port 8000).
-- **`src/components/StatusBar.tsx` — Tripartite Port Status Display** — Replaced single `isConnected: boolean` prop with `meshStatus: MeshStatus`. Status bar now renders three individual port entries (Env Manager :8000, Dataset Compiler :8100, Training Suite :8200) each with their own status dot, plus a composite `Mesh Online / Mesh Partial / Mesh Offline` summary badge.
+- **`src/components/TrainingPanel.tsx` â€” Direct Telemetry Stream Slot (`logSlot`)** â€” Moved the live `Real-time Telemetry & Pipeline Stream` panel directly above the `Registered Architectures & Checkpoint Telemetry` models list via an injected `logSlot` component prop. Operators no longer need to scroll past 20 model cards to monitor streaming training logs.
+- **`src/App.tsx` â€” Unified Training Tab Layout** â€” Replaced the bottom-anchored log panel with inline injection into `TrainingPanel`, delivering a cohesive top-down workflow: Training Controls -> Live Telemetry Stream -> Registered Architecture Cards.
+- **`src/components/TrainingPanel.tsx` â€” Responsive Job Cancellation Handshake** â€” Connected the `Stop Training` action button to instant minibatch-level cancellation on the sidecar daemon. Polling automatically syncs job status when cancellation completes, reverting the button to `Start Training`.
 
-### v2.2.0 — Offline Fallback Hydration (GUI Remediation Phase A2)
+### v2.8.0 â€” SSOT Config-Governed Readonly Parameters & Dynamic Start/Stop Action Toggle
 
-- **`src/components/HardwareCard.tsx` — Offline Card** — Replaced permanent `Loading hardware profile...` spinner with a proper OFFLINE badge card explaining Port 8000 is unreachable. Accepts optional `onStartEnvManager` prop to render a `Start Environment Manager` button.
-- **`src/components/HealthPanel.tsx` — Offline Banner** — Replaced permanent `Loading health matrix...` spinner with an OFFLINE banner explaining the dependency on Port 8000. Accepts optional `onStartEnvManager` prop.
-- **`src/components/ProjectCard.tsx` — Offline Visual Mode** — Added `isOffline?: boolean` prop. When true: badge shows `UNKNOWN`, package counts render as `--`, and the reconcile button shows `(Sidecar Required)` and is disabled.
-- **`src/components/Header.tsx` — Docs Hub Smart Routing** — Fixed `Docs Hub (Offline)` button which previously caused `ERR_CONNECTION_REFUSED` when Port 8000 is down. Now calls `fetchDocsStatus()` on click and opens the offline URL only if `offline_available` is true, otherwise falls back to the GitHub Pages web URL. Button label dynamically reads `Docs Hub (Offline)` vs `Docs (Web Fallback)` based on `envManagerOnline` prop.
-- **`src/App.tsx` — FALLBACK_PROJECTS + Error Banners + Offline Wiring** — Added `FALLBACK_PROJECTS` constant (all 5 canonical workspace projects) displayed when `health` is null. Added `refreshError` state surfaced as a dismissible amber banner. Added global red offline banner with `Start All Services` button when all 3 sidecars are down. All previously silent `catch` blocks now call `setRefreshError` with actionable messages. `handleStartEcosystem` navigates to the pipeline tab and triggers the clean install. All new `onStartEnvManager`, `envManagerOnline`, and `isOffline` props wired throughout.
+- **`src/components/TrainingPanel.tsx` â€” Single Source of Truth (SSOT) Parameter Locking** â€” Locked `Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Spatial Ladder Stage` / `Timeframe Confluence Stage` into read-only controls (`.editor-input-readonly`) for all models. Parameters are strictly governed by canonical manifests (`unified_models_v2.yaml` / `presets.yaml`). Added the prominent `.config-governed-banner` with direct shortcut navigation to the Config Editor Modal (`onOpenConfigEditor`).
+- **`src/components/TrainingPanel.tsx` â€” Dynamic Start/Stop Action Toggle** â€” Replaced static one-way dispatch button with a reactive run-state toggle. Automatically polls `fetchRunningTrainingJobs()` (`GET /api/jobs?status=running`) every 3 seconds. While a training job is actively executing, the button switches to `Stop Training` with high-visibility `.btn-danger` styling and routes to `cancelTrainingJob(runningJobId)` (`POST /api/jobs/{job_id}/cancel`). Reverts to `Start Training` (`.btn-primary`) when idle or completed.
+- **`src/App.tsx` â€” Config Editor Modal Wiring** â€” Passed `onOpenConfigEditor={() => setIsConfigEditorOpen(true)}` to `TrainingPanel`, providing seamless in-app access to view and adjust authoritative model manifests.
+- **`src/index.css` â€” Readonly Controls & Action Button Styling** â€” Added `.btn-danger` gradient and focus states (`#ef4444` to `#dc2626`), `.editor-input-readonly` background and border styling, and `.config-governed-banner` responsive layout.
 
-### v2.3.0 — Dashboard Service Control Plane Restoration (GUI Remediation Phase A3)
+### v2.7.0 â€” Training Orchestration Form Stabilization & Dynamic Model Defaults
 
-- **`src/components/ServiceTiles.tsx` — New Component** — Tripartite sidecar service control plane rendered as three cards in a 3-column CSS grid at the top of the Dashboard. Each card shows: service name, ONLINE/OFFLINE badge (border turns red when offline), port number, base URL, description, and a context-appropriate quick-action button (disabled when offline). An additional `Start Service` primary button appears only when the sidecar is offline and routes to `handleStartEcosystem`. Cards cover Env Manager (:8000), Dataset Compiler (:8100), and Training Suite (:8200). Base URL constants (`ENV_BASE`, `DATASETS_BASE`, `TRAINING_BASE`) imported directly from `client.ts`.
-- **`src/App.tsx` — ServiceTiles Integration** — `ServiceTiles` inserted as the first element inside the dashboard tab fragment, above the `HardwareCard`/`PipelinePanel` grid. Wires `meshStatus`, `setCurrentTab` as `onNavigate`, `handleRunPipeline` as `onRunAudit`, and `handleStartEcosystem` as `onStartServices`.
+- **`src/components/TrainingPanel.tsx` â€” Layout Collision Resolution** â€” Separated `Target Architecture` into a dedicated hero selector row with real-time architectural metadata badges (task category, parameter count, canonical format, preferred parallel mode). Restructured training parameters (`Training Epochs`, `Minibatch Size`, `Initial Learning Rate`, and `Ladder Stage`) into a dedicated 4-column responsive grid with `min-width: 0` constraints, eliminating horizontal overlap and input clipping.
+- **`src/components/TrainingPanel.tsx` â€” Dynamic Hyperparameter Synchronization** â€” Implemented `applyModelDefaults` to automatically populate model-specific defaults when switching architectures (e.g., YOLOv8n sets 300 epochs, 0.01 learning rate, 16 batch size, and 640px stage; Forex Predictor sets 50 epochs, 0.0001 learning rate, 128 batch size, and D1 macro horizon).
+- **`src/components/TrainingPanel.tsx` â€” Governor Toggle Card & Dispatch Wiring** â€” Upgraded the Sawtooth VRAM Governor into a dedicated glassmorphic card with live active sentinel status badge. Forwarded `ladder_stage` and `enable_sawtooth` parameters through `triggerQuickTrain` to the training suite sidecar.
+- **`src/index.css` â€” Form Control Hardening** â€” Added `.form-group` and `.form-group .editor-select, .editor-input` width constraints (`box-sizing: border-box; width: 100%; min-width: 0`) preventing select boxes with long option titles from blowing out grid layouts.
 
-### v2.5.0 — Autonomous On-Demand Service Dispatch & Non-Destructive Card Controls
+### v2.1.0 â€” Tripartite Sidecar Mesh Status Integration (GUI Remediation Phase A1)
 
-- **`src/api/client.ts` — Daemon Lifecycle Endpoints** — Added `startService(serviceId)`, `stopService(serviceId)`, and `startAllServices()` connecting directly to Environment Manager daemon process endpoints on port 8000.
-- **`src/components/ServiceTiles.tsx` — Independent Start Service Buttons** — Replaced generic clean install redirection with dedicated `onStartService(serviceId)` actions. Button displays live `Starting Service...` state and prevents accidental multi-triggering while daemons bind to their ports.
-- **`src/App.tsx` — Non-Destructive Service Dispatch** — Replaced `handleStartEcosystem` with `handleStartService` and `handleStartAllServices`. Clicking `Start Service` on any offline card now cleanly spawns that specific process in the background without modifying or wiping existing project virtual environments or running the clean install pipeline.
+- **`src/api/types.ts` â€” `MeshStatus` Interface** â€” Added shared `MeshStatus` interface (`{ envManager: boolean; datasetCompiler: boolean; trainingSuite: boolean }`) used across `App`, `Sidebar`, and `StatusBar` for unified per-port awareness.
+- **`src/api/client.ts` â€” `probeSidecarPort(port)`** â€” Added lightweight HEAD-request reachability probe with a 1500 ms `AbortController` timeout as a fallback for when port 8000 is itself offline and `fetchEcosystemMesh()` cannot be called. Also re-exports `MeshStatus` for convenience.
+- **`src/App.tsx` â€” Mesh State Hydration** â€” Added `meshStatus` state (initially all `false`). `loadData()` now attempts `fetchEcosystemMesh()` first; on failure it falls back to three parallel `probeSidecarPort()` calls covering ports 8000, 8100, and 8200. Passes `meshStatus` to `Sidebar` and `StatusBar`.
+- **`src/components/Sidebar.tsx` â€” Per-Tab Sidecar Status Dots** â€” Added `meshStatus: MeshStatus` prop. Each navigation tab now renders a colored `.status-indicator` dot reflecting the reachability of its dependent sidecar (Dataset Compiler tab â†’ port 8100, Training Suite tab â†’ port 8200, all others â†’ port 8000).
+- **`src/components/StatusBar.tsx` â€” Tripartite Port Status Display** â€” Replaced single `isConnected: boolean` prop with `meshStatus: MeshStatus`. Status bar now renders three individual port entries (Env Manager :8000, Dataset Compiler :8100, Training Suite :8200) each with their own status dot, plus a composite `Mesh Online / Mesh Partial / Mesh Offline` summary badge.
 
-### v2.6.0 — Automated Sidecar Startup on Launch & Real-Time Mesh Telemetry
+### v2.2.0 â€” Offline Fallback Hydration (GUI Remediation Phase A2)
 
-- **`src/App.tsx` — Automated Startup Routine on Launch** — Added `autoStartOffline` startup effect on initial GUI mount. Automatically probes the tripartite mesh and triggers background daemon launch for any offline sidecar without manual intervention.
-- **`src/App.tsx` — Decoupled Fast Mesh Polling & Continuous Heartbeat** — Extracted `refreshMeshStatus()` to immediately update UI service tiles (<90ms) independently of slow full-ecosystem audits (~9s). Added a 4-second reactive background polling loop keeping sidecar status badges continuously synchronized.
-- **`src/api/client.ts` — GET-Based Health Fallback** — Standardized `probeSidecarPort()` to use standard `GET` requests with `res.ok` validation, ensuring universal compatibility across FastAPI routers.
+- **`src/components/HardwareCard.tsx` â€” Offline Card** â€” Replaced permanent `Loading hardware profile...` spinner with a proper OFFLINE badge card explaining Port 8000 is unreachable. Accepts optional `onStartEnvManager` prop to render a `Start Environment Manager` button.
+- **`src/components/HealthPanel.tsx` â€” Offline Banner** â€” Replaced permanent `Loading health matrix...` spinner with an OFFLINE banner explaining the dependency on Port 8000. Accepts optional `onStartEnvManager` prop.
+- **`src/components/ProjectCard.tsx` â€” Offline Visual Mode** â€” Added `isOffline?: boolean` prop. When true: badge shows `UNKNOWN`, package counts render as `--`, and the reconcile button shows `(Sidecar Required)` and is disabled.
+- **`src/components/Header.tsx` â€” Docs Hub Smart Routing** â€” Fixed `Docs Hub (Offline)` button which previously caused `ERR_CONNECTION_REFUSED` when Port 8000 is down. Now calls `fetchDocsStatus()` on click and opens the offline URL only if `offline_available` is true, otherwise falls back to the GitHub Pages web URL. Button label dynamically reads `Docs Hub (Offline)` vs `Docs (Web Fallback)` based on `envManagerOnline` prop.
+- **`src/App.tsx` â€” FALLBACK_PROJECTS + Error Banners + Offline Wiring** â€” Added `FALLBACK_PROJECTS` constant (all 5 canonical workspace projects) displayed when `health` is null. Added `refreshError` state surfaced as a dismissible amber banner. Added global red offline banner with `Start All Services` button when all 3 sidecars are down. All previously silent `catch` blocks now call `setRefreshError` with actionable messages. `handleStartEcosystem` navigates to the pipeline tab and triggers the clean install. All new `onStartEnvManager`, `envManagerOnline`, and `isOffline` props wired throughout.
 
-### v2.7.0 — Dataset Compiler Card 2x2 Action Button Hierarchy & Color Synchronization
+### v2.3.0 â€” Dashboard Service Control Plane Restoration (GUI Remediation Phase A3)
 
-- **`src/components/CompilerPanel.tsx` — 2x2 Button Grid Harmonization** — Synchronized Dataset Card action button styling and visual hierarchy with the Model Card toolbar (`TrainingPanel.tsx`):
+- **`src/components/ServiceTiles.tsx` â€” New Component** â€” Tripartite sidecar service control plane rendered as three cards in a 3-column CSS grid at the top of the Dashboard. Each card shows: service name, ONLINE/OFFLINE badge (border turns red when offline), port number, base URL, description, and a context-appropriate quick-action button (disabled when offline). An additional `Start Service` primary button appears only when the sidecar is offline and routes to `handleStartEcosystem`. Cards cover Env Manager (:8000), Dataset Compiler (:8100), and Training Suite (:8200). Base URL constants (`ENV_BASE`, `DATASETS_BASE`, `TRAINING_BASE`) imported directly from `client.ts`.
+- **`src/App.tsx` â€” ServiceTiles Integration** â€” `ServiceTiles` inserted as the first element inside the dashboard tab fragment, above the `HardwareCard`/`PipelinePanel` grid. Wires `meshStatus`, `setCurrentTab` as `onNavigate`, `handleRunPipeline` as `onRunAudit`, and `handleStartEcosystem` as `onStartServices`.
+
+### v2.5.0 â€” Autonomous On-Demand Service Dispatch & Non-Destructive Card Controls
+
+- **`src/api/client.ts` â€” Daemon Lifecycle Endpoints** â€” Added `startService(serviceId)`, `stopService(serviceId)`, and `startAllServices()` connecting directly to Environment Manager daemon process endpoints on port 8000.
+- **`src/components/ServiceTiles.tsx` â€” Independent Start Service Buttons** â€” Replaced generic clean install redirection with dedicated `onStartService(serviceId)` actions. Button displays live `Starting Service...` state and prevents accidental multi-triggering while daemons bind to their ports.
+- **`src/App.tsx` â€” Non-Destructive Service Dispatch** â€” Replaced `handleStartEcosystem` with `handleStartService` and `handleStartAllServices`. Clicking `Start Service` on any offline card now cleanly spawns that specific process in the background without modifying or wiping existing project virtual environments or running the clean install pipeline.
+
+### v2.6.0 â€” Automated Sidecar Startup on Launch & Real-Time Mesh Telemetry
+
+- **`src/App.tsx` â€” Automated Startup Routine on Launch** â€” Added `autoStartOffline` startup effect on initial GUI mount. Automatically probes the tripartite mesh and triggers background daemon launch for any offline sidecar without manual intervention.
+- **`src/App.tsx` â€” Decoupled Fast Mesh Polling & Continuous Heartbeat** â€” Extracted `refreshMeshStatus()` to immediately update UI service tiles (<90ms) independently of slow full-ecosystem audits (~9s). Added a 4-second reactive background polling loop keeping sidecar status badges continuously synchronized.
+- **`src/api/client.ts` â€” GET-Based Health Fallback** â€” Standardized `probeSidecarPort()` to use standard `GET` requests with `res.ok` validation, ensuring universal compatibility across FastAPI routers.
+
+### v2.7.0 â€” Dataset Compiler Card 2x2 Action Button Hierarchy & Color Synchronization
+
+- **`src/components/CompilerPanel.tsx` â€” 2x2 Button Grid Harmonization** â€” Synchronized Dataset Card action button styling and visual hierarchy with the Model Card toolbar (`TrainingPanel.tsx`):
   - **Top-Left (`Update Metadata`)**: Upgraded to `btn btn-primary` (Cyan-Blue solid gradient, matching `Local Training`).
   - **Top-Right (`Audit Notebooks`)**: Upgraded to `btn btn-cloud` (Purple solid gradient, matching `Cloud Training`).
   - **Bottom-Left (`Download`)**: Standardized to `btn btn-vault-pull` (Dark vault outline button with download icon).
   - **Bottom-Right (`Upload`)**: Corrected to `btn btn-vault-push` (Dark vault outline button with upload icon, replacing erroneous `btn-vault-pull`).
-- **Ecosystem UI Consistency** — Enforced 100% visual parity across all card components: top row reserved for solid primary/cloud trigger buttons and bottom row for dark vault operations.
+- **Ecosystem UI Consistency** â€” Enforced 100% visual parity across all card components: top row reserved for solid primary/cloud trigger buttons and bottom row for dark vault operations.
 
-### v2.8.0 — Full-Mesh Autonomous Cold Boot & Dev Middleware Service Dispatch
+### v2.8.0 â€” Full-Mesh Autonomous Cold Boot & Dev Middleware Service Dispatch
 
-- **`vite.config.ts` — Vite Dev Middleware Service Launcher** — Added `/api/dev/services/start-all` and `/api/dev/services/start` middleware to the Vite dev server. When all services (or Port 8000) are offline during development, Vite's Node.js engine automatically detects virtual environment Python paths, spawns `uvicorn` daemons with `detached: true` and windowless execution, probes readiness via non-blocking TCP socket verification, and cascades orchestration across all three tripartite sidecars.
-- **`src-tauri/src/commands.rs` — Tauri Sidecar Virtualenv Resolution** — Updated `spawn_sidecar` to resolve `.venv/Scripts/pythonw.exe` inside `lemgendary-env-manager`, bind the process working directory directly to `../lemgendary-env-manager`, and enforce Windows `CREATE_NO_WINDOW` (0x08000000) flags.
-- **`src/api/client.ts` — Transparent Dev Endpoints & Seamless Fallback** — Added `startDevService` and `startDevAllServices`. `startService` and `startAllServices` automatically fall back to the Vite dev endpoints whenever Port 8000 is down.
-- **`src/App.tsx` — Direct One-Click Cold Boot** — `handleStartAllServices` now starts the complete tripartite mesh directly from cold offline state without displaying terminal execution warning banners or requiring manual shell commands. Individual `handleStartService` calls for Environment Manager cleanly boot the orchestrator.
+- **`vite.config.ts` â€” Vite Dev Middleware Service Launcher** â€” Added `/api/dev/services/start-all` and `/api/dev/services/start` middleware to the Vite dev server. When all services (or Port 8000) are offline during development, Vite's Node.js engine automatically detects virtual environment Python paths, spawns `uvicorn` daemons with `detached: true` and windowless execution, probes readiness via non-blocking TCP socket verification, and cascades orchestration across all three tripartite sidecars.
+- **`src-tauri/src/commands.rs` â€” Tauri Sidecar Virtualenv Resolution** â€” Updated `spawn_sidecar` to resolve `.venv/Scripts/pythonw.exe` inside `lemgendary-env-manager`, bind the process working directory directly to `../lemgendary-env-manager`, and enforce Windows `CREATE_NO_WINDOW` (0x08000000) flags.
+- **`src/api/client.ts` â€” Transparent Dev Endpoints & Seamless Fallback** â€” Added `startDevService` and `startDevAllServices`. `startService` and `startAllServices` automatically fall back to the Vite dev endpoints whenever Port 8000 is down.
+- **`src/App.tsx` â€” Direct One-Click Cold Boot** â€” `handleStartAllServices` now starts the complete tripartite mesh directly from cold offline state without displaying terminal execution warning banners or requiring manual shell commands. Individual `handleStartService` calls for Environment Manager cleanly boot the orchestrator.
 
-### v2.9.0 — Universal Cross-Platform Windowless Daemon Dispatch
+### v2.9.0 â€” Universal Cross-Platform Windowless Daemon Dispatch
 
-- **Zero Terminal / Shell Window Spawning** — Eliminated all invocation of Windows Command Prompt (`cmd.exe`) and PowerShell (`powershell.exe`). Daemons are executed directly via windowless binary dispatch (`pythonw.exe` with `CREATE_NO_WINDOW` (0x08000000) on Windows, and `.venv/bin/python` with detached sessions on POSIX/Linux/macOS/mobile).
-- **Independent Single Service Controls** — Each "Start Service" button on the ecosystem cards targets and launches strictly its corresponding single service without starting unwanted sidecars or re-running global setup pipelines.
-- **Unified Tauri Native & Dev Bridge** — Integrated `spawn_service` and `spawn_all_services` directly into `src/api/client.ts` with standard `Stdio::null()` redirection and resilient directory discovery across desktop environments.
-- **Clean Error Handling & Telemetry** — Removed shell-specific remediation copy buttons from error banners, providing unified cross-platform diagnostics across Windows, Linux, macOS, Unix, and mobile architectures.
+- **Zero Terminal / Shell Window Spawning** â€” Eliminated all invocation of Windows Command Prompt (`cmd.exe`) and PowerShell (`powershell.exe`). Daemons are executed directly via windowless binary dispatch (`pythonw.exe` with `CREATE_NO_WINDOW` (0x08000000) on Windows, and `.venv/bin/python` with detached sessions on POSIX/Linux/macOS/mobile).
+- **Independent Single Service Controls** â€” Each "Start Service" button on the ecosystem cards targets and launches strictly its corresponding single service without starting unwanted sidecars or re-running global setup pipelines.
+- **Unified Tauri Native & Dev Bridge** â€” Integrated `spawn_service` and `spawn_all_services` directly into `src/api/client.ts` with standard `Stdio::null()` redirection and resilient directory discovery across desktop environments.
+- **Clean Error Handling & Telemetry** â€” Removed shell-specific remediation copy buttons from error banners, providing unified cross-platform diagnostics across Windows, Linux, macOS, Unix, and mobile architectures.
 
-### v3.0.0 — Modern Telemetry Progress Architecture & Stream Governance
+### v3.0.0 â€” Modern Telemetry Progress Architecture & Stream Governance
 
-- **Accessible Radix UI Progress Engine** — Integrated `@radix-ui/react-progress` installed and managed via `lemgendary-env-manager`, providing 100% WAI-ARIA accessible (`role="progressbar"`), zero-runtime overhead progress bars with hardware-accelerated CSS animations.
-- **Two-Line Progress Architecture** — Enforced universal two-line progress tracking across all components:
+- **Accessible Radix UI Progress Engine** â€” Integrated `@radix-ui/react-progress` installed and managed via `lemgendary-env-manager`, providing 100% WAI-ARIA accessible (`role="progressbar"`), zero-runtime overhead progress bars with hardware-accelerated CSS animations.
+- **Two-Line Progress Architecture** â€” Enforced universal two-line progress tracking across all components:
   - **Line 1 (Unconstrained Operational Metrics)**: Operation title, target name, percentage, transfer size / epoch count, transfer rate, and ETA cleanly spaced without text clipping or truncation.
   - **Line 2 (Visual Progress Bar Only)**: Full-width glowing gradient progress bar with cyber-cyan / emerald theme and dynamic pulse indicators.
-- **Clean Telemetry Output & Zero-Clutter Stream De-duplication** — Consecutive progress tick updates for active operations are rolled up in-place, preventing terminal scrolling flood while preserving discrete step start, milestone, artifact generation, and completion logs.
-- **Multi-Subsystem Stream Isolation** — Strictly segregated Dataset Compiler (`[Compiler]`), Local GPU Training (`[Local]`), and Remote Cloud Training (`[Cloud]`) streams across dedicated panels.
-- **Zero Warnings Root Cause Enforcement** — Resolved PyTorch non-writable tensor warning in `forex_dataset.py` by implementing `_safe_from_numpy(arr)` with buffer writeability checks, strictly prohibiting warning suppression or silencing.
+- **Clean Telemetry Output & Zero-Clutter Stream De-duplication** â€” Consecutive progress tick updates for active operations are rolled up in-place, preventing terminal scrolling flood while preserving discrete step start, milestone, artifact generation, and completion logs.
+- **Multi-Subsystem Stream Isolation** â€” Strictly segregated Dataset Compiler (`[Compiler]`), Local GPU Training (`[Local]`), and Remote Cloud Training (`[Cloud]`) streams across dedicated panels.
+- **Zero Warnings Root Cause Enforcement** â€” Resolved PyTorch non-writable tensor warning in `forex_dataset.py` by implementing `_safe_from_numpy(arr)` with buffer writeability checks, strictly prohibiting warning suppression or silencing.
 
-### v3.1.0 — Centralized Mesh Service Configuration, Telemetry Roll-Up & Progress Stream Governance
+### v3.1.0 â€” Centralized Mesh Service Configuration, Telemetry Roll-Up & Progress Stream Governance
 
-- **Dynamic Mesh Configuration (`src/api/config.ts`)** — Centralized all tripartite sidecar endpoints into a typed single source of truth (`MESH_SERVICES`). Supports custom environment variables (`VITE_ENV_MANAGER_URL`, `VITE_DATASET_COMPILER_URL`, `VITE_TRAINING_SUITE_URL`) and automatic HTTP/HTTPS to WS/WSS protocol translation via `toWebSocketUrl()`.
-- **Elimination of Hardcoded Ports & Localhost Presumptions** — Removed hardcoded port numbers (`8000`, `8100`, `8200`) and URLs across `src/api/client.ts`, `src/App.tsx`, `StatusBar.tsx`, and `ServiceTiles.tsx`. Services can now reside on custom local ports, intranet hostnames, container networks, or remote cloud HTTPS/WSS URLs without frontend code changes.
-- **Protocol-Agnostic Origin Routing** — Shifted telemetry stream classification (`isLocalTrainingEvent`, `isCompilerEvent`) to rely purely on connection identity (`ev.origin`) rather than brittle port number or regex guessing, preventing stream cross-contamination regardless of network deployment topology.
-- **Single-Line In-Place Telemetry Roll-Up (`rollupTelemetryEvents`)** — Consecutive training batch progress lines (`[BATCH ...]`) and transient transfer ticks (`\r`) now update strictly in a single in-place line at the terminal cursor instead of flooding dozens of scroll lines, while preserving all discrete operational milestones, intra-epoch checkpoint saves, errors, and warnings in terminal history.
-- **Progress Tracker Metric & Badge Deduplication (`progressParser.ts`, `TelemetryProgressTracker.tsx`)** — Fixed duplicate percentage badge rendering where candidate percentages were mistakenly parsed as dataset targets. Prevented rate (`MB/s`) and ETA metric duplication when stats are already present in bracket descriptors.
-- **Documentation Synchronization** — Fully updated and synchronized `MANUAL_AI_STUDIO_GUI.md` / `ai-studio-manual.html` and `PAPER_AI_STUDIO_GUI.md` / `ai-studio-whitepaper.html` with 36/36 automated validation gates passed.
+- **Dynamic Mesh Configuration (`src/api/config.ts`)** â€” Centralized all tripartite sidecar endpoints into a typed single source of truth (`MESH_SERVICES`). Supports custom environment variables (`VITE_ENV_MANAGER_URL`, `VITE_DATASET_COMPILER_URL`, `VITE_TRAINING_SUITE_URL`) and automatic HTTP/HTTPS to WS/WSS protocol translation via `toWebSocketUrl()`.
+- **Elimination of Hardcoded Ports & Localhost Presumptions** â€” Removed hardcoded port numbers (`8000`, `8100`, `8200`) and URLs across `src/api/client.ts`, `src/App.tsx`, `StatusBar.tsx`, and `ServiceTiles.tsx`. Services can now reside on custom local ports, intranet hostnames, container networks, or remote cloud HTTPS/WSS URLs without frontend code changes.
+- **Protocol-Agnostic Origin Routing** â€” Shifted telemetry stream classification (`isLocalTrainingEvent`, `isCompilerEvent`) to rely purely on connection identity (`ev.origin`) rather than brittle port number or regex guessing, preventing stream cross-contamination regardless of network deployment topology.
+- **Single-Line In-Place Telemetry Roll-Up (`rollupTelemetryEvents`)** â€” Consecutive training batch progress lines (`[BATCH ...]`) and transient transfer ticks (`\r`) now update strictly in a single in-place line at the terminal cursor instead of flooding dozens of scroll lines, while preserving all discrete operational milestones, intra-epoch checkpoint saves, errors, and warnings in terminal history.
+- **Progress Tracker Metric & Badge Deduplication (`progressParser.ts`, `TelemetryProgressTracker.tsx`)** â€” Fixed duplicate percentage badge rendering where candidate percentages were mistakenly parsed as dataset targets. Prevented rate (`MB/s`) and ETA metric duplication when stats are already present in bracket descriptors.
+- **Documentation Synchronization** â€” Fully updated and synchronized `MANUAL_AI_STUDIO_GUI.md` / `ai-studio-manual.html` and `PAPER_AI_STUDIO_GUI.md` / `ai-studio-whitepaper.html` with 36/36 automated validation gates passed.
 
-### v3.2.0 — Real-Time Validation Batch Telemetry, Emerald Progress State & Stream Sync
+### v3.2.0 â€” Real-Time Validation Batch Telemetry, Emerald Progress State & Stream Sync
 
-- **`src/utils/progressParser.ts` — Validation Batch Progression Parsing** — Extended `BATCH_RATIO_REGEX` to match `/(?:VAL\s+)?BATCH\s+(\d+)\/(\d+)/i`. Detects validation passes from `[VAL BATCH ...]` or `ValLoss` metrics, assigns operation `VALIDATION`, targets `Val Batch X/Y`, and extracts iteration throughput rate (`it/s`) and projected ETA.
-- **`src/components/common/TelemetryProgressTracker.tsx` — Dynamic Emerald Validation Theme** — Added dedicated emerald accent styling (`var(--accent-emerald, #00ff88)`) and high-contrast green-to-cyan gradient for the `VALIDATION` operation, giving the operator instant visual confirmation when an epoch transitions from the purple training bar to evaluation.
-- **`src/api/client.ts` — In-Place Validation Stream Roll-Up** — Extended `isProgressLine` batch progression detection to recognize `[VAL BATCH ...]`, rolling up consecutive validation progress ticks in-place without terminal scroll churn.
-- **`src/components/common/__tests__/TelemetryProgressTracker.test.tsx` — Test Coverage** — Added comprehensive test cases verifying validation batch ratio extraction, percentage calculation, operation classification, and rendered ARIA progress bar components. All 19 tests passing with 0 errors.
+- **`src/utils/progressParser.ts` â€” Validation Batch Progression Parsing** â€” Extended `BATCH_RATIO_REGEX` to match `/(?:VAL\s+)?BATCH\s+(\d+)\/(\d+)/i`. Detects validation passes from `[VAL BATCH ...]` or `ValLoss` metrics, assigns operation `VALIDATION`, targets `Val Batch X/Y`, and extracts iteration throughput rate (`it/s`) and projected ETA.
+- **`src/components/common/TelemetryProgressTracker.tsx` â€” Dynamic Emerald Validation Theme** â€” Added dedicated emerald accent styling (`var(--accent-emerald, #00ff88)`) and high-contrast green-to-cyan gradient for the `VALIDATION` operation, giving the operator instant visual confirmation when an epoch transitions from the purple training bar to evaluation.
+- **`src/api/client.ts` â€” In-Place Validation Stream Roll-Up** â€” Extended `isProgressLine` batch progression detection to recognize `[VAL BATCH ...]`, rolling up consecutive validation progress ticks in-place without terminal scroll churn.
+- **`src/components/common/__tests__/TelemetryProgressTracker.test.tsx` â€” Test Coverage** â€” Added comprehensive test cases verifying validation batch ratio extraction, percentage calculation, operation classification, and rendered ARIA progress bar components. All 19 tests passing with 0 errors.
 
-### v3.3.0 — Progress Tracker Real-Time Synchronization & Kaggle Extraction Pipeline Support
+### v3.3.0 â€” Progress Tracker Real-Time Synchronization & Kaggle Extraction Pipeline Support
 
-- **`src/components/LogPanel.tsx` & `src/components/training/TelemetryConsole.tsx` — Progress Bar Lag & Stale Fallback Elimination** — Removed the sub-100% conditional filter (`percentage < 100`) from the active progress event picker. The progress tracker now immediately returns the most recent parsed progress event in the event buffer, preventing the bar from skipping 100% completion ticks and falling back to older sub-100% states.
-- **`src/utils/progressParser.ts` — Kaggle Server-Side Extraction Parsing** — Extended operation and keyword detection to support `KAGGLE EXTRACTION` and `EXTRACTION:`. Properly assigns `source: "compiler"`, operation `KAGGLE EXTRACTION`, extracts target manifold names, numeric extraction stats, and percentage completion.
-- **`src/api/client.ts` — Stage Progress Detection** — Extended `isProgressLine` to recognize `KAGGLE EXTRACTION` and `EXTRACTION:` lines as live progress events for roll-up and tracking.
-- **Unit Test Coverage** — Added unit tests verifying Kaggle extraction progress parsing and 100% completion handling with 21/21 passing tests.
+- **`src/components/LogPanel.tsx` & `src/components/training/TelemetryConsole.tsx` â€” Progress Bar Lag & Stale Fallback Elimination** â€” Removed the sub-100% conditional filter (`percentage < 100`) from the active progress event picker. The progress tracker now immediately returns the most recent parsed progress event in the event buffer, preventing the bar from skipping 100% completion ticks and falling back to older sub-100% states.
+- **`src/utils/progressParser.ts` â€” Kaggle Server-Side Extraction Parsing** â€” Extended operation and keyword detection to support `KAGGLE EXTRACTION` and `EXTRACTION:`. Properly assigns `source: "compiler"`, operation `KAGGLE EXTRACTION`, extracts target manifold names, numeric extraction stats, and percentage completion.
+- **`src/api/client.ts` â€” Stage Progress Detection** â€” Extended `isProgressLine` to recognize `KAGGLE EXTRACTION` and `EXTRACTION:` lines as live progress events for roll-up and tracking.
+- **Unit Test Coverage** â€” Added unit tests verifying Kaggle extraction progress parsing and 100% completion handling with 21/21 passing tests.
 
-### v3.4.0 — Real-Time Requirements Installation Progress Bar & Pipeline Telemetry
+### v3.4.0 â€” Real-Time Requirements Installation Progress Bar & Pipeline Telemetry
 
-- **`src/utils/progressParser.ts` — Package & Requirement Progression Parsing** — Added `REQ_RATIO_REGEX` (`/(\d+)\/(\d+)\s+requirements/i`) and `SIZE_RATIO_REGEX` (`/(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*\/\s*(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i`). Detects requirement installation (`INSTALLING:`, `PACKAGE INSTALLATION`, `requirements for`) and wheel downloads (`DOWNLOADING:`), accurately calculating percentage, current package target, download throughput, and ETA.
-- **`src/components/common/TelemetryProgressTracker.tsx` — Amber Pipeline Progress Theme** — Added dedicated high-contrast amber accent (`var(--accent-amber, #ffd166)`) and glowing gold-to-cyan gradient (`linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)`) for pipeline operations, providing immediate visual feedback and indeterminate in-flight progress when installations begin.
-- **`src/components/PipelineStepCards.tsx` — Active Step Card Progress Indicator** — Added responsive visual progress bar to running pipeline step cards during active execution.
-- **`src/api/client.ts` — Package Installation Telemetry Stream Roll-Up** — Updated `isProgressLine` to recognize live requirement ticks (`INSTALLING:`, `DOWNLOADING:`, `RESOLVING:`, `Collecting`, `Requirement already satisfied:`), ensuring real-time in-place progress roll-up without terminal clutter.
-- **Unit Test Coverage** — Added unit tests verifying requirement installation parsing, wheel download transfer metrics, and indeterminate in-flight progress rendering.
+- **`src/utils/progressParser.ts` â€” Package & Requirement Progression Parsing** â€” Added `REQ_RATIO_REGEX` (`/(\d+)\/(\d+)\s+requirements/i`) and `SIZE_RATIO_REGEX` (`/(\d+(?:\.\d+)?)\s*([KMGT]?B)?\s*\/\s*(\d+(?:\.\d+)?)\s*([KMGT]?B)?/i`). Detects requirement installation (`INSTALLING:`, `PACKAGE INSTALLATION`, `requirements for`) and wheel downloads (`DOWNLOADING:`), accurately calculating percentage, current package target, download throughput, and ETA.
+- **`src/components/common/TelemetryProgressTracker.tsx` â€” Amber Pipeline Progress Theme** â€” Added dedicated high-contrast amber accent (`var(--accent-amber, #ffd166)`) and glowing gold-to-cyan gradient (`linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)`) for pipeline operations, providing immediate visual feedback and indeterminate in-flight progress when installations begin.
+- **`src/components/PipelineStepCards.tsx` â€” Active Step Card Progress Indicator** â€” Added responsive visual progress bar to running pipeline step cards during active execution.
+- **`src/api/client.ts` â€” Package Installation Telemetry Stream Roll-Up** â€” Updated `isProgressLine` to recognize live requirement ticks (`INSTALLING:`, `DOWNLOADING:`, `RESOLVING:`, `Collecting`, `Requirement already satisfied:`), ensuring real-time in-place progress roll-up without terminal clutter.
+- **Unit Test Coverage** â€” Added unit tests verifying requirement installation parsing, wheel download transfer metrics, and indeterminate in-flight progress rendering.
 
-### v3.5.0 — Ultralytics / TQDM Progress Stream Parsing & Dynamic ETA Extraction
+### v3.5.0 â€” Ultralytics / TQDM Progress Stream Parsing & Dynamic ETA Extraction
 
-- **`src/utils/progressParser.ts` — TQDM / Ultralytics `<remaining` ETA Syntax Parser** — Extended ETA regex matching to support standard tqdm and Ultralytics console telemetry formats (`elapsed<remaining`, e.g., `00:15<01:29:22` or `01:22<02:45`). Accurately extracts the remaining duration (`01:29:22`) directly into the progress tracker state as ETA.
-- **`src/utils/progressParser.ts` — Timestamp Prefix Stripping & Clean Operation Extraction** — Added stripping for leading log timestamp prefixes (such as `11:11:36 PM` or ISO formats) and guarded candidate operation strings against pure numeric or clock-like tokens (`!/^\d+$/` and `!/^\d+:\d+/`). Ensures YOLO and vision training streams cleanly resolve to operation `TRAINING` rather than time tokens.
-- **Unit Test Coverage (`TelemetryProgressTracker.test.tsx`)** — Added unit tests verifying Ultralytics YOLO progress parsing with epoch ratios, percentage calculation, ETA extraction from `<remaining` strings, and ARIA progress bar rendering. All 14 test suites passing cleanly.
+- **`src/utils/progressParser.ts` â€” TQDM / Ultralytics `<remaining` ETA Syntax Parser** â€” Extended ETA regex matching to support standard tqdm and Ultralytics console telemetry formats (`elapsed<remaining`, e.g., `00:15<01:29:22` or `01:22<02:45`). Accurately extracts the remaining duration (`01:29:22`) directly into the progress tracker state as ETA.
+- **`src/utils/progressParser.ts` â€” Timestamp Prefix Stripping & Clean Operation Extraction** â€” Added stripping for leading log timestamp prefixes (such as `11:11:36 PM` or ISO formats) and guarded candidate operation strings against pure numeric or clock-like tokens (`!/^\d+$/` and `!/^\d+:\d+/`). Ensures YOLO and vision training streams cleanly resolve to operation `TRAINING` rather than time tokens.
+- **Unit Test Coverage (`TelemetryProgressTracker.test.tsx`)** â€” Added unit tests verifying Ultralytics YOLO progress parsing with epoch ratios, percentage calculation, ETA extraction from `<remaining` strings, and ARIA progress bar rendering. All 14 test suites passing cleanly.
 
-### v3.6.0 — Bidirectional Ecosystem Sidecar Lifecycle Controls & Service Termination
+### v3.6.0 â€” Bidirectional Ecosystem Sidecar Lifecycle Controls & Service Termination
 
-- **`src/components/ServiceTiles.tsx` — Stop Service Control Action Buttons** — Added bidirectional daemon management to ecosystem sidecar cards. When a service is active (`ONLINE`), cards now display a high-contrast danger action button (`btn btn-danger`, "Stop Service" / "Stopping Service..."), enabling operators to cleanly terminate sidecars directly from the dashboard without shell interaction or terminal commands.
-- **`src/App.tsx` — Non-Blocking Stop Handler & Mesh Re-Verification** — Integrated `handleStopService`, executing `stopService(serviceId)` via `POST /api/services/{service_id}/stop` and polling the mesh status loop to confirm clean offline state before updating UI tiles.
-- **`src/api/client.ts` — Full Client Support** — Bound `stopService` cleanly with error handling, status reporting, and typed parameters.
+- **`src/components/ServiceTiles.tsx` â€” Stop Service Control Action Buttons** â€” Added bidirectional daemon management to ecosystem sidecar cards. When a service is active (`ONLINE`), cards now display a high-contrast danger action button (`btn btn-danger`, "Stop Service" / "Stopping Service..."), enabling operators to cleanly terminate sidecars directly from the dashboard without shell interaction or terminal commands.
+- **`src/App.tsx` â€” Non-Blocking Stop Handler & Mesh Re-Verification** â€” Integrated `handleStopService`, executing `stopService(serviceId)` via `POST /api/services/{service_id}/stop` and polling the mesh status loop to confirm clean offline state before updating UI tiles.
+- **`src/api/client.ts` â€” Full Client Support** â€” Bound `stopService` cleanly with error handling, status reporting, and typed parameters.
 
-### v3.7.0 — Training Panel State Collision Isolation & Fleet Job Filtering
+### v3.7.0 â€” Training Panel State Collision Isolation & Fleet Job Filtering
 
-- **`src/components/TrainingPanel.tsx` — Local Training State Isolation** — Resolved state collision where clicking **"Push Model"**, **"Pull Model"**, or **"Push Fleet to Kaggle"** clobbered the active `localJob` in Zustand (`useStudioStore`). Preserved `localJob` exclusively for active local PyTorch training sessions, preventing remote/background tasks from hijacking model card indicators, "Stop Training" buttons, or the local telemetry stream.
-- **`src/components/TrainingPanel.tsx` — Active Training Job Filtering** — Hardened the startup running-job query to filter specifically for `j.job_type === "train"`, ensuring that concurrent background tasks (such as Kaggle pushes, pulls, or exports) registered in the persistent database do not falsely trigger local training UI state on panel load.
+- **`src/components/TrainingPanel.tsx` â€” Local Training State Isolation** â€” Resolved state collision where clicking **"Push Model"**, **"Pull Model"**, or **"Push Fleet to Kaggle"** clobbered the active `localJob` in Zustand (`useStudioStore`). Preserved `localJob` exclusively for active local PyTorch training sessions, preventing remote/background tasks from hijacking model card indicators, "Stop Training" buttons, or the local telemetry stream.
+- **`src/components/TrainingPanel.tsx` â€” Active Training Job Filtering** â€” Hardened the startup running-job query to filter specifically for `j.job_type === "train"`, ensuring that concurrent background tasks (such as Kaggle pushes, pulls, or exports) registered in the persistent database do not falsely trigger local training UI state on panel load.
