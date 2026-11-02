@@ -123,6 +123,11 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.6 - Pipeline Step 5 Safe Dependency Upgrade Alignment
+
+- **Pipeline Step Cards Telemetry Description (`src/components/PipelineStepCards.tsx`)**:
+  - Updated Step 5 ("Dependency Audit & Upgrades") card descriptions to reflect active bottom-up safe upgrade execution.
+
 ### v2.10.5 - Test & Diagnostic Orchestrator Modal & Ecosystem Verification
 
 - **Test & Diagnostic Orchestrator Modal (`src/components/TestModal.tsx`)**:

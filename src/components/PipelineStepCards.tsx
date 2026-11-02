@@ -37,8 +37,8 @@ export const PIPELINE_STEPS: PipelineStepDefinition[] = [
   {
     num: 5,
     name: "Dependency Audit & Upgrades",
-    shortDesc: "Audits outdated packages, detects version drift, and executes dry-run dependency checks.",
-    detailedDesc: "Scans installed packages against PyPI and npm registries, identifies cross-project version skew, and classifies safe non-breaking semver upgrade candidates.",
+    shortDesc: "Audits outdated packages, detects version drift, and applies safe non-breaking upgrades.",
+    detailedDesc: "Scans installed packages against PyPI and npm registries, verifies reverse-dependency constraints, and applies verified safe semver upgrades.",
   },
   {
     num: 6,
