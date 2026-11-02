@@ -14,8 +14,6 @@ export interface TrainingToolbarProps {
   uniqueArchitectures: { arch: string; count: number }[];
   onResetFilters: () => void;
   trainingSuiteOnline: boolean;
-  isUnitTestRunning: boolean;
-  onRunUnitTestAll: () => void;
   isGeneratingAllNotebooks: boolean;
   onGenerateAllNotebooks: () => void;
   isPushingAllKaggle: boolean;
@@ -39,8 +37,6 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
   uniqueArchitectures,
   onResetFilters,
   trainingSuiteOnline,
-  isUnitTestRunning,
-  onRunUnitTestAll,
   isGeneratingAllNotebooks,
   onGenerateAllNotebooks,
   isPushingAllKaggle,
@@ -76,18 +72,6 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            id="train-btn-unit-test-all"
-            className="btn btn-secondary"
-            onClick={onRunUnitTestAll}
-            disabled={isUnitTestRunning || !trainingSuiteOnline}
-            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-            title="Execute non-blocking unit test discovery sweep across all model architectures"
-          >
-            <span>{isUnitTestRunning ? "Testing Registry..." : "Unit Test All Models"}</span>
-          </button>
-
           <button
             type="button"
             id="train-btn-generate-all-notebooks"

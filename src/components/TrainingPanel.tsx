@@ -16,7 +16,6 @@ import {
   pushKaggleModelArtifacts,
   fetchLiveModelTelemetry,
   generateNotebooks,
-  triggerUnitTestAll,
   triggerModelEvaluate,
   triggerModelExport,
   generateAllNotebooks,
@@ -63,7 +62,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
-  const [isUnitTestRunning, setIsUnitTestRunning] = useState<boolean>(false);
   const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
   const [isPushingAllKaggle, setIsPushingAllKaggle] = useState<boolean>(false);
 
@@ -428,19 +426,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
   };
 
-  const handleRunUnitTestAll = async () => {
-    setIsUnitTestRunning(true);
-    try {
-      const res = await triggerUnitTestAll({ epochs: 1, env: "local", force: false });
-      setStatusNotice(`Fleet diagnostic pass dispatched (Job ID: ${res.job_id}).`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Unit test suite execution failed: ${msg}`);
-    } finally {
-      setIsUnitTestRunning(false);
-    }
-  };
-
   const handlePushAllKaggle = async () => {
     setIsPushingAllKaggle(true);
     setActiveTelemetryTab("local");
@@ -533,8 +518,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           setArchFilter("ALL");
         }}
         trainingSuiteOnline={trainingSuiteOnline}
-        isUnitTestRunning={isUnitTestRunning}
-        onRunUnitTestAll={handleRunUnitTestAll}
         isGeneratingAllNotebooks={isGeneratingAllNotebooks}
         onGenerateAllNotebooks={handleGenerateAllNotebooks}
         isPushingAllKaggle={isPushingAllKaggle}

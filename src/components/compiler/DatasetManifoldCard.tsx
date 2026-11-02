@@ -96,7 +96,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
 
         <div className="metric-row">
           <span className="metric-label">Disk Footprint</span>
-          <span className="metric-value">{(d.total_size_mb / 1024).toFixed(1)} GB</span>
+          <span className="metric-value">{d.total_size_mb < 100 ? `${d.total_size_mb.toFixed(1)} MB` : `${(d.total_size_mb / 1024).toFixed(1)} GB`}</span>
         </div>
 
         <div className="metric-row">

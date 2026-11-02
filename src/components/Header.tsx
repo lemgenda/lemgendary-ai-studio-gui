@@ -6,7 +6,6 @@ interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   onOpenConfigEditor?: () => void;
-  onOpenTestModal?: () => void;
   envManagerOnline: boolean;
 }
 
@@ -15,7 +14,6 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   isRefreshing,
   onOpenConfigEditor,
-  onOpenTestModal,
   envManagerOnline,
 }) => {
   const handleOpenDocs = () => {
@@ -31,20 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        {onOpenTestModal && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <button
-              type="button"
-              id="header-btn-test-modal"
-              className="btn btn-secondary"
-              onClick={onOpenTestModal}
-              aria-label="Open Fleet and Unit Test Orchestration Modal"
-            >
-              Run Tests
-            </button>
-            <HelpTooltip content="Test Orchestrator: Execute 1-epoch fleet diagnostic smoke tests across all 23 neural models, or run in-process unit test suites for Training and Datasets." />
-          </div>
-        )}
         {onOpenConfigEditor && (
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <button

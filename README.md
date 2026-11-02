@@ -123,6 +123,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.7 - Stop Service Unlocking, UI Test Button Cleanup & Manifold Footprint
+
+- **Tripartite Sidecar Stop Service Activation (`src/components/ServiceTiles.tsx`)**:
+  - Restored active 'Stop Service' danger action button on the LemGendary Environment Manager card (port 8000), allowing operators to stop any of the three ecosystem sidecars directly from the GUI.
+- **Top Header & Toolbar Test Button Elimination (`src/components/Header.tsx`, `src/components/training/TrainingToolbar.tsx`, `src/components/TrainingPanel.tsx`)**:
+  - Completely removed the 'Run Tests' button and associated tooltip from the top navigation header bar across all panels.
+  - Completely removed the 'Unit Test All Models' button and its props from the Model Training toolbar.
+- **Dynamic Manifold Disk Footprint Formatting (`src/components/compiler/DatasetManifoldCard.tsx`)**:
+  - Enhanced disk footprint formatting to automatically render in MB for lightweight instruction and tabular datasets under 100 MB (`2.9 MB`) rather than rounding down to `0.0 GB`.
+
 ### v2.10.6 - Pipeline Step 5 Safe Dependency Upgrade Alignment
 
 - **Pipeline Step Cards Telemetry Description (`src/components/PipelineStepCards.tsx`)**:
