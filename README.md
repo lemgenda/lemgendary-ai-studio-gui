@@ -123,6 +123,19 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.5 - Test & Diagnostic Orchestrator Modal & Ecosystem Verification
+
+- **Test & Diagnostic Orchestrator Modal (`src/components/TestModal.tsx`)**:
+  - Implemented unified test execution modal accessible from the top navigation bar header (`#header-btn-test-modal`).
+  - Added 3 interactive test orchestration tabs:
+    1. **Fleet 1-Epoch Smoke Test**: Dispatches diagnostic smoke passes across all 23 neural architectures (`POST /api/training/unit-test-all`).
+    2. **Training Suite Unit Tests**: Executes in-process unit test battery covering models, loss functions, SOTA tracking, and universal causal LLMs (`POST /api/training/unit-test-run`).
+    3. **Dataset Compiler Tests**: Executes in-process unit test battery validating knowledge ingestion, chunking, QualityValidator invariants, and manifold metadata generation (`POST /api/llm/test-suite`).
+  - Integrated real-time log output console, live status indicators, test pass/fail metrics, and responsive execution cancellation.
+- **Bijective Documentation Synchronization**:
+  - Synchronized `MANUAL_AI_STUDIO_GUI.md` (Section 3.4), `PAPER_AI_STUDIO_GUI.md` (Section 6.6), `ai-studio-manual.html`, and `ai-studio-whitepaper.html`.
+  - Registered all 8 interactive test controls in `GUI_CONTROL_REGISTRY.md` and companion publication `gui-control-registry.html`.
+
 ### v2.10.4 — Pareto Model Soup Client Integration & Documentation Parity
 
 - **Pareto Model Soup Client (`src/api/client.ts`)** — Added typed `blendModelSoup(modelKey)` client method communicating with `POST /api/models/{model_key}/soup` on the Training Suite sidecar (port 8200) for on-disk blending of multi-objective Pareto vault checkpoints (`vault_psnr.pth`, `vault_lpips.pth`, etc.).

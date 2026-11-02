@@ -11,6 +11,7 @@ import { StatusBar } from "./components/StatusBar";
 import { CompilerPanel } from "./components/CompilerPanel";
 import { TrainingPanel } from "./components/TrainingPanel";
 import { ConfigEditorModal } from "./components/ConfigEditorModal";
+import { TestModal } from "./components/TestModal";
 import { ServiceTiles } from "./components/ServiceTiles";
 import { HelpTooltip } from "./components/HelpTooltip";
 import { PipelineStepCards } from "./components/PipelineStepCards";
@@ -55,12 +56,14 @@ export const App: React.FC = () => {
   const setWsConnected = useStudioStore((s) => s.setWsConnected);
   const meshStatus = useStudioStore((s) => s.meshStatus);
   const setMeshStatus = useStudioStore((s) => s.setMeshStatus);
+  const addTelemetryLog = useStudioStore((s) => s.addTelemetryLog);
 
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const runningSingleStepRef = useRef<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const initialModal = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("modal") : null;
   const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(initialModal === "config" || initialModal === "secrets");
+  const [isTestModalOpen, setIsTestModalOpen] = useState<boolean>(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
@@ -396,6 +399,7 @@ export const App: React.FC = () => {
           onRefresh={loadData}
           isRefreshing={isRefreshing}
           onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+          onOpenTestModal={() => setIsTestModalOpen(true)}
           envManagerOnline={meshStatus.envManager}
         />
 
@@ -596,6 +600,13 @@ export const App: React.FC = () => {
       <ConfigEditorModal
         isOpen={isConfigEditorOpen}
         onClose={() => setIsConfigEditorOpen(false)}
+      />
+      <TestModal
+        isOpen={isTestModalOpen}
+        onClose={() => setIsTestModalOpen(false)}
+        trainingSuiteOnline={meshStatus.trainingSuite}
+        datasetCompilerOnline={meshStatus.datasetCompiler}
+        onLogMessage={addTelemetryLog}
       />
     </div>
   );
