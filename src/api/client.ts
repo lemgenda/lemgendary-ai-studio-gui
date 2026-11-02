@@ -180,10 +180,11 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
   try {
     let url: string;
     if (typeof target === "string" && target in MESH_SERVICES) {
-      url = `${MESH_SERVICES[target].httpUrl}/api/health`;
+      const service = MESH_SERVICES[target];
+      url = `${service.httpUrl}${service.livenessPath}`;
     } else {
       const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
-      url = match ? `${match.httpUrl}/api/health` : `http://127.0.0.1:${target}/api/health`;
+      url = match ? `${match.httpUrl}${match.livenessPath}` : `http://127.0.0.1:${target}/api/health`;
     }
     const res = await sidecarFetch(url, {
       method: "GET",
@@ -291,14 +292,34 @@ export async function startAllServices(): Promise<{ results: Record<string, Serv
   }
 }
 
-export async function triggerSafeUpdate(dryRun: boolean = false): Promise<{ status: string; events?: unknown[]; plan?: unknown }> {
+export interface SafeUpdateResponse {
+  /** "accepted" (background job started), "dry_run" or "up_to_date". */
+  status: string;
+  message?: string;
+  job_id?: string;
+  project?: string | null;
+  events?: unknown[];
+  plan?: unknown;
+}
+
+/**
+ * Start a safe package update. A real run returns at once with a job id;
+ * progress arrives over the env-manager WebSocket. 409 means an update or the
+ * pipeline is already running.
+ */
+export async function triggerSafeUpdate(
+  dryRun: boolean = false,
+  project?: string
+): Promise<SafeUpdateResponse> {
   const resp = await sidecarFetch(`${ENV_BASE}/api/update`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dry_run: dryRun }),
+    body: JSON.stringify({ dry_run: dryRun, project: project ?? null }),
   });
   if (!resp.ok) {
-    throw new Error(`Safe package update failed: ${resp.status}`);
+    const err = (await resp.json().catch(() => ({}))) as { detail?: unknown };
+    const detail = typeof err.detail === "string" ? err.detail : resp.statusText;
+    throw new Error(`Safe package update failed (${resp.status}): ${detail}`);
   }
   return resp.json();
 }

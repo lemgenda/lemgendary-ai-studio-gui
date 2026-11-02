@@ -16,6 +16,8 @@ export interface MeshServiceConfig {
   httpUrl: string;
   wsUrl: string;
   defaultStep: string;
+  /** Cheap liveness endpoint used by the online probe (never a full audit). */
+  livenessPath: string;
 }
 
 const getEnvVar = (key: string, fallback: string): string => {
@@ -47,6 +49,7 @@ export const MESH_SERVICES: Record<ServiceId, MeshServiceConfig> = {
     httpUrl: ENV_HTTP,
     wsUrl: getEnvVar("VITE_ENV_MANAGER_WS", toWebSocketUrl(ENV_HTTP, "/ws/log")),
     defaultStep: "EnvManager",
+    livenessPath: "/api/ping",
   },
   "dataset-compiler": {
     id: "dataset-compiler",
@@ -55,6 +58,7 @@ export const MESH_SERVICES: Record<ServiceId, MeshServiceConfig> = {
     httpUrl: DATASETS_HTTP,
     wsUrl: getEnvVar("VITE_DATASET_COMPILER_WS", toWebSocketUrl(DATASETS_HTTP, "/api/ws/events")),
     defaultStep: "Compiler",
+    livenessPath: "/api/health",
   },
   "training-suite": {
     id: "training-suite",
@@ -63,5 +67,6 @@ export const MESH_SERVICES: Record<ServiceId, MeshServiceConfig> = {
     httpUrl: TRAINING_HTTP,
     wsUrl: getEnvVar("VITE_TRAINING_SUITE_WS", toWebSocketUrl(TRAINING_HTTP, "/api/ws/logs")),
     defaultStep: "Training",
+    livenessPath: "/api/health",
   },
 };

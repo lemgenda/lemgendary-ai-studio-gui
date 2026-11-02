@@ -57,7 +57,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       setMaintenanceFeedback(
         dryRun
           ? "Safe upgrade dry run complete. See logs for package version diffs."
-          : `Safe package update initiated (Status: ${res.status}).`
+          : res.status === "accepted"
+            ? `Safe package update started in the background (job ${res.job_id ?? "unknown"}). Progress appears in the logs.`
+            : `Safe package update: ${res.status}.`
       );
     } catch (err: unknown) {
       setMaintenanceError(`Safe update failed: ${err instanceof Error ? err.message : String(err)}`);

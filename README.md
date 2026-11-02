@@ -134,6 +134,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.13 - Cheap Liveness Probe and Background Safe Updates
+
+- **Liveness Probe (src/api/config.ts, src/api/client.ts)**: each `MESH_SERVICES` entry now has a `livenessPath`. `probeSidecarPort` probes the env manager on the new constant-time `GET /api/ping` instead of `/api/health`, which runs the full ecosystem audit (winget, DirectML and `pip list` checks) and routinely timed out the 2 s probe (env-manager review finding D-05). The dataset compiler and training suite keep `/api/health`. The Health panel still loads the full audit through `fetchHealth()`.
+- **Background Safe Update (src/api/client.ts, src/components/HealthPanel.tsx)**: `POST /api/update` now starts a background job and returns at once (env-manager review finding D-04). `triggerSafeUpdate(dryRun, project?)` sends `project`, returns the typed `SafeUpdateResponse` with `job_id`, and shows the server `detail` on errors (for example `409` when an update or the pipeline is already running). The Health panel reports the started job; progress arrives in the logs over the WebSocket.
+- **Tests (src/api/__tests__/liveness.test.ts)**: 5 tests for the probe URLs, offline handling, the update request body and the `409` detail.
+
 ### v2.10.12 - Non-Destructive Run Pipeline and Clean Install Confirmation
 
 - **Explicit `clean` Flag (src/api/client.ts, src/App.tsx)**: `triggerPipeline` takes `{ clean, targetProject }` with `clean` required, and `triggerPipelineStep` takes a required `clean` argument. Every entry point sends it explicitly: Run Pipeline, the Environment Manager quick audit, per-project reconcile and single-step runs send `clean: false` (review finding D-03 in the env manager: a plain Run Pipeline click deleted all venvs and `node_modules`).
