@@ -134,6 +134,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.18 - Vite Config Type Check in CI Gate
+
+- **Build Tool Type Check (tsconfig.node.json, package.json)**:
+  - `tsconfig.node.json` now targets `ES2022`, which removes the last `vite.config.ts` type error (TS1501). The review counted 30 errors; earlier steps removed the dev middleware that caused the rest.
+  - `npm run typecheck` now also checks `vite.config.ts` (`tsc -p tsconfig.node.json --noEmit`), so these errors cannot come back unnoticed.
+  - `*.tsbuildinfo` is gitignored.
+
 ### v2.10.17 - Dataset Compiler Contract and Complete Stylesheet
 
 - **Dataset Compiler Contract (src/api/types.ts, src/api/client.ts)**: the GUI now follows `lemgendary-datasets/openapi.json` (review finding DS D-07). Quick-compile sends `model` (was `manifold_key`, rejected with 422) and only the `QuickCompileRequest` fields; the unsupported shard-size and purge controls were removed from the standard form. `GET /api/gui/presets` is parsed as the `{presets: {name: preset}, total}` dict (`parseCompilerPresets`), `GET /api/modernize/queue` as a bare list (`parseModernizationQueue`), and every job route returns `DatasetJobResponse` whose id field is `id` (was read as `job_id`, so job ids showed "Active"). New typed `DatasetJobType` (includes `llm`) and `DatasetJobState`; `ModernizeRunPayload` and `ManifoldReducePayload` carry the server fields (`purge_loose`, `mds_shard_mb`, `max_gb`, `suffix`, fractional `scale`). `fetchCompilerPresets()` and `fetchModernizationQueue()` throw instead of returning `[]`; new `sidecarErrorDetail()` turns FastAPI `detail` strings and 422 lists into readable messages.

@@ -32,3 +32,6 @@ __pycache__/
 .cache/
 scratch/
 Thumbs.db
+
+# TypeScript incremental build info
+*.tsbuildinfo
