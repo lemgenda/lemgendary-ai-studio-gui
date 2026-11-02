@@ -5,15 +5,14 @@ import { CompilerPreset, DatasetItem } from "../../api/types";
 
 export interface DatasetCompilationFormProps {
   datasets: DatasetItem[];
+  /** Presets from the sidecar's presets.yaml; empty while it is offline. */
   presets: CompilerPreset[];
+  /** Why presets could not be loaded, or null. */
+  presetsError: string | null;
   selectedManifold: string;
   onSelectManifold: (key: string) => void;
   selectedPreset: string;
   onSelectPreset: (presetId: string) => void;
-  shardSize: number;
-  onChangeShardSize: (size: number) => void;
-  purgeLooseImages: boolean;
-  onTogglePurgeLooseImages: (purge: boolean) => void;
   isCompiling: boolean;
   compileStatus: string | null;
   onCompile: () => void;
@@ -51,14 +50,11 @@ export interface DatasetCompilationFormProps {
 export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   datasets,
   presets,
+  presetsError,
   selectedManifold,
   onSelectManifold,
   selectedPreset,
   onSelectPreset,
-  shardSize,
-  onChangeShardSize,
-  purgeLooseImages,
-  onTogglePurgeLooseImages,
   isCompiling,
   compileStatus,
   onCompile,
@@ -269,59 +265,8 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
                   disabled={isCompiling}
                   style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
-                  {presets.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  <PresetOptions presets={presets} presetsError={presetsError} />
                 </select>
-              </div>
-
-              <div className="form-group">
-                <label
-                  htmlFor="shard-size-input"
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                    fontWeight: 600,
-                    display: "block",
-                    marginBottom: "4px",
-                  }}
-                >
-                  Shard Size (Samples):
-                </label>
-                <input
-                  id="shard-size-input"
-                  type="number"
-                  className="editor-input"
-                  value={shardSize}
-                  onChange={(e) => onChangeShardSize(Number(e.target.value))}
-                  disabled={isCompiling}
-                  min={100}
-                  max={50000}
-                  style={{ fontSize: "12px", padding: "6px 8px" }}
-                />
-              </div>
-
-              <div
-                className="form-group"
-                style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "22px" }}
-              >
-                <input
-                  id="purge-loose-check"
-                  type="checkbox"
-                  checked={purgeLooseImages}
-                  onChange={(e) => onTogglePurgeLooseImages(e.target.checked)}
-                  disabled={isCompiling}
-                />
-                <label
-                  htmlFor="purge-loose-check"
-                  style={{ fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}
-                >
-                  Purge loose images post-compilation
-                </label>
-                <HelpTooltip content="When enabled, deletes redundant uncompressed loose image files after writing shards to eliminate dual-storage disk amplification." />
               </div>
             </div>
 
@@ -341,7 +286,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
               >
                 {isCompiling ? "Compiling Manifold..." : "Compile Manifold"}
               </button>
-              <HelpTooltip content="Launch multi-threaded compilation. Transcodes samples to lossless WebP, builds container indexes, and purges redundant loose images." />
+              <HelpTooltip content="Launch multi-threaded compilation with the selected presets.yaml profile (image format, quality, vetting and containers)." />
             </div>
 
             {compileStatus && (
@@ -476,11 +421,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
                   disabled={isCustomCompiling}
                   style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
-                  {presets.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  <PresetOptions presets={presets} presetsError={presetsError} />
                 </select>
               </div>
 
@@ -601,3 +542,17 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
     </div>
   );
 };
+
+/** Preset choices: the sidecar default (preset omitted) plus every preset the server reports. */
+const PresetOptions: React.FC<{ presets: CompilerPreset[]; presetsError: string | null }> = ({ presets, presetsError }) => (
+  <>
+    <option value="">
+      {presetsError ? "Server default (preset list unavailable: sidecar offline)" : "Server default (presets.yaml default_preset)"}
+    </option>
+    {presets.map((p) => (
+      <option key={p.name} value={p.name} title={p.description}>
+        {p.title ? `${p.title} (${p.name})` : p.name}
+      </option>
+    ))}
+  </>
+);

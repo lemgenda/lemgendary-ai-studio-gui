@@ -237,21 +237,71 @@ export interface BackendDatasetStats {
   kaggle_ref?: string;
 }
 
+/**
+ * Dataset Compiler sidecar contract (`lemgendary-datasets/openapi.json`).
+ * Field names mirror the server's Pydantic models; the GUI adapts to them.
+ */
+
+/** One preset from `presets.yaml` (`CompilerPresetModel`). */
 export interface CompilerPreset {
-  id: string;
   name: string;
+  title: string;
   description: string;
-  target_format: string;
-  shard_size: number;
-  lossless: boolean;
+  image_format: string;
+  image_quality: number;
+  target_quality?: number | null;
+  mask_format?: string | null;
+  min_resolution?: number | null;
+  resampling?: string | null;
+  vetting_enabled?: boolean;
+  labeling_enabled?: boolean;
+  hardlink_gate?: boolean;
+  containers?: string[];
 }
 
+/** `GET /api/gui/presets` (`PresetListResponse`): presets keyed by name. */
+export interface CompilerPresetListResponse {
+  presets: Record<string, CompilerPreset>;
+  total: number;
+}
+
+/** `POST /api/gui/quick-compile` (`QuickCompileRequest`). Omit `preset` for the server default. */
 export interface QuickCompilePayload {
-  manifold_key: string;
+  model: string;
   preset?: string;
-  target_format?: string;
-  shard_size?: number;
-  purge_loose_images?: boolean;
+  max_gb?: number | null;
+  workers?: number | null;
+}
+
+/** Dataset Compiler job types (`JobType`). */
+export type DatasetJobType =
+  | "compile"
+  | "degrade"
+  | "reduce"
+  | "modernize"
+  | "label"
+  | "prompt"
+  | "mask"
+  | "audit"
+  | "sync"
+  | "custom"
+  | "llm";
+
+/** Dataset Compiler job states (`JobState`). */
+export type DatasetJobState = "pending" | "running" | "completed" | "failed" | "interrupted" | "cancelled";
+
+/** Job record returned by every Dataset Compiler job route (`JobResponse`); the id field is `id`. */
+export interface DatasetJobResponse {
+  id: string;
+  job_type: DatasetJobType;
+  state: DatasetJobState;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  exit_code?: number | null;
+  error_message?: string | null;
+  log_file: string;
+  parameters?: Record<string, unknown>;
 }
 
 export interface KaggleDatasetRegistryItem {
@@ -288,13 +338,14 @@ export interface KaggleUploadPayload {
   no_wait?: boolean;
 }
 
+/** `POST /api/gui/custom-compile` (`CustomCompileRequest`). Omit `preset` for presets.yaml `default_preset`. */
 export interface CustomCompilePayload {
   custom_name: string;
-  task: string;
-  preset: string;
-  canonical_format: string;
-  shard_size: number;
-  sources: string[];
+  task?: string;
+  preset?: string;
+  canonical_format?: string;
+  shard_size?: number;
+  sources?: string[];
   purge_loose_images?: boolean;
 }
 
@@ -442,35 +493,50 @@ export interface KaggleSuiteStatus {
   token_configured: boolean;
 }
 
+/** One entry of `GET /api/modernize/queue`, which returns a bare list (`QueueItemResponse`). */
 export interface ModernizationQueueItem {
-  dataset_key: string;
-  modernized_folder: string;
+  key: string;
+  name: string;
   canonical_format: string;
-  needs_conversion: boolean;
-  needs_push: boolean;
-  status: string;
-  reason: string;
+  modernized_folder: string;
+  kaggle_ref: string;
+  title: string;
+  subtitle: string;
+  is_containerized: boolean;
+  has_loose_files: boolean;
+  container_bytes: number;
+  container_gb: number;
+  status_label: string;
+  source_label: string;
 }
 
-export interface ModernizationQueueResponse {
-  status: string;
-  total_datasets: number;
-  pending_conversions: number;
-  queue: ModernizationQueueItem[];
-}
-
+/** `POST /api/modernize/run` (`ModernizeRunRequest`). */
 export interface ModernizeRunPayload {
-  dataset?: string;
-  workers?: number;
+  datasets?: string[] | null;
+  dataset?: string | null;
+  workers?: number | null;
+  mds_shard_mb?: number | null;
+  purge_loose?: boolean;
   push_kaggle?: boolean;
+  dry_run?: boolean;
   force?: boolean;
+}
+
+/** `POST /api/modernize/reduce` (`ManifoldReduceRequest`); `scale` in (0, 1] is a sample fraction. */
+export interface ManifoldReducePayload {
+  dataset_key?: string | null;
+  manifold?: string | null;
+  scale?: number | null;
+  workers?: number | null;
+  max_gb?: number | null;
+  suffix?: string | null;
   dry_run?: boolean;
 }
 
-export interface ManifoldReducePayload {
-  manifold: string;
-  scale?: number;
-  dry_run?: boolean;
+/** `POST /api/modernize/regenerate-manifolds` response. */
+export interface RegenerateManifoldsResponse {
+  status: string;
+  message: string;
 }
 
 export interface UnitTestAllPayload {

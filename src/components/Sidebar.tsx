@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const isSelected = currentTab === item.id;
           const isOnline = tabSidecarOnline[item.id] ?? false;
           return (
-            <div key={item.id} className="nav-item-wrapper" style={{ display: "flex", alignItems: "center", position: "relative" }}>
+            <div key={item.id} className="nav-item-wrapper">
               <button
                 id={`tab-${item.id}`}
                 type="button"
@@ -105,21 +105,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      <div className="sidebar-brand-footer" style={{ padding: "16px 8px 4px", borderTop: "1px solid var(--border-color)", marginTop: "auto", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <div className="sidebar-brand-footer">
         <a
           href="https://www.lemgenda.hr/"
           target="_blank"
           rel="noopener noreferrer"
           className="sidebar-brand-link"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            padding: "4px 0",
-            background: "transparent",
-            textDecoration: "none",
-          }}
           aria-label="Visit LemGenda Official Website (https://www.lemgenda.hr/)"
         >
           <img

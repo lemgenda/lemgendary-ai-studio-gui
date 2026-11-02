@@ -140,9 +140,9 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
               </tr>
             ) : (
               queueItems.map((item) => (
-                <tr key={item.dataset_key} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <tr key={item.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "8px 10px", fontWeight: 600, color: "var(--text-primary)" }}>
-                    {item.dataset_key}
+                    {item.key}
                   </td>
                   <td style={{ padding: "8px 10px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
                     {item.modernized_folder}
@@ -154,26 +154,20 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
                   </td>
                   <td style={{ padding: "8px 10px" }}>
                     <span
-                      className={`badge ${
-                        item.status === "NEEDS_CONVERSION"
-                          ? "badge-warning"
-                          : item.status === "NEEDS_PUSH"
-                          ? "badge-info"
-                          : "badge-success"
-                      }`}
+                      className={`badge ${queueBadgeClass(item)}`}
                       style={{ fontSize: "10px" }}
                     >
-                      {item.status}
+                      {item.status_label}
                     </span>
                   </td>
                   <td style={{ padding: "8px 10px", color: "var(--text-muted)", fontSize: "11px" }}>
-                    {item.reason}
+                    {item.source_label}
                   </td>
                   <td style={{ padding: "8px 10px", textAlign: "right" }}>
                     <button
                       type="button"
                       className="btn btn-secondary"
-                      onClick={() => onRunModernize(item.dataset_key)}
+                      onClick={() => onRunModernize(item.key)}
                       disabled={isModernizing || !datasetCompilerOnline}
                       style={{ fontSize: "11px", padding: "3px 8px" }}
                     >
@@ -189,3 +183,10 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
     </div>
   );
 };
+
+/** Badge colour from the server's queue flags: packed, pending, or no source at all. */
+function queueBadgeClass(item: ModernizationQueueItem): string {
+  if (item.is_containerized) return "badge-success";
+  if (item.status_label.startsWith("MISSING")) return "badge-error";
+  return "badge-warning";
+}

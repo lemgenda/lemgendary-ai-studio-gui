@@ -5,7 +5,9 @@
 import {
   BackendDatasetStats,
   CompilerPreset,
+  CompilerPresetListResponse,
   CustomCompilePayload,
+  DatasetJobResponse,
   DatasetItem,
   DocsStatusResponse,
   EcosystemSidecarMesh,
@@ -42,8 +44,8 @@ import {
   ModelEvalPayload,
   ModelExportPayload,
   ModernizationQueueItem,
-  ModernizationQueueResponse,
   ModernizeRunPayload,
+  RegenerateManifoldsResponse,
   UnitTestAllPayload,
   UnitTestSuitePayload,
   UnitTestSuiteResult,
@@ -74,8 +76,8 @@ export type {
   ModelEvalPayload,
   ModelExportPayload,
   ModernizationQueueItem,
-  ModernizationQueueResponse,
   ModernizeRunPayload,
+  RegenerateManifoldsResponse,
   UnitTestAllPayload,
   UnitTestSuitePayload,
   UnitTestSuiteResult,
@@ -498,38 +500,73 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
   }
 }
 
-export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
-  try {
-    const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/presets`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.presets || [];
-  } catch {
-    return [];
+/**
+ * Readable message from a sidecar error body: FastAPI `detail` is either a
+ * string (HTTPException) or a list of `{loc, msg}` entries (422 validation).
+ */
+export function sidecarErrorDetail(body: unknown, fallback: string): string {
+  if (typeof body !== "object" || body === null) return fallback;
+  const { detail, message } = body as { detail?: unknown; message?: unknown };
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((entry: unknown) => {
+        if (typeof entry !== "object" || entry === null) return String(entry);
+        const { loc, msg } = entry as { loc?: unknown; msg?: unknown };
+        const where = Array.isArray(loc) ? loc.filter((p) => p !== "body").join(".") : "";
+        return where ? `${where}: ${String(msg)}` : String(msg);
+      })
+      .filter((part) => part.length > 0);
+    if (parts.length > 0) return parts.join("; ");
   }
+  if (typeof message === "string" && message) return message;
+  return fallback;
 }
 
-export async function triggerQuickCompile(payload: QuickCompilePayload): Promise<{ status: string; job_id?: string }> {
-  const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/quick-compile`, {
+/** POST JSON to the Dataset Compiler and return the parsed body; throws with the server's detail on HTTP errors. */
+async function postDatasetJson<T>(path: string, payload: unknown, action: string): Promise<T> {
+  const res = await sidecarFetch(`${DATASETS_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error(`Failed to trigger compilation: ${res.statusText}`);
-  return res.json();
-}
-
-export async function triggerCustomCompile(payload: CustomCompilePayload): Promise<{ status: string; job_id?: string }> {
-  const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/custom-compile`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: payload === undefined ? undefined : JSON.stringify(payload),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to trigger custom compilation: ${res.statusText}`);
+    const body: unknown = await res.json().catch(() => null);
+    throw new Error(sidecarErrorDetail(body, `${action} failed: HTTP ${res.status} ${res.statusText}`.trim()));
   }
-  return res.json();
+  return (await res.json()) as T;
+}
+
+/**
+ * Compiler presets from `presets.yaml` (`GET /api/gui/presets`), sorted by name.
+ * The server returns a dict keyed by preset name; throws when the sidecar is unreachable or answers with an error.
+ */
+export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/presets`);
+  if (!res.ok) {
+    const body: unknown = await res.json().catch(() => null);
+    throw new Error(sidecarErrorDetail(body, `Preset request failed: HTTP ${res.status} ${res.statusText}`.trim()));
+  }
+  return parseCompilerPresets(await res.json());
+}
+
+/** Turn the `PresetListResponse` dict into a list; rejects any other shape. */
+export function parseCompilerPresets(data: unknown): CompilerPreset[] {
+  const presets = (data as Partial<CompilerPresetListResponse> | null)?.presets;
+  if (typeof presets !== "object" || presets === null || Array.isArray(presets)) {
+    throw new Error("Preset response is not the PresetListResponse dict ({presets: {name: preset}, total}).");
+  }
+  return Object.entries(presets)
+    .map(([name, preset]) => ({ ...preset, name: preset.name || name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function triggerQuickCompile(payload: QuickCompilePayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/gui/quick-compile", payload, "Compilation request");
+}
+
+export async function triggerCustomCompile(payload: CustomCompilePayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/gui/custom-compile", payload, "Custom compilation request");
 }
 
 export async function fetchKaggleStatus(): Promise<KaggleStatusResponse> {
@@ -552,31 +589,12 @@ export async function fetchKaggleRegistryDatasets(): Promise<KaggleDatasetRegist
   }
 }
 
-export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Promise<{ status: string; job_id?: string }> {
-  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/download`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to trigger Kaggle download: ${res.statusText}`);
-  }
-  return res.json();
+export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/kaggle/download", payload, "Kaggle download request");
 }
 
-export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<{ status: string; job_id?: string; id?: string }> {
-  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/upload`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to trigger Kaggle upload: ${res.statusText}`);
-  }
-  const data = await res.json();
-  return { ...data, status: data.status || "ok", job_id: data.job_id || data.id };
+export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/kaggle/upload", payload, "Kaggle upload request");
 }
 
 export interface KaggleMetadataPayload {
@@ -585,64 +603,42 @@ export interface KaggleMetadataPayload {
   all_datasets?: boolean;
 }
 
-export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<{ status: string; job_id?: string; id?: string }> {
-  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/update-metadata`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to trigger metadata update: ${res.statusText}`);
-  }
-  const data = await res.json();
-  return { ...data, status: data.status || "ok", job_id: data.job_id || data.id };
+export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/kaggle/update-metadata", payload, "Kaggle metadata update");
 }
 
-export async function updateAllKaggleMetadata(): Promise<{ status: string; job_id?: string; id?: string }> {
+export async function updateAllKaggleMetadata(): Promise<DatasetJobResponse> {
   return updateKaggleMetadata({ all_datasets: true });
 }
 
-export async function fetchModernizationQueue(): Promise<ModernizationQueueResponse> {
+/** `GET /api/modernize/queue` returns a bare list of queue items. */
+export async function fetchModernizationQueue(): Promise<ModernizationQueueItem[]> {
   const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/queue`);
   if (!resp.ok) {
-    throw new Error(`Failed to fetch modernization queue: ${resp.status}`);
+    const body: unknown = await resp.json().catch(() => null);
+    throw new Error(sidecarErrorDetail(body, `Failed to fetch modernization queue: HTTP ${resp.status}`));
   }
-  return resp.json();
+  return parseModernizationQueue(await resp.json());
 }
 
-export async function triggerModernizationRun(payload: ModernizeRunPayload): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/run`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    throw new Error(`Modernization run failed: ${resp.status}`);
+/** Validate the bare-list queue response; rejects any other shape. */
+export function parseModernizationQueue(data: unknown): ModernizationQueueItem[] {
+  if (!Array.isArray(data)) {
+    throw new Error("Modernization queue response is not a list.");
   }
-  return resp.json();
+  return data as ModernizationQueueItem[];
 }
 
-export async function triggerManifoldReduce(payload: ManifoldReducePayload): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/reduce`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!resp.ok) {
-    throw new Error(`Manifold scale reduction failed: ${resp.status}`);
-  }
-  return resp.json();
+export async function triggerModernizationRun(payload: ModernizeRunPayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/modernize/run", payload, "Modernization run");
 }
 
-export async function triggerRegenerateManifolds(): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/regenerate-manifolds`, {
-    method: "POST",
-  });
-  if (!resp.ok) {
-    throw new Error(`Regenerate manifolds failed: ${resp.status}`);
-  }
-  return resp.json();
+export async function triggerManifoldReduce(payload: ManifoldReducePayload): Promise<DatasetJobResponse> {
+  return postDatasetJson<DatasetJobResponse>("/api/modernize/reduce", payload, "Manifold scale reduction");
+}
+
+export async function triggerRegenerateManifolds(): Promise<RegenerateManifoldsResponse> {
+  return postDatasetJson<RegenerateManifoldsResponse>("/api/modernize/regenerate-manifolds", undefined, "Regenerate manifolds");
 }
 
 // ─── Training Suite Sidecar (Port 8200) ─────────────────────────────────────

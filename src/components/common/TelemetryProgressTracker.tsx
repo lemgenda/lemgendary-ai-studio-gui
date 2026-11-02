@@ -46,15 +46,6 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
   return (
     <div
       className={`telemetry-progress-tracker ${className}`}
-      style={{
-        background: "rgba(10, 14, 23, 0.85)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
-        borderRadius: "8px",
-        padding: "10px 14px",
-        marginBottom: "12px",
-        backdropFilter: "blur(12px)",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.35)",
-      }}
       aria-label="Active Telemetry Progress Tracker"
     >
       {/* ─── LINE 1: NUMERIC DATA & METRICS (UNCONSTRAINED) ──────────────── */}

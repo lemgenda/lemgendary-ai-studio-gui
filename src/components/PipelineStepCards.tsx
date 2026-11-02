@@ -132,7 +132,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
               statusBadgeClass = "badge-success";
               statusText = "PASSED";
             } else if (latestEvent.status === "error") {
-              statusBadgeClass = "badge-danger";
+              statusBadgeClass = "badge-error";
               statusText = "FAILED";
             } else if (latestEvent.status === "warning") {
               statusBadgeClass = "badge-warning";

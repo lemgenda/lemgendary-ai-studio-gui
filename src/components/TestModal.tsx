@@ -109,7 +109,7 @@ export const TestModal: React.FC<TestModalProps> = ({
             <h3 id="test-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
               Test &amp; Diagnostic Orchestrator
             </h3>
-            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-danger" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
+            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-error" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
               {statusState.toUpperCase()}
             </span>
           </div>

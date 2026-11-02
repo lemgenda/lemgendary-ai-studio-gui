@@ -256,7 +256,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className={`badge ${localJobId ? "badge-success" : "badge-neutral"}`} style={{ fontWeight: 700 }}>
+                <span className={`badge ${localJobId ? "badge-success" : "badge-secondary"}`} style={{ fontWeight: 700 }}>
                   {localJobId ? "LOCAL TRAINING IN PROGRESS" : "LOCAL WORKER IDLE"}
                 </span>
                 {localJobId ? (
@@ -291,7 +291,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               ) : (
                 cleanLocalEvents.map((ev, idx) => (
                   <div key={`local-${ev.timestamp}-${idx}`} className="log-line">
-                    <span className="log-timestamp">
+                    <span className="log-time">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
@@ -332,7 +332,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               ) : (
                 cleanRemoteEvents.map((ev, idx) => (
                   <div key={`remote-${ev.timestamp}-${idx}`} className="log-line">
-                    <span className="log-timestamp">
+                    <span className="log-time">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>

@@ -1,40 +1,4 @@
-import { CompilerPreset, DatasetItem } from "../../api/types";
-
-export const FALLBACK_COMPILER_PRESETS: CompilerPreset[] = [
-  {
-    id: "streaming-webdataset",
-    name: "Streaming WebDataset Shards (.data)",
-    description:
-      "High-throughput sequential chunking with lossless WebP encoding and zero NTFS lock contention.",
-    target_format: "webdataset",
-    shard_size: 5000,
-    lossless: true,
-  },
-  {
-    id: "columnar-parquet",
-    name: "Columnar HuggingFace Parquet (.parquet)",
-    description: "Memory-mapped columnar binary format with snappy compression.",
-    target_format: "parquet",
-    shard_size: 10000,
-    lossless: true,
-  },
-  {
-    id: "mosaicml-mds",
-    name: "MosaicML Streaming Shards (.mds)",
-    description: "Zero-latency streaming with zstd compression and fast random access.",
-    target_format: "mds",
-    shard_size: 5000,
-    lossless: true,
-  },
-  {
-    id: "lightning-litdata",
-    name: "PyTorch Lightning LitData (chunk*.bin)",
-    description: "Optimized direct tensor serialization for distributed cloud storage.",
-    target_format: "litdata",
-    shard_size: 5000,
-    lossless: true,
-  },
-];
+import { DatasetItem } from "../../api/types";
 
 export const FALLBACK_DATASETS: DatasetItem[] = [
   {

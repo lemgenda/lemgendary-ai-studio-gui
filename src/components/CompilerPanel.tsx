@@ -24,7 +24,7 @@ import { DatasetCompilationForm } from "./compiler/DatasetCompilationForm";
 import { DatasetManifoldCard } from "./compiler/DatasetManifoldCard";
 import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
-import { FALLBACK_COMPILER_PRESETS, FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
+import { FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
 
 interface CompilerPanelProps {
@@ -41,10 +41,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Production Datasets & Presets
   const [datasets, setDatasets] = useState<DatasetItem[]>(cachedDatasets);
   const [presets, setPresets] = useState<CompilerPreset[]>([]);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
-  const [selectedPreset, setSelectedPreset] = useState<string>("streaming-webdataset");
-  const [shardSize, setShardSize] = useState<number>(5000);
-  const [purgeLooseImages, setPurgeLooseImages] = useState<boolean>(true);
+  // "" = omit `preset` so the sidecar applies its own default.
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compileStatus, setCompileStatus] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -54,7 +54,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [compileMode, setCompileMode] = useState<"standard" | "custom">("standard");
   const [customName, setCustomName] = useState<string>("");
   const [customTask, setCustomTask] = useState<string>("restoration");
-  const [customPreset, setCustomPreset] = useState<string>("streaming-webdataset");
+  const [customPreset, setCustomPreset] = useState<string>("");
   const [customCanonicalFormat, setCustomCanonicalFormat] = useState<"webdataset" | "parquet" | "mds" | "litdata">("webdataset");
   const [customShardSize, setCustomShardSize] = useState<number>(5000);
   const [customSourcesText, setCustomSourcesText] = useState<string>("");
@@ -107,9 +107,12 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsRefreshing(true);
     setRefreshFeedback(null);
     try {
-      const [dsList, prList] = await Promise.all([
+      const [dsList, presetResult] = await Promise.all([
         fetchDatasets(),
-        fetchCompilerPresets(),
+        fetchCompilerPresets().then(
+          (list) => ({ list, error: null }),
+          (err: unknown) => ({ list: [] as CompilerPreset[], error: err instanceof Error ? err.message : String(err) })
+        ),
       ]);
 
       if (dsList.length > 0) {
@@ -126,10 +129,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         }
       }
 
-      if (prList.length > 0) {
-        setPresets(prList);
-      } else {
-        setPresets(FALLBACK_COMPILER_PRESETS);
+      // No offline preset copies: presets.yaml on the sidecar is the only source.
+      setPresets(presetResult.list);
+      setPresetsError(presetResult.error);
+      if (presetResult.error) {
+        console.error("Failed to load compiler presets:", presetResult.error);
       }
     } catch {
       setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
@@ -153,13 +157,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setCompileStatus(null);
     try {
       const res = await triggerQuickCompile({
-        manifold_key: selectedManifold,
-        preset: selectedPreset,
-        shard_size: shardSize,
-        purge_loose_images: purgeLooseImages,
+        model: selectedManifold,
+        ...(selectedPreset ? { preset: selectedPreset } : {}),
       });
-      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to monitor below.`);
-      addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.job_id || "Active"}]`);
+      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);
+      addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.id}]`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       setCompileStatus(`Compilation failed: ${msg}`);
@@ -196,14 +198,14 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       const res = await triggerCustomCompile({
         custom_name: trimmedName,
         task: customTask,
-        preset: customPreset,
+        ...(customPreset ? { preset: customPreset } : {}),
         canonical_format: customCanonicalFormat,
         shard_size: customShardSize,
         sources: rawLines,
         purge_loose_images: customPurgeLoose,
       });
-      setCustomCompileStatus(`Custom compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Added to unified_data.yaml.`);
-      addTelemetryLog(`Custom compilation started for '${trimmedName}' [Job: ${res.job_id || "Active"}]`);
+      setCustomCompileStatus(`Custom compilation initiated successfully (Job ID: ${res.id}). Added to unified_data.yaml.`);
+      addTelemetryLog(`Custom compilation started for '${trimmedName}' [Job: ${res.id}]`);
       loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -233,7 +235,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         target_folder: downloadTargetFolder.trim() || undefined,
         force: downloadForce,
       });
-      setDownloadStatus(`Kaggle download initiated for ${targetRef} (Job ID: ${res.job_id || "Active"}). Streaming to disk.`);
+      setDownloadStatus(`Kaggle download initiated for ${targetRef} (Job ID: ${res.id}). Streaming to disk.`);
       loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -259,7 +261,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         target_folder: folder,
         force: false,
       });
-      setActionNotice(`Kaggle download initiated for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+      setActionNotice(`Kaggle download initiated for ${dataset.display_name} (Job ID: ${res.id}).`);
       loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -282,7 +284,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      const jobId = res.job_id || res.id || "Active";
+      const jobId = res.id;
       setActionNotice(`Kaggle upload initiated for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -305,7 +307,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      const jobId = res.job_id || res.id || "Active";
+      const jobId = res.id;
       setActionNotice(`Pushed dataset-metadata.json descriptors to Kaggle for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -318,10 +320,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const loadModernizationQueue = useCallback(async () => {
     setIsLoadingQueue(true);
     try {
-      const res = await fetchModernizationQueue();
-      setQueueItems(res.queue || []);
+      setQueueItems(await fetchModernizationQueue());
     } catch (err: unknown) {
       console.error("Failed to load modernization queue:", err);
+      setModernizeStatus(`Error loading modernization queue: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoadingQueue(false);
     }
@@ -344,7 +346,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         force: modernizeForce,
         dry_run: modernizeDryRun,
       });
-      setModernizeStatus(`Modernization job queued: ${res.job_id || "running"}`);
+      setModernizeStatus(`Modernization job queued: ${res.id}`);
       await loadModernizationQueue();
     } catch (err: unknown) {
       setModernizeStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -365,7 +367,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: reduceManifold,
         scale: reduceScale,
       });
-      setReduceStatus(`Manifold scale reduction queued: ${res.job_id || "running"}`);
+      setReduceStatus(`Manifold scale reduction queued: ${res.id}`);
     } catch (err: unknown) {
       setReduceStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -377,7 +379,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsUpdatingAllMetadata(true);
     try {
       const res = await updateAllKaggleMetadata();
-      setRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.job_id || "active"}).`);
+      setRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.id}).`);
     } catch (err: unknown) {
       setRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -389,7 +391,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsRegeneratingIndex(true);
     try {
       const res = await triggerRegenerateManifolds();
-      setRefreshFeedback(`Regenerated manifolds index (Job ID: ${res.job_id || "active"}).`);
+      setRefreshFeedback(res.message);
     } catch (err: unknown) {
       setRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -462,10 +464,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         onSelectManifold={setSelectedManifold}
         selectedPreset={selectedPreset}
         onSelectPreset={setSelectedPreset}
-        shardSize={shardSize}
-        onChangeShardSize={setShardSize}
-        purgeLooseImages={purgeLooseImages}
-        onTogglePurgeLooseImages={setPurgeLooseImages}
+        presetsError={presetsError}
         isCompiling={isCompiling}
         compileStatus={compileStatus}
         onCompile={handleCompile}
