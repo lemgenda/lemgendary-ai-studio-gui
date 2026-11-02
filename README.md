@@ -123,6 +123,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.10 - Write-Only Secrets Editor
+
+- **Masked Secrets (src/api/types.ts, src/api/client.ts)**:
+  - `SecretItem` now mirrors the masked `GET /api/secrets` response (`has_value`, `value_hint`) and has no `secret_value`. New `SecretDraft` (editor state) and `SecretWriteItem` (save payload) types.
+  - `saveSecrets` sends write-only items via `toSecretWriteItems`: an empty `secret_value` keeps the stored value, a non-empty one replaces it. The save response type includes the server `propagation` report.
+  - `fetchKaggleSuiteStatus` derives `token_configured` from `has_value`; no GUI code reads a full secret value from the server any more (review finding D1).
+- **Secrets Editor (src/components/config/SecretsEditorTab.tsx)**:
+  - Each credential shows `set (••••1234)`, `set` or `not set`; the Show/Hide reveal toggle is removed.
+  - A password field per credential replaces the value; blank means keep. After saving, the masked list is reloaded so typed values leave memory.
+  - Save errors show the server message (for example the Kaggle validation) and skipped or failed legacy credential files are reported.
+- **Tests**: `src/api/__tests__/secrets.test.ts` and `src/components/config/__tests__/SecretsEditorTab.test.tsx` (9 tests) cover keep-on-empty, replace, the request body and masked status text.
+
 ### v2.10.9 - Sidecar Client Header for Origin Guard
 
 - **Single Sidecar Fetch Helper (src/api/http.ts)**:

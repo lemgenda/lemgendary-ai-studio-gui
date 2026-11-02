@@ -30,7 +30,10 @@ import {
   ProjectHealth,
   QuickCompilePayload,
   QuickTrainPayload,
+  SecretDraft,
   SecretItem,
+  SecretWriteItem,
+  SecretsSaveResponse,
   ServiceOperationResult,
   TrainingJobInfo,
   DeepCleanResponse,
@@ -374,11 +377,28 @@ export async function fetchSecrets(): Promise<SecretItem[]> {
   }
 }
 
-export async function saveSecrets(secrets: SecretItem[]): Promise<{ status: string; count: number; message: string }> {
+/**
+ * Convert editor drafts to the write-only payload. Masking fields are dropped
+ * and an empty `secret_value` tells the server to keep the stored value.
+ */
+export function toSecretWriteItems(drafts: SecretDraft[]): SecretWriteItem[] {
+  return drafts.map((d) => ({
+    id: d.id,
+    service: d.service,
+    label: d.label,
+    username: d.username ?? null,
+    server: d.server ?? null,
+    is_default: Boolean(d.is_default),
+    created_at: d.created_at ?? null,
+    secret_value: (d.secret_value ?? "").trim(),
+  }));
+}
+
+export async function saveSecrets(drafts: SecretDraft[]): Promise<SecretsSaveResponse> {
   const res = await sidecarFetch(`${ENV_BASE}/api/secrets`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ secrets }),
+    body: JSON.stringify({ secrets: toSecretWriteItems(drafts) }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -823,8 +843,8 @@ export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
 
     if (defaultKaggle && defaultKaggle.username) {
       data.username = defaultKaggle.username;
-      data.token_configured = Boolean(defaultKaggle.secret_value);
-      if (defaultKaggle.secret_value) {
+      data.token_configured = defaultKaggle.has_value;
+      if (defaultKaggle.has_value) {
         data.authenticated = true;
       }
     }

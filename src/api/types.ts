@@ -128,15 +128,56 @@ export interface ManifestSaveResponse {
   bytes_written: number;
 }
 
+/** Secret as listed by `GET /api/secrets`: masked, never carries the value. */
 export interface SecretItem {
   id: string;
   service: "kaggle" | "google_drive" | "github" | "huggingface" | "metatrader5" | "saturn_cloud" | "wandb" | "custom" | string;
   label: string;
-  username?: string;
-  secret_value: string;
-  server?: string;
+  username?: string | null;
+  server?: string | null;
   is_default?: boolean;
-  created_at?: string;
+  created_at?: string | null;
+  /** Whether a value is stored server-side. */
+  has_value: boolean;
+  /** Last 4 characters of the stored value, or "" when it is shorter than 8. */
+  value_hint: string;
+}
+
+/**
+ * Secret being edited in the GUI. `secret_value` is a new value typed by the
+ * user; empty or missing means "keep the stored value".
+ */
+export interface SecretDraft extends SecretItem {
+  secret_value?: string;
+}
+
+/** Secret as sent to `POST /api/secrets` (write-only). */
+export interface SecretWriteItem {
+  id: string;
+  service: string;
+  label: string;
+  username?: string | null;
+  server?: string | null;
+  is_default?: boolean;
+  created_at?: string | null;
+  /** Empty string keeps the stored value for this id. */
+  secret_value: string;
+}
+
+export interface SecretsPropagationIssue {
+  path: string;
+  reason: string;
+}
+
+export interface SecretsSaveResponse {
+  status: string;
+  count: number;
+  message: string;
+  propagation?: {
+    written: string[];
+    skipped: SecretsPropagationIssue[];
+    failed: SecretsPropagationIssue[];
+  };
 }
 
 export interface DocsStatusResponse {

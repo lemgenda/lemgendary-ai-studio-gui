@@ -3,7 +3,7 @@ import { HelpTooltip } from "./HelpTooltip";
 import { ManifestEditorTab } from "./config/ManifestEditorTab";
 import { SecretsEditorTab } from "./config/SecretsEditorTab";
 import { fetchManifestRegistry, fetchSecrets } from "../api/client";
-import { ManifestItem, SecretItem } from "../api/types";
+import { ManifestItem, SecretDraft } from "../api/types";
 
 interface ConfigEditorModalProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
   const [selectedName, setSelectedName] = useState<string>("unified_data.yaml");
 
   // Secrets state
-  const [secrets, setSecrets] = useState<SecretItem[]>([]);
+  const [secrets, setSecrets] = useState<SecretDraft[]>([]);
   const [isSecretsLoading, setIsSecretsLoading] = useState<boolean>(false);
 
   const loadManifestList = useCallback(async () => {
