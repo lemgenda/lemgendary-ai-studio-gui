@@ -16,7 +16,6 @@ import {
   launchKaggleTrain,
   pullKaggleModelArtifacts,
   pushKaggleModelArtifacts,
-  fetchLiveModelTelemetry,
   generateNotebooks,
   triggerModelEvaluate,
   triggerModelExport,
@@ -186,35 +185,17 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     };
   }, [setLocalJob]);
 
-  // Periodic polling for model telemetry when local job is running
+  // Periodic telemetry refresh while a local job runs: one `with-stats` request per tick
+  // (it carries every model's live metrics.csv telemetry), merged into the active model only.
   useEffect(() => {
     if (!localJob.modelKey) return;
     const activeKey = localJob.modelKey;
 
     const interval = setInterval(async () => {
-      try {
-        const tel = await fetchLiveModelTelemetry(activeKey);
-        if (tel && (tel.latest_res !== null || tel.latest_data !== null)) {
-          setModels((prev) =>
-            prev.map((m) => {
-              if (m.key !== activeKey) return m;
-              const newRes = tel.latest_res ?? m.active_res;
-              const newDataFraction = tel.latest_data ?? m.data_fraction_completed ?? 0;
-              const newPassed = (newDataFraction >= 0.99 && m.ladder_passed) || Boolean(m.sota_reached);
-              return {
-                ...m,
-                active_res: newRes,
-                data_fraction_completed: newDataFraction,
-                data_fraction_passed: newPassed,
-                epochs_completed: Math.max(m.epochs_completed ?? 0, tel.latest_epoch ?? 0),
-              };
-            })
-          );
-        }
-      } catch {
-        // Ignored
-      }
-    }, 2000);
+      const fresh = (await fetchModels()).find((m) => m.key === activeKey);
+      if (!fresh) return;
+      setModels((prev) => prev.map((m) => (m.key === activeKey ? fresh : m)));
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [localJob.modelKey]);

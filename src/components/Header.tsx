@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { fetchDocsStatus, openExternalUrl } from "../api/client";
 
 interface HeaderProps {
   title: string;
@@ -18,9 +19,50 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTestModal,
   envManagerOnline,
 }) => {
+  // The offline hub is served by the Environment Manager at `local_url`.
+  const [docsUrl, setDocsUrl] = useState<string | null>(null);
+  const [docsOpenError, setDocsOpenError] = useState<string | null>(null);
+  const [docsUnavailableReason, setDocsUnavailableReason] = useState<string>(
+    "Checking the Environment Manager for the offline documentation hub..."
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!envManagerOnline) {
+      setDocsUrl(null);
+      setDocsUnavailableReason("Unavailable: the Environment Manager (which serves the offline documentation hub) is offline.");
+      return;
+    }
+    fetchDocsStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (status.offline_available) {
+          setDocsUrl(status.local_url);
+        } else {
+          setDocsUrl(null);
+          setDocsUnavailableReason("Unavailable: the Environment Manager reports no local lemgendary-docs checkout.");
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("Documentation hub status check failed:", err);
+        setDocsUrl(null);
+        setDocsUnavailableReason(`Unavailable: ${msg}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [envManagerOnline]);
+
   const handleOpenDocs = () => {
-    // Opens the local offline documentation hub directly (zero internet connection required)
-    window.open("/documentation-hub/index.html", "_blank");
+    if (!docsUrl) return;
+    setDocsOpenError(null);
+    openExternalUrl(docsUrl).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Opening the documentation hub failed:", err);
+      setDocsOpenError(`Could not open the documentation hub: ${msg}`);
+    });
   };
 
   return (
@@ -65,11 +107,19 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className="btn btn-secondary"
             onClick={handleOpenDocs}
+            disabled={!docsUrl}
+            title={docsUrl ? undefined : docsUnavailableReason}
             aria-label="Open local offline LemGendary AI Documentation Hub"
           >
             LemGendary AI Documentation Hub
           </button>
-          <HelpTooltip content="Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served directly from local storage with zero internet connection required." />
+          <HelpTooltip
+            content={
+              docsUrl
+                ? docsOpenError ?? "Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served by the Environment Manager with zero internet connection required."
+                : docsUnavailableReason
+            }
+          />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

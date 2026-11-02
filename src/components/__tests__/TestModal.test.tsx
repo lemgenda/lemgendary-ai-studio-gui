@@ -37,8 +37,9 @@ describe("Test & Diagnostic modal", () => {
   let root: Root;
   let fetchMock: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(
+  beforeEach(async () => {
+    // A fresh Response per call: the header's docs-status request also consumes one.
+    fetchMock = vi.fn().mockImplementation(async () =>
       new Response(
         JSON.stringify({ status: "failed", tests_run: 3, failures_count: 1, errors_count: 0 })
       )
@@ -47,7 +48,7 @@ describe("Test & Diagnostic modal", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    act(() => {
+    await act(async () => {
       root.render(<Shell />);
     });
   });
@@ -93,7 +94,8 @@ describe("Test & Diagnostic modal", () => {
     await act(async () => {
       container.querySelector<HTMLButtonElement>("#test-modal-btn-run-training-unit")?.click();
     });
-    expect(fetchMock.mock.calls[0][0]).toBe(
+    // The header also asks the Environment Manager for the docs hub status on mount.
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain(
       `${MESH_SERVICES["training-suite"].httpUrl}/api/training/unit-test-run`
     );
     const output = container.querySelector("#test-modal-output-console")?.textContent ?? "";

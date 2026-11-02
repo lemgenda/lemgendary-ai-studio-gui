@@ -17,7 +17,6 @@ vi.mock("../../api/client", async (importOriginal) => {
     fetchTrainingJob: vi.fn(),
     fetchRunningTrainingJobs: vi.fn(),
     fetchKaggleSuiteStatus: vi.fn(),
-    fetchLiveModelTelemetry: vi.fn(),
   };
 });
 
@@ -81,7 +80,6 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     mocked.fetchModels.mockResolvedValue([]);
     mocked.fetchRunningTrainingJobs.mockResolvedValue([]);
     mocked.fetchKaggleSuiteStatus.mockResolvedValue({} as Awaited<ReturnType<typeof client.fetchKaggleSuiteStatus>>);
-    mocked.fetchLiveModelTelemetry.mockResolvedValue(null);
     mocked.fetchTrainingJob.mockResolvedValue(runningJob("running"));
     container = document.createElement("div");
     document.body.appendChild(container);

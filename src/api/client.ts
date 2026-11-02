@@ -93,6 +93,8 @@ export type {
 };
 
 import { MESH_SERVICES, ServiceId } from "./config";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { open as openWithShell } from "@tauri-apps/plugin-shell";
 import { sidecarFetch } from "./http";
 export { MESH_SERVICES };
 export type { ServiceId };
@@ -204,96 +206,80 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
 
 // ─── Ecosystem Sidecar Daemon Lifecycle Management (Port 8000) ───────────────
 
-export async function startDevService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await sidecarFetch("/api/dev/services/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ serviceId }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.error || `Failed to start ${serviceId}: ${res.statusText}`);
+/** Raise an `Error` carrying the sidecar's `detail` (or status text) for a failed response. */
+async function throwHttpError(res: Response, action: string): Promise<never> {
+  let detail = "";
+  try {
+    const body = (await res.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") detail = body.detail;
+  } catch (parseErr) {
+    console.warn(`${action}: error response body was not JSON`, parseErr);
   }
-  return res.json();
+  throw new Error(detail || `${action} failed: HTTP ${res.status} ${res.statusText}`);
 }
 
-export async function startDevAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
-  const res = await sidecarFetch("/api/dev/services/start-all", {
-    method: "POST",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.error || `Failed to start all services: ${res.statusText}`);
+/** Tauri native command used when the Environment Manager cannot start services itself. */
+async function invokeNativeSpawn(command: "spawn_service" | "spawn_all_services", args?: Record<string, unknown>): Promise<void> {
+  if (!isTauri()) {
+    throw new Error(
+      "The Environment Manager is offline and this is a plain browser session, so services cannot be started from here. " +
+        "Start the Environment Manager manually or use the LemGendary AI Studio desktop app."
+    );
   }
-  return res.json();
+  await invoke(command, args);
 }
 
+/**
+ * Start one sidecar. The Environment Manager starts services when it is online;
+ * when it is offline (or it is the service being started) the desktop app's
+ * native `spawn_service` command is used instead.
+ */
 export async function startService(serviceId: string): Promise<ServiceOperationResult> {
-  const isTauri =
-    typeof window !== "undefined" &&
-    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
-  if (isTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("spawn_service", { serviceId });
+  const envOnline = await probeSidecarPort("env-manager");
+  if (serviceId === "env-manager" && envOnline) {
     return {
-      status: "started",
-      message: `Started ${serviceId} background daemon.`,
-      port: MESH_SERVICES[serviceId as ServiceId]?.defaultPort || 8000,
+      status: "already_running",
+      message: "Environment Manager is already online.",
+      port: MESH_SERVICES["env-manager"].defaultPort,
     };
   }
-
-  if (serviceId === "env-manager") {
-    return startDevService(serviceId);
-  }
-  try {
-    const res = await sidecarFetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
+  if (envOnline) {
+    const res = await sidecarFetch(`${ENV_BASE}/api/services/${encodeURIComponent(serviceId)}/start`, {
       method: "POST",
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Failed to start ${serviceId}: ${res.statusText}`);
-    }
+    if (!res.ok) return throwHttpError(res, `Start ${serviceId}`);
     return res.json();
-  } catch {
-    // If Environment Manager port 8000 is unreachable, fall back to dev server endpoint
-    return startDevService(serviceId);
   }
+  await invokeNativeSpawn("spawn_service", { serviceId });
+  return {
+    status: "started",
+    message: `Spawned ${serviceId} via the desktop app.`,
+    port: MESH_SERVICES[serviceId as ServiceId]?.defaultPort,
+  };
 }
 
 export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await sidecarFetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/services/${encodeURIComponent(serviceId)}/stop`, {
     method: "POST",
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to stop ${serviceId}: ${res.statusText}`);
-  }
+  if (!res.ok) return throwHttpError(res, `Stop ${serviceId}`);
   return res.json();
 }
 
+/**
+ * Start every offline sidecar: through the Environment Manager when it is
+ * online, otherwise through the desktop app's native `spawn_all_services`.
+ */
 export async function startAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
-  const isTauri =
-    typeof window !== "undefined" &&
-    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
-  if (isTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("spawn_all_services");
-    return { results: {} };
-  }
-
-  try {
+  if (await probeSidecarPort("env-manager")) {
     const res = await sidecarFetch(`${ENV_BASE}/api/services/start-all`, {
       method: "POST",
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Failed to start all services: ${res.statusText}`);
-    }
+    if (!res.ok) return throwHttpError(res, "Start all services");
     return res.json();
-  } catch {
-    // Fall back to dev server endpoint if root coordinator is offline
-    return startDevAllServices();
   }
+  await invokeNativeSpawn("spawn_all_services");
+  return { results: {} };
 }
 
 export interface SafeUpdateResponse {
@@ -443,18 +429,27 @@ export async function saveSecrets(drafts: SecretDraft[]): Promise<SecretsSaveRes
   return res.json();
 }
 
+/**
+ * Offline documentation hub status from the Environment Manager, which also
+ * serves the hub at `local_url`. Throws when the Environment Manager is unreachable.
+ */
 export async function fetchDocsStatus(): Promise<DocsStatusResponse> {
-  try {
-    const res = await sidecarFetch(`${ENV_BASE}/api/docs/status`);
-    if (!res.ok) throw new Error("Offline docs unreachable");
-    return res.json();
-  } catch {
-    return {
-      offline_available: false,
-      local_url: `${ENV_BASE}/documentation-hub/index.html`,
-      online_url: "https://lemgenda.github.io/ai-training-whitepapers/index.html",
-    };
+  const res = await sidecarFetch(`${ENV_BASE}/api/docs/status`);
+  if (!res.ok) return throwHttpError(res, "Documentation hub status");
+  return res.json();
+}
+
+/** Open an external URL: the system browser in the desktop app, a new tab in a browser session. */
+export async function openExternalUrl(url: string): Promise<void> {
+  if (isTauri()) {
+    await openWithShell(url);
+    return;
   }
+  const opened = window.open(url, "_blank");
+  if (opened === null) {
+    throw new Error(`The browser blocked opening ${url}`);
+  }
+  opened.opener = null;
 }
 
 // ─── Dataset Compiler Sidecar (Port 8100) ───────────────────────────────────
@@ -704,16 +699,6 @@ interface RawModelData {
   default_epochs?: number;
 }
 
-export async function fetchLiveModelTelemetry(modelKey: string): Promise<{ latest_res?: number | null; latest_data?: number | null; latest_epoch?: number | null } | null> {
-  try {
-    const res = await sidecarFetch(`/api/model-telemetry/${encodeURIComponent(modelKey)}`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
 export async function fetchModels(): Promise<ModelItem[]> {
   try {
     const res = await sidecarFetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
@@ -721,15 +706,9 @@ export async function fetchModels(): Promise<ModelItem[]> {
     const data = (await res.json()) as RawModelData[] | { models?: RawModelData[] };
     const rawList: RawModelData[] = Array.isArray(data) ? data : (data.models || []);
 
-    const enrichedList = await Promise.all(
-      rawList.map(async (item) => {
-        const modelKey = item.key || item.model_key || "";
-        const liveTel = modelKey ? await fetchLiveModelTelemetry(modelKey).catch(() => null) : null;
-        return { item, liveTel };
-      })
-    );
-
-    return enrichedList.map(({ item, liveTel }) => {
+    // `with-stats` already carries the live metrics.csv telemetry (active_res,
+    // data_fraction_completed, epochs_completed) for every model: one request, no N+1.
+    return rawList.map((item) => {
       const modelKey = item.key || item.model_key || "";
       const isForex = item.is_forex ?? (modelKey === "forex_predictor" || item.category === "forex" || item.task_type === "forex");
       const isLlm = item.is_llm ?? (modelKey === "ai_helper_lemgend" || item.category === "llm" || item.task_type === "llm" || item.task_type === "text_instruction");
@@ -749,19 +728,17 @@ export async function fetchModels(): Promise<ModelItem[]> {
       const paramsM = item.parameters_m ?? (item.best_checkpoint_size_mb ? Math.round(item.best_checkpoint_size_mb * 0.25 * 10) / 10 : undefined);
       const ckptExists = item.checkpoint_exists ?? (item.has_best_checkpoint === true || (item.checkpoints_count !== undefined && item.checkpoints_count > 0));
       const parallelMode = item.preferred_parallel || "single";
-      const completedEpochs = Math.max(item.epochs_completed ?? (item.latest_checkpoint_epoch ?? 0), liveTel?.latest_epoch ?? 0);
+      const completedEpochs = item.epochs_completed ?? item.latest_checkpoint_epoch ?? 0;
       const metricVal = item.best_metric;
       const metricLabel = item.metric_name || "Metric";
       const sotaTarget = item.sota_target;
       const sotaReached = item.sota_reached ?? false;
       const targetRes = item.target_res ?? (spatialLadder.length > 0 ? spatialLadder[spatialLadder.length - 1] : null);
 
-      const activeRes = liveTel?.latest_res ?? item.active_res ?? item.max_res_completed ?? (spatialLadder.length > 0 ? spatialLadder[0] : null);
+      const activeRes = item.active_res ?? item.max_res_completed ?? (spatialLadder.length > 0 ? spatialLadder[0] : null);
       const ladderPassed = item.ladder_passed ?? (targetRes !== null && typeof activeRes === "number" && activeRes >= targetRes);
 
-      const dataFractionCompleted = typeof liveTel?.latest_data === "number"
-        ? liveTel.latest_data
-        : (typeof item.data_fraction_completed === "number" ? item.data_fraction_completed : 0);
+      const dataFractionCompleted = typeof item.data_fraction_completed === "number" ? item.data_fraction_completed : 0;
 
       // Data fraction is only passed if current rung >= 99% AND ladder is passed (or SOTA reached with checkpoint)
       const dataFractionPassed = item.data_fraction_passed ?? ((dataFractionCompleted >= 0.99 && ladderPassed) || (sotaReached && ckptExists));

@@ -78,7 +78,7 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - Hovering over any help icon displays an elevated glassmorphic tooltip card explaining the control's function, associated CLI/API command, and operational side effects.
 
 - **Permanent Offline Documentation Hub**:
-  - Embedded local documentation server permanently available at `http://localhost:1420/documentation-hub/index.html` (and mirrored at `http://127.0.0.1:8000/documentation-hub/index.html`).
+  - Served by the Environment Manager at the `local_url` reported by `GET /api/docs/status` (`http://127.0.0.1:8000/documentation-hub/index.html`); the header button opens it in the system browser and is disabled while the Environment Manager is offline.
   - Provides full offline access to all 46 scientific whitepapers, manuals, and architectural specifications with zero external internet dependencies.
 
 - **Embedded Real-Time Telemetry & Diagnostics**:
@@ -133,6 +133,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.16 - Packaged App Without the Vite Dev Server
+
+- **Service Control (src/api/client.ts)**: `startService()`, `startAllServices()` and `stopService()` call the Environment Manager (`POST /api/services/{id}/start|stop`, `POST /api/services/start-all`) when its `/api/ping` answers. When the Environment Manager is offline, the desktop app uses the native Tauri commands `spawn_service` / `spawn_all_services`; a plain browser session gets a clear error instead. HTTP errors carry the sidecar `detail` and are no longer hidden by a fallback to the dev-only `/api/dev/services/*` routes, which were removed (review finding D5).
+- **Model Telemetry (src/api/client.ts, src/components/TrainingPanel.tsx)**: `fetchLiveModelTelemetry()` and the dev-only `/api/model-telemetry/*` route were removed. `GET /api/gui/models/with-stats` on the Training Suite already reads the same `metrics.csv` files (latest resolution, data fraction, epochs) for every model, so `fetchModels()` makes one request instead of one extra request per model, and the running-job refresh polls that one endpoint every 5 s (was one telemetry request every 2 s) and replaces only the active model (review findings D5, D6).
+- **Documentation Hub (src/components/Header.tsx, src/api/client.ts, src-tauri/capabilities/default.json)**: the header button opens `local_url` from the Environment Manager's `GET /api/docs/status` (served by the Environment Manager) instead of the dev-only `/documentation-hub/` route. New `openExternalUrl()` uses the Tauri shell `open` in the desktop app and `window.open` in a browser. The button is disabled, with the reason as tooltip, while the Environment Manager is offline or reports no docs checkout. `fetchDocsStatus()` now throws instead of returning an invented URL. The new capability file grants `core:default` and `shell:allow-open` (http(s) links only) to the main window; the CSP needs no change because the hub opens in the system browser.
+- **Dev Server (vite.config.ts)**: the `serve-offline-docs` middleware (service spawning, docs file serving, CSV telemetry parsing) was removed; nothing calls it any more.
+- **Tests**: `sidecarRouting.test.ts` (11) covers Environment Manager service routes, surfaced HTTP errors, the Tauri `invoke` fallback with the Environment Manager offline, the browser-mode error, a single telemetry request for N models, docs status, and the shell/`window.open` paths. `TestModal.test.tsx` allows the header's docs-status request.
 
 ### v2.10.15 - Remote Telemetry Routing, Confirmed Cancel, and Honest Offline Placeholders
 
