@@ -86,6 +86,7 @@ export type {
 };
 
 import { MESH_SERVICES, ServiceId } from "./config";
+import { sidecarFetch } from "./http";
 export { MESH_SERVICES };
 export type { ServiceId };
 
@@ -96,31 +97,31 @@ export const TRAINING_BASE = MESH_SERVICES["training-suite"].httpUrl;
 // ─── Environment Manager (Port 8000) ─────────────────────────────────────────
 
 export async function fetchHardware(): Promise<HardwareProfile> {
-  const res = await fetch(`${ENV_BASE}/api/hardware`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/hardware`);
   if (!res.ok) throw new Error(`Failed to fetch hardware profile: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchHealth(): Promise<HealthAuditReport> {
-  const res = await fetch(`${ENV_BASE}/api/health`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/health`);
   if (!res.ok) throw new Error(`Failed to fetch health report: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchProjects(): Promise<ProjectHealth[]> {
-  const res = await fetch(`${ENV_BASE}/api/projects`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/projects`);
   if (!res.ok) throw new Error(`Failed to fetch projects: ${res.statusText}`);
   return res.json();
 }
 
 export async function fetchPipelineStatus(): Promise<PipelineStatus> {
-  const res = await fetch(`${ENV_BASE}/api/pipeline/status`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/pipeline/status`);
   if (!res.ok) throw new Error(`Failed to fetch pipeline status: ${res.statusText}`);
   return res.json();
 }
 
 export async function triggerPipeline(targetProject?: string): Promise<{ status: string; message?: string }> {
-  const res = await fetch(`${ENV_BASE}/api/pipeline/run`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/pipeline/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ target_project: targetProject || null }),
@@ -134,7 +135,7 @@ export async function triggerPipelineStep(
   targetProject?: string,
   clean?: boolean
 ): Promise<{ status: string; message?: string }> {
-  const res = await fetch(`${ENV_BASE}/api/pipeline/run-step`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/pipeline/run-step`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -149,7 +150,7 @@ export async function triggerPipelineStep(
 
 
 export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
-  const res = await fetch(`${ENV_BASE}/api/gui/ecosystem`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/gui/ecosystem`);
   if (!res.ok) throw new Error(`Failed to probe ecosystem mesh: ${res.statusText}`);
   return res.json();
 }
@@ -170,7 +171,7 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
       const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
       url = match ? `${match.httpUrl}/api/health` : `http://127.0.0.1:${target}/api/health`;
     }
-    const res = await fetch(url, {
+    const res = await sidecarFetch(url, {
       method: "GET",
       signal: controller.signal,
     });
@@ -185,7 +186,7 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
 // ─── Ecosystem Sidecar Daemon Lifecycle Management (Port 8000) ───────────────
 
 export async function startDevService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await fetch("/api/dev/services/start", {
+  const res = await sidecarFetch("/api/dev/services/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ serviceId }),
@@ -198,7 +199,7 @@ export async function startDevService(serviceId: string): Promise<ServiceOperati
 }
 
 export async function startDevAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
-  const res = await fetch("/api/dev/services/start-all", {
+  const res = await sidecarFetch("/api/dev/services/start-all", {
     method: "POST",
   });
   if (!res.ok) {
@@ -226,7 +227,7 @@ export async function startService(serviceId: string): Promise<ServiceOperationR
     return startDevService(serviceId);
   }
   try {
-    const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
+    const res = await sidecarFetch(`${ENV_BASE}/api/services/${serviceId}/start`, {
       method: "POST",
     });
     if (!res.ok) {
@@ -241,7 +242,7 @@ export async function startService(serviceId: string): Promise<ServiceOperationR
 }
 
 export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -262,7 +263,7 @@ export async function startAllServices(): Promise<{ results: Record<string, Serv
   }
 
   try {
-    const res = await fetch(`${ENV_BASE}/api/services/start-all`, {
+    const res = await sidecarFetch(`${ENV_BASE}/api/services/start-all`, {
       method: "POST",
     });
     if (!res.ok) {
@@ -277,7 +278,7 @@ export async function startAllServices(): Promise<{ results: Record<string, Serv
 }
 
 export async function triggerSafeUpdate(dryRun: boolean = false): Promise<{ status: string; events?: unknown[]; plan?: unknown }> {
-  const resp = await fetch(`${ENV_BASE}/api/update`, {
+  const resp = await sidecarFetch(`${ENV_BASE}/api/update`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ dry_run: dryRun }),
@@ -289,7 +290,7 @@ export async function triggerSafeUpdate(dryRun: boolean = false): Promise<{ stat
 }
 
 export async function triggerDeepClean(project?: string): Promise<DeepCleanResponse> {
-  const resp = await fetch(`${ENV_BASE}/api/clean`, {
+  const resp = await sidecarFetch(`${ENV_BASE}/api/clean`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ project }),
@@ -301,7 +302,7 @@ export async function triggerDeepClean(project?: string): Promise<DeepCleanRespo
 }
 
 export async function installGitHooks(project?: string): Promise<HooksInstallResponse> {
-  const resp = await fetch(`${ENV_BASE}/api/hooks/install`, {
+  const resp = await sidecarFetch(`${ENV_BASE}/api/hooks/install`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ project }),
@@ -313,7 +314,7 @@ export async function installGitHooks(project?: string): Promise<HooksInstallRes
 }
 
 export async function runEcosystemValidation(project?: string): Promise<{ status: string; all_passed: boolean; projects: Record<string, unknown> }> {
-  const resp = await fetch(`${ENV_BASE}/api/validate`, {
+  const resp = await sidecarFetch(`${ENV_BASE}/api/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ project }),
@@ -328,20 +329,20 @@ export async function runEcosystemValidation(project?: string): Promise<{ status
 // ─── Universal Manifest & Registry Editor (Port 8000) ───────────────────────
 
 export async function fetchManifestRegistry(): Promise<ManifestItem[]> {
-  const res = await fetch(`${ENV_BASE}/api/manifests/registry`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/manifests/registry`);
   if (!res.ok) throw new Error(`Failed to fetch manifest registry: ${res.statusText}`);
   const data = await res.json();
   return data.manifests || [];
 }
 
 export async function readManifest(name: string): Promise<ManifestReadResponse> {
-  const res = await fetch(`${ENV_BASE}/api/manifests/read?name=${encodeURIComponent(name)}`);
+  const res = await sidecarFetch(`${ENV_BASE}/api/manifests/read?name=${encodeURIComponent(name)}`);
   if (!res.ok) throw new Error(`Failed to read manifest '${name}': ${res.statusText}`);
   return res.json();
 }
 
 export async function validateManifest(name: string, content: string): Promise<ManifestValidateResponse> {
-  const res = await fetch(`${ENV_BASE}/api/manifests/validate`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/manifests/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, content }),
@@ -351,7 +352,7 @@ export async function validateManifest(name: string, content: string): Promise<M
 }
 
 export async function saveManifest(name: string, content: string): Promise<ManifestSaveResponse> {
-  const res = await fetch(`${ENV_BASE}/api/manifests/save`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/manifests/save`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, content }),
@@ -364,7 +365,7 @@ export async function saveManifest(name: string, content: string): Promise<Manif
 
 export async function fetchSecrets(): Promise<SecretItem[]> {
   try {
-    const res = await fetch(`${ENV_BASE}/api/secrets`);
+    const res = await sidecarFetch(`${ENV_BASE}/api/secrets`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.secrets || [];
@@ -374,7 +375,7 @@ export async function fetchSecrets(): Promise<SecretItem[]> {
 }
 
 export async function saveSecrets(secrets: SecretItem[]): Promise<{ status: string; count: number; message: string }> {
-  const res = await fetch(`${ENV_BASE}/api/secrets`, {
+  const res = await sidecarFetch(`${ENV_BASE}/api/secrets`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ secrets }),
@@ -388,7 +389,7 @@ export async function saveSecrets(secrets: SecretItem[]): Promise<{ status: stri
 
 export async function fetchDocsStatus(): Promise<DocsStatusResponse> {
   try {
-    const res = await fetch(`${ENV_BASE}/api/docs/status`);
+    const res = await sidecarFetch(`${ENV_BASE}/api/docs/status`);
     if (!res.ok) throw new Error("Offline docs unreachable");
     return res.json();
   } catch {
@@ -404,7 +405,7 @@ export async function fetchDocsStatus(): Promise<DocsStatusResponse> {
 
 export async function fetchDatasets(): Promise<DatasetItem[]> {
   try {
-    const res = await fetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
+    const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
     if (!res.ok) return [];
     const data = await res.json();
     if (!data.datasets || !Array.isArray(data.datasets)) return [];
@@ -448,7 +449,7 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
 
 export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
   try {
-    const res = await fetch(`${DATASETS_BASE}/api/gui/presets`);
+    const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/presets`);
     if (!res.ok) return [];
     const data = await res.json();
     return data.presets || [];
@@ -458,7 +459,7 @@ export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
 }
 
 export async function triggerQuickCompile(payload: QuickCompilePayload): Promise<{ status: string; job_id?: string }> {
-  const res = await fetch(`${DATASETS_BASE}/api/gui/quick-compile`, {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/quick-compile`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -468,7 +469,7 @@ export async function triggerQuickCompile(payload: QuickCompilePayload): Promise
 }
 
 export async function triggerCustomCompile(payload: CustomCompilePayload): Promise<{ status: string; job_id?: string }> {
-  const res = await fetch(`${DATASETS_BASE}/api/gui/custom-compile`, {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/custom-compile`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -482,7 +483,7 @@ export async function triggerCustomCompile(payload: CustomCompilePayload): Promi
 
 export async function fetchKaggleStatus(): Promise<KaggleStatusResponse> {
   try {
-    const res = await fetch(`${DATASETS_BASE}/api/kaggle/status`);
+    const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/status`);
     if (!res.ok) return { authenticated: false, auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false } };
     return res.json();
   } catch {
@@ -492,7 +493,7 @@ export async function fetchKaggleStatus(): Promise<KaggleStatusResponse> {
 
 export async function fetchKaggleRegistryDatasets(): Promise<KaggleDatasetRegistryItem[]> {
   try {
-    const res = await fetch(`${DATASETS_BASE}/api/kaggle/registry-datasets`);
+    const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/registry-datasets`);
     if (!res.ok) return [];
     return res.json();
   } catch {
@@ -501,7 +502,7 @@ export async function fetchKaggleRegistryDatasets(): Promise<KaggleDatasetRegist
 }
 
 export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Promise<{ status: string; job_id?: string }> {
-  const res = await fetch(`${DATASETS_BASE}/api/kaggle/download`, {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/download`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -514,7 +515,7 @@ export async function downloadKaggleDataset(payload: KaggleDownloadPayload): Pro
 }
 
 export async function uploadKaggleDataset(payload: KaggleUploadPayload): Promise<{ status: string; job_id?: string; id?: string }> {
-  const res = await fetch(`${DATASETS_BASE}/api/kaggle/upload`, {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/upload`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -534,7 +535,7 @@ export interface KaggleMetadataPayload {
 }
 
 export async function updateKaggleMetadata(payload: KaggleMetadataPayload): Promise<{ status: string; job_id?: string; id?: string }> {
-  const res = await fetch(`${DATASETS_BASE}/api/kaggle/update-metadata`, {
+  const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/update-metadata`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -552,7 +553,7 @@ export async function updateAllKaggleMetadata(): Promise<{ status: string; job_i
 }
 
 export async function fetchModernizationQueue(): Promise<ModernizationQueueResponse> {
-  const resp = await fetch(`${DATASETS_BASE}/api/modernize/queue`);
+  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/queue`);
   if (!resp.ok) {
     throw new Error(`Failed to fetch modernization queue: ${resp.status}`);
   }
@@ -560,7 +561,7 @@ export async function fetchModernizationQueue(): Promise<ModernizationQueueRespo
 }
 
 export async function triggerModernizationRun(payload: ModernizeRunPayload): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await fetch(`${DATASETS_BASE}/api/modernize/run`, {
+  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -572,7 +573,7 @@ export async function triggerModernizationRun(payload: ModernizeRunPayload): Pro
 }
 
 export async function triggerManifoldReduce(payload: ManifoldReducePayload): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await fetch(`${DATASETS_BASE}/api/modernize/reduce`, {
+  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/reduce`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -584,7 +585,7 @@ export async function triggerManifoldReduce(payload: ManifoldReducePayload): Pro
 }
 
 export async function triggerRegenerateManifolds(): Promise<{ status: string; job_id?: string; message?: string }> {
-  const resp = await fetch(`${DATASETS_BASE}/api/modernize/regenerate-manifolds`, {
+  const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/regenerate-manifolds`, {
     method: "POST",
   });
   if (!resp.ok) {
@@ -649,7 +650,7 @@ interface RawModelData {
 
 export async function fetchLiveModelTelemetry(modelKey: string): Promise<{ latest_res?: number | null; latest_data?: number | null; latest_epoch?: number | null } | null> {
   try {
-    const res = await fetch(`/api/model-telemetry/${encodeURIComponent(modelKey)}`);
+    const res = await sidecarFetch(`/api/model-telemetry/${encodeURIComponent(modelKey)}`);
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -659,7 +660,7 @@ export async function fetchLiveModelTelemetry(modelKey: string): Promise<{ lates
 
 export async function fetchModels(): Promise<ModelItem[]> {
   try {
-    const res = await fetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
+    const res = await sidecarFetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
     if (!res.ok) return [];
     const data = (await res.json()) as RawModelData[] | { models?: RawModelData[] };
     const rawList: RawModelData[] = Array.isArray(data) ? data : (data.models || []);
@@ -770,7 +771,7 @@ export async function fetchModels(): Promise<ModelItem[]> {
 }
 
 export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ status: string; job_id?: string }> {
-  const res = await fetch(`${TRAINING_BASE}/api/gui/quick-train`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/gui/quick-train`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -781,7 +782,7 @@ export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ s
 
 export async function fetchRunningTrainingJobs(): Promise<TrainingJobInfo[]> {
   try {
-    const res = await fetch(`${TRAINING_BASE}/api/jobs?status=running`);
+    const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs?status=running`);
     if (!res.ok) return [];
     return (await res.json()) as TrainingJobInfo[];
   } catch {
@@ -791,7 +792,7 @@ export async function fetchRunningTrainingJobs(): Promise<TrainingJobInfo[]> {
 
 export async function cancelTrainingJob(jobId: string): Promise<boolean> {
   try {
-    const res = await fetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+    const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
       method: "POST",
     });
     if (!res.ok) return false;
@@ -807,7 +808,7 @@ export async function cancelTrainingJob(jobId: string): Promise<boolean> {
 export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
   try {
     const [res, secrets] = await Promise.all([
-      fetch(`${TRAINING_BASE}/api/training/kaggle/status`).catch(() => null),
+      sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/status`).catch(() => null),
       fetchSecrets().catch(() => []),
     ]);
 
@@ -835,7 +836,7 @@ export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
 
 export async function fetchKaggleKernels(limit: number = 20): Promise<KaggleKernelItem[]> {
   try {
-    const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/kernels?limit=${limit}`);
+    const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/kernels?limit=${limit}`);
     if (!res.ok) return [];
     return res.json();
   } catch {
@@ -844,7 +845,7 @@ export async function fetchKaggleKernels(limit: number = 20): Promise<KaggleKern
 }
 
 export async function launchKaggleTrain(payload: KaggleTrainPayload): Promise<{ job_id: string; status: string; message: string; model: string }> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/train`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/train`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -857,7 +858,7 @@ export async function launchKaggleTrain(payload: KaggleTrainPayload): Promise<{ 
 }
 
 export async function monitorKaggleKernel(payload: KaggleMonitorPayload): Promise<{ job_id: string; status: string; message: string; kernel_slug: string }> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/monitor`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/monitor`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -870,7 +871,7 @@ export async function monitorKaggleKernel(payload: KaggleMonitorPayload): Promis
 }
 
 export async function pullKaggleModelArtifacts(model: string): Promise<{ job_id: string; status: string; model: string; message: string }> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/pull`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/pull`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
@@ -883,7 +884,7 @@ export async function pullKaggleModelArtifacts(model: string): Promise<{ job_id:
 }
 
 export async function pushKaggleModelArtifacts(model: string): Promise<{ job_id: string; status: string; model: string; message: string }> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/push`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
@@ -912,7 +913,7 @@ export interface GenerateNotebooksResponse {
 export async function generateNotebooks(
   payload: GenerateNotebooksPayload
 ): Promise<GenerateNotebooksResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/notebooks/generate`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/notebooks/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -925,7 +926,7 @@ export async function generateNotebooks(
 }
 
 export async function triggerUnitTestAll(payload: UnitTestAllPayload = {}): Promise<{ job_id: string; status: string; message: string }> {
-  const resp = await fetch(`${TRAINING_BASE}/api/training/unit-test-all`, {
+  const resp = await sidecarFetch(`${TRAINING_BASE}/api/training/unit-test-all`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -937,7 +938,7 @@ export async function triggerUnitTestAll(payload: UnitTestAllPayload = {}): Prom
 }
 
 export async function triggerModelEvaluate(payload: ModelEvalPayload): Promise<{ job_id: string; status: string; message: string }> {
-  const resp = await fetch(`${TRAINING_BASE}/api/training/evaluate`, {
+  const resp = await sidecarFetch(`${TRAINING_BASE}/api/training/evaluate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -949,7 +950,7 @@ export async function triggerModelEvaluate(payload: ModelEvalPayload): Promise<{
 }
 
 export async function triggerModelExport(payload: ModelExportPayload): Promise<{ job_id: string; status: string; message: string }> {
-  const resp = await fetch(`${TRAINING_BASE}/api/training/export`, {
+  const resp = await sidecarFetch(`${TRAINING_BASE}/api/training/export`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -961,7 +962,7 @@ export async function triggerModelExport(payload: ModelExportPayload): Promise<{
 }
 
 export async function generateAllNotebooks(platform: string = "all"): Promise<{ success: boolean; total_models: number; total_files: number }> {
-  const resp = await fetch(`${TRAINING_BASE}/api/notebooks/generate-all`, {
+  const resp = await sidecarFetch(`${TRAINING_BASE}/api/notebooks/generate-all`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ platform }),
@@ -973,7 +974,7 @@ export async function generateAllNotebooks(platform: string = "all"): Promise<{ 
 }
 
 export async function generateModelDocs(modelKey: string): Promise<ModelDocGenResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/docs/generate`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/docs/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
@@ -985,7 +986,7 @@ export async function generateModelDocs(modelKey: string): Promise<ModelDocGenRe
 }
 
 export async function stageModelVariations(modelKey: string): Promise<ModelStageResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/export/stage`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/export/stage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
@@ -997,7 +998,7 @@ export async function stageModelVariations(modelKey: string): Promise<ModelStage
 }
 
 export async function validateModelIsolation(modelKey: string): Promise<ModelValidateIsolationResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/variations/validate`);
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/variations/validate`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `Failed to validate model isolation: ${res.statusText}`);
@@ -1006,7 +1007,7 @@ export async function validateModelIsolation(modelKey: string): Promise<ModelVal
 }
 
 export async function pushKaggleModelVariation(payload: KagglePushModelPayload): Promise<KagglePushModelResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push-model`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/push-model`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -1019,7 +1020,7 @@ export async function pushKaggleModelVariation(payload: KagglePushModelPayload):
 }
 
 export async function pushAllKaggleModels(payload: KagglePushAllPayload = {}): Promise<KagglePushAllResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/kaggle/push-all`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/push-all`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -1032,7 +1033,7 @@ export async function pushAllKaggleModels(payload: KagglePushAllPayload = {}): P
 }
 
 export async function trainLLM(config: LLMTrainingConfig): Promise<LLMTrainResponse> {
-  const res = await fetch(`${TRAINING_BASE}/api/training/llm/train`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/training/llm/train`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
@@ -1325,7 +1326,7 @@ export function createLogWebSocket(
 }
 
 export async function blendModelSoup(modelKey: string): Promise<{ model_key: string; success: boolean; soup_checkpoint: string | null }> {
-  const res = await fetch(`${TRAINING_BASE}/api/models/${modelKey}/soup`, {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${modelKey}/soup`, {
     method: "POST",
   });
   if (!res.ok) {

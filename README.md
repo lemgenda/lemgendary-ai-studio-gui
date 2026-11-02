@@ -123,6 +123,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.9 - Sidecar Client Header for Origin Guard
+
+- **Single Sidecar Fetch Helper (src/api/http.ts)**:
+  - New `sidecarFetch` adds `X-LemGendary-Client: ai-studio-gui` to every sidecar request. The sidecars now refuse browser writes without this header, which blocks other web pages from calling them.
+  - All 60 requests in `src/api/client.ts` and both requests in `src/components/TestModal.tsx` now use `sidecarFetch`.
+- **Tests (src/api/__tests__/http.test.ts)**: header is added and existing headers, method and body are kept.
+
 ### v2.10.8 - Batch Size Minimum Lowered to 1
 
 - **LLM-Compatible Batch Size Selector (src/components/training/ModelManifoldCard.tsx)**:

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { triggerUnitTestAll } from "../api/client";
+import { sidecarFetch } from "../api/http";
 
 interface TestModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Training Suite unit tests (models, governance, export, LLM causal engine)...");
     try {
-      const resp = await fetch("http://127.0.0.1:8200/api/training/unit-test-run", {
+      const resp = await sidecarFetch("http://127.0.0.1:8200/api/training/unit-test-run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pattern: "test_*.py" }),
@@ -76,7 +77,7 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Dataset Compiler unit tests (tools.llm_helper, quality validator, chunker)...");
     try {
-      const resp = await fetch("http://127.0.0.1:8100/api/llm/test-suite", {
+      const resp = await sidecarFetch("http://127.0.0.1:8100/api/llm/test-suite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pattern: "test_*.py" }),
