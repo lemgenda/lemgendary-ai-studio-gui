@@ -241,14 +241,41 @@ export async function startService(serviceId: string): Promise<ServiceOperationR
 }
 
 export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
-    method: "POST",
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to stop ${serviceId}: ${res.statusText}`);
+  const isTauri =
+    typeof window !== "undefined" &&
+    Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
+  if (isTauri) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("stop_service", { serviceId });
+      return {
+        status: "stopped",
+        message: `Stopped ${serviceId} background daemon.`,
+        port: MESH_SERVICES[serviceId as ServiceId]?.defaultPort || 8000,
+      };
+    } catch {
+      // Fall through to HTTP endpoint if Tauri invocation encounters error
+    }
   }
-  return res.json();
+
+  try {
+    const res = await fetch(`${ENV_BASE}/api/services/${serviceId}/stop`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Failed to stop ${serviceId}: ${res.statusText}`);
+    }
+    return res.json();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+      throw new Error(
+        `Environment Manager (Port 8000) is currently offline. Start Environment Manager to coordinate service stops.`
+      );
+    }
+    throw err;
+  }
 }
 
 export async function startAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {

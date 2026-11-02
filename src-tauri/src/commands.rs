@@ -93,3 +93,38 @@ pub fn spawn_sidecar(python_path: Option<String>) -> Result<String, String> {
     let _ = python_path;
     spawn_service("env-manager".to_string())
 }
+
+#[tauri::command]
+pub fn stop_service(service_id: String) -> Result<String, String> {
+    let port = match service_id.as_str() {
+        "env-manager" => 8000,
+        "dataset-compiler" => 8100,
+        "training-suite" => 8200,
+        other => return Err(format!("Unknown service '{}'", other)),
+    };
+
+    #[cfg(target_os = "windows")]
+    {
+        let script = format!(
+            "$conn = Get-NetTCPConnection -LocalPort {} -State Listen -ErrorAction SilentlyContinue; if ($conn) {{ Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue; 'stopped' }} else {{ 'not_running' }}",
+            port
+        );
+        let mut cmd = Command::new("powershell");
+        cmd.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        match cmd.output() {
+            Ok(out) => {
+                let msg = String::from_utf8_lossy(&out.stdout);
+                Ok(format!("Service '{}' stop dispatched: {}", service_id, msg.trim()))
+            }
+            Err(e) => Err(format!("Failed to stop service '{}': {}", service_id, e)),
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let script = format!("lsof -ti :{} | xargs kill -9 2>/dev/null || true", port);
+        let _ = Command::new("sh").args(["-c", &script]).output();
+        Ok(format!("Service '{}' stopped", service_id))
+    }
+}

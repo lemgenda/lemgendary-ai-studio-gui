@@ -1,4 +1,4 @@
-﻿# LemGendary AI Studio GUI
+# LemGendary AI Studio GUI
 
 Modern cross-platform desktop user interface for the LemGendary AI ecosystem, built with Tauri v2, React 18, TypeScript, and Vite.
 
@@ -122,6 +122,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.9 - Native Tripartite Sidecar Termination & Offline Graceful Handling
+
+- **Native Tauri Sidecar Process Termination (src-tauri/src/commands.rs, src-tauri/src/main.rs)**:
+  - Implemented stop_service native command inspecting local listener ports (8000 for Environment Manager, 8100 for Dataset Compiler, 8200 for Training Suite) and terminating process trees directly via PowerShell Stop-Process on Windows.
+- **Graceful Client Fallback (src/api/client.ts)**:
+  - Invokes native Tauri stop_service first when running in desktop mode, falling back to REST endpoint, with friendly offline messaging if sidecars are unreachable.
 
 ### v2.10.8 - Batch Size Minimum Lowered to 1
 

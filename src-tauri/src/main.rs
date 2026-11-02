@@ -10,7 +10,8 @@ fn main() {
             commands::check_server_status,
             commands::spawn_sidecar,
             commands::spawn_service,
-            commands::spawn_all_services
+            commands::spawn_all_services,
+            commands::stop_service
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
