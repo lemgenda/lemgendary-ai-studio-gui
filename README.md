@@ -113,6 +113,17 @@ npm test
 npm run build
 ```
 
+## Content Security Policy
+
+The desktop window runs with a strict CSP set in `src-tauri/tauri.conf.json`
+(`app.security.csp`; JSON has no comments, so the policy is explained here):
+
+- `default-src 'self'`, `script-src 'self'`, `object-src 'none'`, `frame-src 'none'`, `base-uri 'self'`, `form-action 'self'`.
+- `style-src 'self' https://fonts.googleapis.com` and `font-src 'self' https://fonts.gstatic.com` for the Google Fonts stylesheet in `index.html`. React `style={...}` props are applied through the CSSOM and need no `'unsafe-inline'`; inline `<style>` elements are not allowed, so keyframes live in `src/index.css`.
+- `img-src 'self' data: blob:` because Vite inlines the small branding SVGs as `data:` URLs.
+- `connect-src` allows only Tauri IPC (`ipc:`, `http://ipc.localhost`) and the three sidecars over HTTP and WebSocket on `127.0.0.1` and `localhost`, ports 8000 (Environment Manager), 8100 (Dataset Compiler) and 8200 (Training Suite). If you point a sidecar elsewhere with a `VITE_*_URL` variable, add that origin to `connect-src`.
+- `app.security.devCsp` (used by `npm run tauri dev`) adds `'unsafe-inline'` for scripts and styles (Vite HMR and the React refresh preamble) and `ws://localhost:1420` for the HMR socket.
+
 ## Ecosystem Validation
 
 The desktop application complies with LemGendary ecosystem standards:
@@ -122,6 +133,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.11 - Content Security Policy, App Icons and Build Hygiene
+
+- **Content Security Policy (src-tauri/tauri.conf.json)**: `csp: null` is replaced by a strict policy and a separate `devCsp` (see "Content Security Policy" above). Network access is limited to Tauri IPC and the three local sidecars (rest of review finding D1).
+- **No Inline Style Element (src/components/common/TelemetryProgressTracker.tsx, src/index.css)**: the `telemetry-indeterminate-sweep` keyframes moved from an inline `<style>` element into `src/index.css`, so the CSP needs no `'unsafe-inline'` for styles.
+- **App Icons (src-tauri/icons/)**: generated with `npm run tauri -- icon` from a square version of `src/branding/lemgenda-icon.svg`. Only the files `tauri.conf.json` references plus `icon.png` are kept (review finding D7).
+- **Build Hygiene**: `src-tauri/Cargo.lock` is committed; `src-tauri/target/` and the generated `src-tauri/gen/schemas/` are gitignored. `cargo check` and `cargo clippy -- -D warnings` pass with no warnings.
 
 ### v2.10.10 - Write-Only Secrets Editor
 

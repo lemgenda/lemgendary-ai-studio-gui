@@ -164,13 +164,6 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
       </div>
 
       {/* ─── LINE 2: VISUAL PROGRESS BAR ONLY ─────────────────────────────── */}
-      <style>{`
-        @keyframes telemetry-indeterminate-sweep {
-          0% { transform: translateX(-100%); width: 40%; }
-          50% { transform: translateX(50%); width: 60%; }
-          100% { transform: translateX(200%); width: 40%; }
-        }
-      `}</style>
       <Progress.Root
         value={isIndeterminate ? null : percentage}
         max={100}

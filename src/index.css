@@ -1295,4 +1295,9 @@ code, pre {
   display: flex !important;
 }
 
-
+/* Indeterminate sweep for TelemetryProgressTracker (kept here so the CSP needs no inline <style>). */
+@keyframes telemetry-indeterminate-sweep {
+  0% { transform: translateX(-100%); width: 40%; }
+  50% { transform: translateX(50%); width: 60%; }
+  100% { transform: translateX(200%); width: 40%; }
+}
