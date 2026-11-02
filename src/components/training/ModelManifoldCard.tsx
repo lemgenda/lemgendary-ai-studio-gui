@@ -3,6 +3,9 @@ import { HelpTooltip } from "../HelpTooltip";
 import { HoverPinPopover } from "../common/HoverPinPopover";
 import { ModelItem } from "../../api/types";
 
+/** Shown for training state the GUI does not know (offline placeholders); never a guessed value. */
+const UNKNOWN_LABEL = "Unknown";
+
 export interface ModelManifoldCardProps {
   model: ModelItem;
   isCurrentlyTrainingThis: boolean;
@@ -54,6 +57,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
     }
   }, [m.batch_size]);
 
+  const statusUnknown = m.offline_placeholder === true;
+
   return (
     <div
       className="card"
@@ -94,7 +99,15 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           Training Progress:
         </span>
         <div>
-          {m.training_status === "fully_trained" ? (
+          {statusUnknown ? (
+            <span
+              className="badge badge-secondary"
+              style={{ fontWeight: 700 }}
+              title="Offline placeholder: the training sidecar is unreachable, so the real training status is unknown."
+            >
+              UNKNOWN (OFFLINE)
+            </span>
+          ) : m.training_status === "fully_trained" ? (
             <span className="badge badge-success" style={{ fontWeight: 700 }}>
               FULLY TRAINED
             </span>
@@ -209,7 +222,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
         <div className="metric-row">
           <span className="metric-label">Completed Epochs</span>
-          <span className="metric-value">{m.epochs_completed ?? 0}</span>
+          <span className="metric-value">{statusUnknown ? UNKNOWN_LABEL : m.epochs_completed ?? 0}</span>
         </div>
 
         {/* 4. Target Metrics Card (SOTA) - HoverPinPopover */}
@@ -230,7 +243,9 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
                 fontSize: "12px",
               }}
             >
-              {m.sota_targets_total
+              {statusUnknown
+                ? UNKNOWN_LABEL
+                : m.sota_targets_total
                 ? `${m.sota_targets_met ?? 0} / ${m.sota_targets_total} Met`
                 : m.sota_reached
                 ? "Target Reached"
@@ -290,15 +305,23 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
               fontWeight: 600,
             }}
           >
-            {m.is_llm || m.ladder_type === "context_tokens"
-              ? `${m.target_res ?? 2048} tokens (Full)`
+            {statusUnknown
+              ? UNKNOWN_LABEL
+              : m.is_llm || m.ladder_type === "context_tokens"
+              ? m.target_res != null
+                ? `${m.target_res} tokens (Full)`
+                : UNKNOWN_LABEL
               : m.ladder_passed
               ? m.is_forex || m.ladder_type === "timeframe"
                 ? "Full Confluence (D1)"
-                : `Full (${m.target_res ?? 512}px)`
+                : m.target_res != null
+                ? `Full (${m.target_res}px)`
+                : "Full"
               : m.is_forex || m.ladder_type === "timeframe"
               ? "Partial Confluence"
-              : `${m.active_res ?? (m.spatial_ladder && m.spatial_ladder.length > 0 ? m.spatial_ladder[0] : 256)}px / ${m.target_res ?? 512}px`}
+              : m.target_res != null
+              ? `${m.active_res ?? "?"}px / ${m.target_res}px`
+              : UNKNOWN_LABEL}
           </span>
         </div>
 
@@ -329,6 +352,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           >
             {m.is_llm || m.ladder_type === "context_tokens"
               ? "LemGendizedAIHelperLemGend"
+              : statusUnknown
+              ? UNKNOWN_LABEL
               : m.is_forex
               ? (() => {
                   const fold = m.active_fold ?? m.active_res ?? 1;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { CloudTrainModal } from "./CloudTrainModal";
 import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
@@ -10,6 +10,8 @@ import {
   triggerQuickTrain,
   fetchRunningTrainingJobs,
   cancelTrainingJob,
+  fetchTrainingJob,
+  TERMINAL_JOB_STATUSES,
   fetchKaggleSuiteStatus,
   launchKaggleTrain,
   pullKaggleModelArtifacts,
@@ -23,10 +25,14 @@ import {
   stageModelVariations,
   pushAllKaggleModels,
   isLocalTrainingEvent,
+  isRemoteTrainingEvent,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
 import { copyTextToClipboard } from "../utils/clipboard";
+
+/** Interval for polling the active local job's status on the training sidecar. */
+const JOB_STATUS_POLL_MS = 3000;
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
@@ -62,6 +68,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
   const [isPushingAllKaggle, setIsPushingAllKaggle] = useState<boolean>(false);
 
@@ -70,7 +77,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [clearedLocalTimestamp, setClearedLocalTimestamp] = useState<number>(0);
   const [remoteCopied, setRemoteCopied] = useState<boolean>(false);
   const [clearedRemoteTimestamp, setClearedRemoteTimestamp] = useState<number>(0);
-  const [remoteEvents, setRemoteEvents] = useState<PipelineEvent[]>([]);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -98,14 +104,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         setCachedModels(modelList);
         setRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
       } else {
+        // Offline placeholders are display-only: never cached, so the sidecar list replaces them on reconnect.
         setModels(FALLBACK_MODELS);
-        setCachedModels(FALLBACK_MODELS);
-        setRefreshFeedback(`Loaded ${FALLBACK_MODELS.length} cached model architectures (Training Sidecar Offline).`);
+        setRefreshFeedback(`Training sidecar returned no models. Showing ${FALLBACK_MODELS.length} offline placeholders (training status unknown).`);
       }
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("Training model registry fetch failed:", err);
       setModels(FALLBACK_MODELS);
-      setCachedModels(FALLBACK_MODELS);
-      setRefreshFeedback("Training sidecar offline. Loaded cached model architecture catalog.");
+      setRefreshFeedback(`Training sidecar unreachable (${msg}). Showing offline placeholders (training status unknown).`);
     } finally {
       setIsRefreshing(false);
       setTimeout(() => setRefreshFeedback(null), 4000);
@@ -129,6 +136,17 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
     loadKaggleData();
   }, [loadTrainingData, loadKaggleData, cachedModels]);
+
+  // Refetch when the training sidecar comes back online (offline -> online transition)
+  const prevTrainingOnlineRef = useRef<boolean>(trainingSuiteOnline);
+  useEffect(() => {
+    const wasOnline = prevTrainingOnlineRef.current;
+    prevTrainingOnlineRef.current = trainingSuiteOnline;
+    if (trainingSuiteOnline && !wasOnline) {
+      loadTrainingData();
+      loadKaggleData();
+    }
+  }, [trainingSuiteOnline, loadTrainingData, loadKaggleData]);
 
   // Sync Kaggle credentials on focus or secrets-updated
   useEffect(() => {
@@ -201,6 +219,34 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     return () => clearInterval(interval);
   }, [localJob.modelKey]);
 
+  // Clear the local job once the sidecar reports a terminal state (completed / failed / cancelled)
+  useEffect(() => {
+    const jobId = localJob.jobId;
+    if (!jobId) return;
+    let isCancelled = false;
+
+    const pollJobStatus = async () => {
+      try {
+        const job = await fetchTrainingJob(jobId);
+        if (isCancelled || !TERMINAL_JOB_STATUSES.has(job.status)) return;
+        setLocalJob({ jobId: null, modelKey: null });
+        if (job.status === "failed") {
+          setStatusError(`Local training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
+        } else {
+          setStatusNotice(`Local training job ${jobId} ${job.status}.`);
+        }
+      } catch (err: unknown) {
+        console.warn(`Polling status of training job ${jobId} failed:`, err);
+      }
+    };
+
+    const interval = setInterval(pollJobStatus, JOB_STATUS_POLL_MS);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [localJob.jobId, setLocalJob]);
+
   // Derived filter options
   const uniqueCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -262,14 +308,17 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handleStopLocalTrain = async () => {
     if (!localJob.jobId) return;
+    const jobId = localJob.jobId;
     setActionBusyKey("stopping");
+    setStatusError(null);
     try {
-      await cancelTrainingJob(localJob.jobId);
-      setStatusNotice(`Cancelled local training job ${localJob.jobId}.`);
+      // Resolves only after the sidecar confirms status "cancelled"; job state is kept otherwise.
+      await cancelTrainingJob(jobId);
+      setStatusNotice(`Cancelled local training job ${jobId}.`);
       setLocalJob({ jobId: null, modelKey: null });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to stop job: ${msg}`);
+      setStatusError(`Failed to stop job ${jobId}: ${msg}`);
     } finally {
       setActionBusyKey(null);
     }
@@ -443,17 +492,19 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const displayedLocalEvents = useMemo(() => {
     return (_recentEvents || [])
-      .filter((ev) => isLocalTrainingEvent(ev))
+      .filter((ev) => isLocalTrainingEvent(ev, remoteJob.jobId))
       .filter(
         (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedLocalTimestamp
       );
-  }, [_recentEvents, clearedLocalTimestamp]);
+  }, [_recentEvents, clearedLocalTimestamp, remoteJob.jobId]);
 
   const displayedRemoteEvents = useMemo(() => {
-    return remoteEvents.filter(
-      (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedRemoteTimestamp
-    );
-  }, [remoteEvents, clearedRemoteTimestamp]);
+    return (_recentEvents || [])
+      .filter((ev) => isRemoteTrainingEvent(ev, remoteJob.jobId))
+      .filter(
+        (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedRemoteTimestamp
+      );
+  }, [_recentEvents, clearedRemoteTimestamp, remoteJob.jobId]);
 
   // Clipboard & Clear Controls
   const handleCopyLocalStream = async () => {
@@ -494,7 +545,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
 
   const handleClearRemoteStream = () => {
     setClearedRemoteTimestamp(Date.now());
-    setRemoteEvents([]);
   };
 
   return (
@@ -559,7 +609,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               aria-label="Training Suite sidecar offline"
             />
             <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:8200)</strong> — Showing cached neural architecture registry ({models.length} models). Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
+              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:8200)</strong> — Showing offline placeholders ({models.length} models); training status, ladders, and metrics are unknown until the sidecar is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
             </span>
           </div>
           {onStartTrainingSuite && (
@@ -573,6 +623,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             </button>
           )}
         </div>
+      )}
+
+      {statusError && (
+        <ValidationBanner
+          type="error"
+          role="alert"
+          message={statusError}
+          onDismiss={() => setStatusError(null)}
+          style={{ marginBottom: "16px" }}
+        />
       )}
 
       {statusNotice && (

@@ -118,11 +118,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setSelectedManifold((prev) => prev || dsList[0].key);
         setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
+        // Offline placeholders are display-only: never cached, so the sidecar catalog replaces them on reconnect.
         setDatasets(FALLBACK_DATASETS);
-        setCachedDatasets(FALLBACK_DATASETS);
         setSelectedManifold((prev) => prev || "upn_v2");
         if (!datasetCompilerOnline) {
-          setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying cached registry catalog.");
+          setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying offline placeholder catalog (not live data).");
         }
       }
 

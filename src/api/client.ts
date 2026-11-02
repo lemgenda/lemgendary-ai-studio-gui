@@ -734,14 +734,13 @@ export async function fetchModels(): Promise<ModelItem[]> {
       const isForex = item.is_forex ?? (modelKey === "forex_predictor" || item.category === "forex" || item.task_type === "forex");
       const isLlm = item.is_llm ?? (modelKey === "ai_helper_lemgend" || item.category === "llm" || item.task_type === "llm" || item.task_type === "text_instruction");
       const ladderType = item.ladder_type ?? (isForex ? "timeframe" : isLlm ? "context_tokens" : "spatial");
-      const defaultLadder = isForex ? [1, 5, 15, 60, 240, 1440] : isLlm ? [2048] : [256, 384, 512];
       const spatialLadder: number[] = Array.isArray(item.spatial_ladder) && item.spatial_ladder.length > 0
         ? item.spatial_ladder
         : Array.isArray(item.resolution)
         ? (item.resolution as number[])
         : typeof item.resolution === "number"
         ? [item.resolution]
-        : defaultLadder;
+        : []; // ladder comes from the sidecar only; empty means unknown
 
       const displayName = item.display_name || item.name || modelKey;
       const arch = item.architecture || item.architecture_type || item.class_name || "PyTorch Architecture";
@@ -757,7 +756,7 @@ export async function fetchModels(): Promise<ModelItem[]> {
       const sotaReached = item.sota_reached ?? false;
       const targetRes = item.target_res ?? (spatialLadder.length > 0 ? spatialLadder[spatialLadder.length - 1] : null);
 
-      const activeRes = liveTel?.latest_res ?? item.active_res ?? item.max_res_completed ?? (spatialLadder.length > 0 ? spatialLadder[0] : (item.target_res ?? 512));
+      const activeRes = liveTel?.latest_res ?? item.active_res ?? item.max_res_completed ?? (spatialLadder.length > 0 ? spatialLadder[0] : null);
       const ladderPassed = item.ladder_passed ?? (targetRes !== null && typeof activeRes === "number" && activeRes >= targetRes);
 
       const dataFractionCompleted = typeof liveTel?.latest_data === "number"
@@ -846,17 +845,46 @@ export async function fetchRunningTrainingJobs(): Promise<TrainingJobInfo[]> {
   }
 }
 
-export async function cancelTrainingJob(jobId: string): Promise<boolean> {
-  try {
-    const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
-      method: "POST",
-    });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return Boolean(data.cancelled || data.status === "cancelled");
-  } catch {
-    return false;
+/** Job states after which the sidecar job manager never touches a job again. */
+export const TERMINAL_JOB_STATUSES: ReadonlySet<string> = new Set(["completed", "failed", "cancelled"]);
+
+export interface CancelJobResult {
+  job_id: string;
+  status: string;
+  cancelled: boolean;
+  message?: string;
+}
+
+/**
+ * Cancel a sidecar job (`POST /api/jobs/{job_id}/cancel`).
+ * Resolves only when the sidecar confirms the job is cancelled; throws with the
+ * sidecar's detail otherwise (HTTP error, 404, or `cancelled: false`).
+ */
+export async function cancelTrainingJob(jobId: string): Promise<CancelJobResult> {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Cancel request failed: HTTP ${res.status} ${res.statusText}`);
   }
+  const data = (await res.json()) as CancelJobResult;
+  if (!data.cancelled || data.status !== "cancelled") {
+    throw new Error(
+      `${data.message || "Sidecar did not cancel the job."} (job ${data.job_id || jobId}, status: ${data.status || "unknown"})`
+    );
+  }
+  return data;
+}
+
+/** Read one sidecar job record (`GET /api/jobs/{job_id}`); throws on any failure. */
+export async function fetchTrainingJob(jobId: string): Promise<TrainingJobInfo> {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Job status request failed: HTTP ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as TrainingJobInfo;
 }
 
 // ─── Kaggle Cloud Engine Orchestration (Port 8200) ───────────────────────────
@@ -1252,8 +1280,13 @@ export function isCompilerEvent(ev: PipelineEvent): boolean {
   return step.includes("compiler");
 }
 
-export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
-  if (!ev) return false;
+/**
+ * Job types the training-suite job manager runs against a remote (Kaggle) kernel.
+ * Mirrors the sidecar's "Cloud Training" step classification in `training/server/jobs.py`.
+ */
+export const REMOTE_TRAINING_JOB_TYPES: ReadonlySet<string> = new Set(["kaggle_train", "kaggle_monitor", "cloud_push"]);
+
+function isTrainingSuiteEvent(ev: PipelineEvent): boolean {
   // Semantic origin routing - fully protocol-, host-, and port-agnostic
   if (ev.origin) {
     return ev.origin === "training-suite";
@@ -1262,7 +1295,29 @@ export function isLocalTrainingEvent(ev: PipelineEvent): boolean {
   return step.includes("train");
 }
 
-function normalizeSocketMessage(
+/**
+ * True when a training-suite event belongs to a remote (cloud) job: its `job_id`
+ * matches the attached remote job, or its `job_type` is a remote job type.
+ */
+export function isRemoteTrainingEvent(ev: PipelineEvent, remoteJobId?: string | null): boolean {
+  if (!ev || !isTrainingSuiteEvent(ev)) return false;
+  const jobId = ev.data?.job_id;
+  const jobType = ev.data?.job_type;
+  if (remoteJobId && typeof jobId === "string" && jobId === remoteJobId) return true;
+  return typeof jobType === "string" && REMOTE_TRAINING_JOB_TYPES.has(jobType);
+}
+
+export function isLocalTrainingEvent(ev: PipelineEvent, remoteJobId?: string | null): boolean {
+  if (!ev) return false;
+  return isTrainingSuiteEvent(ev) && !isRemoteTrainingEvent(ev, remoteJobId);
+}
+
+function jobRoutingData(raw: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (raw.job_id === undefined && raw.job_type === undefined) return undefined;
+  return { job_id: raw.job_id, job_type: raw.job_type };
+}
+
+export function normalizeSocketMessage(
   data: unknown,
   defaultStep: string,
   origin?: "env-manager" | "training-suite" | "dataset-compiler",
@@ -1291,7 +1346,10 @@ function normalizeSocketMessage(
       message: cleanMsg,
       is_progress: isProgress,
       timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
-      data: (raw.data as Record<string, unknown>) || undefined,
+      // Training-suite broadcasts carry job_id/job_type at the top level; keep them for stream routing.
+      data: raw.data || jobRoutingData(raw)
+        ? { ...jobRoutingData(raw), ...((raw.data as Record<string, unknown>) || {}) }
+        : undefined,
       origin: origin || "env-manager",
       port: port || MESH_SERVICES["env-manager"].defaultPort,
     };
@@ -1320,7 +1378,7 @@ function normalizeSocketMessage(
       message: cleanMsg,
       is_progress: isProgress,
       timestamp: typeof raw.timestamp === "string" ? raw.timestamp : new Date().toISOString(),
-      data: raw.job_id || raw.job_type ? { job_id: raw.job_id, job_type: raw.job_type } : undefined,
+      data: jobRoutingData(raw),
       origin: origin || "training-suite",
       port: port || MESH_SERVICES["training-suite"].defaultPort,
     };

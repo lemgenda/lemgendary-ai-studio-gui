@@ -341,6 +341,8 @@ export interface ModelItem {
   learning_rate?: number;
   batch_size?: number;
   default_epochs?: number;
+  /** Set only on GUI offline placeholders; status fields are then unknown, never fabricated. */
+  offline_placeholder?: boolean;
 }
 
 export interface SotaMetricDetail {
@@ -407,6 +409,7 @@ export interface TrainingJobInfo {
   status: string;
   created_at?: string;
   started_at?: string;
+  error_message?: string | null;
   params?: Record<string, unknown>;
 }
 
