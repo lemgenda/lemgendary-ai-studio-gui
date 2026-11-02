@@ -7,6 +7,8 @@ import {
   MESH_SERVICES,
   triggerPipeline,
   triggerPipelineStep,
+  runTrainingUnitTests,
+  runDatasetTestSuite,
 } from "../client";
 import { PipelineEvent } from "../types";
 
@@ -155,6 +157,30 @@ describe("API Client & Telemetry Utilities", () => {
       { target_project: "lemgendary-datasets", clean: false },
       { step_number: 3, target_project: null, clean: false },
     ]);
+    vi.unstubAllGlobals();
+  });
+  it("builds unit test run URLs from the mesh service registry", async () => {
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response(JSON.stringify({ status: "passed", tests_run: 2, failures_count: 0, errors_count: 0, failures: [], errors: [] }))
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const training = await runTrainingUnitTests();
+    await runDatasetTestSuite({ pattern: "test_chunker*.py" });
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `${MESH_SERVICES["training-suite"].httpUrl}/api/training/unit-test-run`,
+      `${MESH_SERVICES["dataset-compiler"].httpUrl}/api/llm/test-suite`,
+    ]);
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(String((init as RequestInit).body)));
+    expect(bodies).toEqual([{ pattern: "test_*.py" }, { pattern: "test_chunker*.py" }]);
+    expect(training.tests_run).toBe(2);
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects with the HTTP status when a unit test run fails", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => new Response("", { status: 503 })));
+    await expect(runDatasetTestSuite()).rejects.toThrow("Dataset Compiler test suite returned HTTP 503");
     vi.unstubAllGlobals();
   });
 });

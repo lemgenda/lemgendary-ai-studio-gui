@@ -6,6 +6,7 @@ interface HeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   onOpenConfigEditor?: () => void;
+  onOpenTestModal?: () => void;
   envManagerOnline: boolean;
 }
 
@@ -14,6 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   onRefresh,
   isRefreshing,
   onOpenConfigEditor,
+  onOpenTestModal,
   envManagerOnline,
 }) => {
   const handleOpenDocs = () => {
@@ -40,6 +42,21 @@ export const Header: React.FC<HeaderProps> = ({
               Config &amp; Secrets
             </button>
             <HelpTooltip content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens." />
+          </div>
+        )}
+
+        {onOpenTestModal && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              id="header-btn-test-modal"
+              type="button"
+              className="btn btn-secondary"
+              onClick={onOpenTestModal}
+              aria-label="Open Test & Diagnostic Orchestrator modal"
+            >
+              Tests &amp; Diagnostics
+            </button>
+            <HelpTooltip content="Test & Diagnostic Orchestrator: dispatch the fleet 1-epoch smoke test, or run the Training Suite and Dataset Compiler unit test suites in-process on their sidecars." />
           </div>
         )}
 

@@ -134,6 +134,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.14 - Reachable Test & Diagnostic Modal on Mesh URLs
+
+- **Header Entry (src/components/Header.tsx, src/App.tsx)**: a "Tests & Diagnostics" header button (`header-btn-test-modal`, with help tooltip) opens the Test & Diagnostic Orchestrator modal again (review finding D2: the modal state was never set to open after the entry was removed in v2.10.7). Modal state stays in `App.tsx` next to the Config & Secrets modal.
+- **Mesh URLs (src/api/client.ts, src/api/types.ts, src/components/TestModal.tsx)**: new `runTrainingUnitTests()` (`POST {TRAINING_BASE}/api/training/unit-test-run`) and `runDatasetTestSuite()` (`POST {DATASETS_BASE}/api/llm/test-suite`) go through `sidecarFetch` and the `MESH_SERVICES` registry; the modal no longer hardcodes `127.0.0.1` ports (review finding D3). Both endpoints exist in the regenerated sidecar `openapi.json` files. Responses are normalized (`UnitTestSuiteResult`), so missing `failures`/`errors` arrays no longer crash the modal. The fleet smoke test now shows `QUEUED` after enqueue instead of `PASSED`.
+- **Accessibility (src/components/TestModal.tsx)**: Escape closes the modal (it already had `role="dialog"`, `aria-modal` and a labelled title).
+- **Tests**: `TestModal.test.tsx` covers the header button opening the labelled dialog, Escape closing it, the training run URL and missing-array handling, and the absence of literal URLs or ports in the modal source; `client.test.ts` checks both run URLs, request bodies and the HTTP error message.
+
 ### v2.10.13 - Cheap Liveness Probe and Background Safe Updates
 
 - **Liveness Probe (src/api/config.ts, src/api/client.ts)**: each `MESH_SERVICES` entry now has a `livenessPath`. `probeSidecarPort` probes the env manager on the new constant-time `GET /api/ping` instead of `/api/health`, which runs the full ecosystem audit (winget, DirectML and `pip list` checks) and routinely timed out the 2 s probe (env-manager review finding D-05). The dataset compiler and training suite keep `/api/health`. The Health panel still loads the full audit through `fetchHealth()`.

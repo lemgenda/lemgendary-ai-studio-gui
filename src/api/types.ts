@@ -476,6 +476,24 @@ export interface UnitTestAllPayload {
   force?: boolean;
 }
 
+/** Request body for the in-process sidecar unit test runners. */
+export interface UnitTestSuitePayload {
+  pattern?: string;
+}
+
+/**
+ * Result of an in-process unit test run. Returned by Training Suite
+ * `POST /api/training/unit-test-run` and Dataset Compiler `POST /api/llm/test-suite`.
+ */
+export interface UnitTestSuiteResult {
+  status: string;
+  tests_run: number;
+  failures_count: number;
+  errors_count: number;
+  failures: string[];
+  errors: string[];
+}
+
 export interface ModelEvalPayload {
   model: string;
   checkpoint_path?: string;

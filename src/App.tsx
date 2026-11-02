@@ -399,6 +399,7 @@ export const App: React.FC = () => {
           onRefresh={loadData}
           isRefreshing={isRefreshing}
           onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+          onOpenTestModal={() => setIsTestModalOpen(true)}
           envManagerOnline={meshStatus.envManager}
         />
 

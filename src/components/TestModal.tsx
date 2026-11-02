@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { triggerUnitTestAll } from "../api/client";
-import { sidecarFetch } from "../api/http";
+import React, { useEffect, useState } from "react";
+import { runDatasetTestSuite, runTrainingUnitTests, triggerUnitTestAll, UnitTestSuiteResult } from "../api/client";
 
 interface TestModalProps {
   isOpen: boolean;
@@ -20,9 +19,25 @@ export const TestModal: React.FC<TestModalProps> = ({
   const [activeTab, setActiveTab] = useState<"fleet" | "training_unit" | "dataset_unit">("fleet");
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<string | null>(null);
-  const [statusState, setStatusState] = useState<"idle" | "running" | "passed" | "failed">("idle");
+  const [statusState, setStatusState] = useState<"idle" | "running" | "queued" | "passed" | "failed">("idle");
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const describeFailures = (result: UnitTestSuiteResult): string => {
+    const names = [...result.failures, ...result.errors];
+    return names.length > 0 ? names.join(", ") : "none reported";
+  };
 
   const handleRunFleetDiagnostic = async () => {
     setIsRunning(true);
@@ -30,8 +45,8 @@ export const TestModal: React.FC<TestModalProps> = ({
     setOutput("Dispatching fleet diagnostic unit test pass across all 23 registered neural architectures (epochs=1)...");
     try {
       const res = await triggerUnitTestAll({ epochs: 1, env: "local", force: false });
-      setOutput(`Fleet diagnostic job enqueued successfully!\nJob ID: ${res.job_id}\nStatus: ${res.status}\nMessage: ${res.message}\nCheck live telemetry stream for per-architecture loss convergence.`);
-      setStatusState("passed");
+      setOutput(`Fleet diagnostic job enqueued.\nJob ID: ${res.job_id}\nStatus: ${res.status}\nMessage: ${res.message}\nCheck the live telemetry stream for per-architecture results.`);
+      setStatusState("queued");
       onLogMessage?.(`Fleet diagnostic pass dispatched (Job ID: ${res.job_id})`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -47,20 +62,12 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Training Suite unit tests (models, governance, export, LLM causal engine)...");
     try {
-      const resp = await sidecarFetch("http://127.0.0.1:8200/api/training/unit-test-run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pattern: "test_*.py" }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Server returned HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
+      const data = await runTrainingUnitTests({ pattern: "test_*.py" });
       if (data.status === "passed") {
         setOutput(`[PASS] All ${data.tests_run} unit tests passed cleanly with 0 failures and 0 errors!`);
         setStatusState("passed");
       } else {
-        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailures: ${data.failures.join(", ")}`);
+        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailing tests: ${describeFailures(data)}`);
         setStatusState("failed");
       }
     } catch (err: unknown) {
@@ -77,20 +84,12 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Dataset Compiler unit tests (tools.llm_helper, quality validator, chunker)...");
     try {
-      const resp = await sidecarFetch("http://127.0.0.1:8100/api/llm/test-suite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pattern: "test_*.py" }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Server returned HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
+      const data = await runDatasetTestSuite({ pattern: "test_*.py" });
       if (data.status === "passed") {
         setOutput(`[PASS] All ${data.tests_run} dataset compiler tests passed cleanly with 0 errors!`);
         setStatusState("passed");
       } else {
-        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nErrors: ${data.errors.join(", ")}`);
+        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailing tests: ${describeFailures(data)}`);
         setStatusState("failed");
       }
     } catch (err: unknown) {
@@ -110,7 +109,7 @@ export const TestModal: React.FC<TestModalProps> = ({
             <h3 id="test-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
               Test &amp; Diagnostic Orchestrator
             </h3>
-            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-danger" : statusState === "running" ? "badge-warning" : "badge-secondary"}`}>
+            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-danger" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
               {statusState.toUpperCase()}
             </span>
           </div>
