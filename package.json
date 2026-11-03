@@ -1,7 +1,7 @@
 {
   "name": "lemgendary-ai-studio-gui",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.10.19",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,9 +14,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@radix-ui/react-progress": "^1.1.2",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-shell": "^2.0.0",
-    "@radix-ui/react-progress": "^1.1.2",
+    "modern-screenshot": "4.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.15"

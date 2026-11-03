@@ -60,6 +60,7 @@ import {
   KagglePushAllResponse,
   LLMTrainingConfig,
   LLMTrainResponse,
+  BugReportResponse,
 } from "./types";
 
 export type {
@@ -98,6 +99,7 @@ import { MESH_SERVICES, ServiceId } from "./config";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open as openWithShell } from "@tauri-apps/plugin-shell";
 import { sidecarFetch } from "./http";
+import { BugReportSubmitError, bugReportErrorFromResponse } from "../bugReport/serverErrors";
 export { MESH_SERVICES };
 export type { ServiceId };
 
@@ -452,6 +454,29 @@ export async function openExternalUrl(url: string): Promise<void> {
     throw new Error(`The browser blocked opening ${url}`);
   }
   opened.opener = null;
+}
+
+/**
+ * Send a bug report (`POST /api/bug-report`, multipart) to the Environment
+ * Manager, which saves the ZIP and opens the mail client.
+ * Throws `BugReportSubmitError`: `offline` when the Environment Manager cannot
+ * be reached, `validation` (422, with field errors), `too_large` (413) or `server`.
+ */
+export async function submitBugReport(form: FormData): Promise<BugReportResponse> {
+  let res: Response;
+  try {
+    res = await sidecarFetch(`${ENV_BASE}/api/bug-report`, { method: "POST", body: form });
+  } catch (err: unknown) {
+    throw BugReportSubmitError.offline(err);
+  }
+  if (!res.ok) {
+    const body: unknown = await res.json().catch((parseError: unknown) => {
+      console.warn("Bug report error response is not JSON:", parseError);
+      return null;
+    });
+    throw bugReportErrorFromResponse(res.status, res.statusText, body);
+  }
+  return (await res.json()) as BugReportResponse;
 }
 
 // ─── Dataset Compiler Sidecar (Port 8100) ───────────────────────────────────

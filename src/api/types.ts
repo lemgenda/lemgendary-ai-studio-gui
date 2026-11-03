@@ -692,3 +692,14 @@ export interface LLMTrainResponse {
 
 
 
+/** `POST /api/bug-report` (Environment Manager) success body. */
+export interface BugReportResponse {
+  report_id: string;
+  archive_name: string;
+  /** Relative to the workspace root, forward slashes. */
+  archive_path: string;
+  recipient: string;
+  subject: string;
+  mail_client_opened: boolean;
+  folder_revealed: boolean;
+}

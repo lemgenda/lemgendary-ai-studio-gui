@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
+import { Modal } from "./common/Modal";
 
 interface CleanInstallConfirmDialogProps {
   isOpen: boolean;
@@ -25,52 +26,17 @@ export const CleanInstallConfirmDialog: React.FC<CleanInstallConfirmDialogProps>
 }) => {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    cancelRef.current?.focus();
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancel();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      previouslyFocused?.focus();
-    };
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="modal-backdrop">
-      <div
-        id="pipeline-dialog-clean-install"
-        className="modal-content modal-content-compact"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pipeline-dialog-clean-install-title"
-        aria-describedby="pipeline-dialog-clean-install-desc"
-      >
-        <div className="modal-header">
-          <h2 id="pipeline-dialog-clean-install-title" style={{ fontSize: "18px", fontWeight: 700 }}>
-            Confirm clean install
-          </h2>
-        </div>
-        <div className="modal-body">
-          <p id="pipeline-dialog-clean-install-desc" style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-            A clean install deletes the following across all workspace projects, then reinstalls
-            everything from scratch. This can take a long time and cannot be undone.
-          </p>
-          <ul className="modal-deletion-list">
-            {CLEAN_INSTALL_DELETIONS.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="modal-footer">
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      id="pipeline-dialog-clean-install"
+      title="Confirm clean install"
+      className="modal-content-compact"
+      describedById="pipeline-dialog-clean-install-desc"
+      initialFocusRef={cancelRef}
+      footer={
+        <>
           <button
             id="pipeline-btn-clean-cancel"
             ref={cancelRef}
@@ -88,9 +54,19 @@ export const CleanInstallConfirmDialog: React.FC<CleanInstallConfirmDialogProps>
           >
             Delete and reinstall
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p id="pipeline-dialog-clean-install-desc" style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+        A clean install deletes the following across all workspace projects, then reinstalls
+        everything from scratch. This can take a long time and cannot be undone.
+      </p>
+      <ul className="modal-deletion-list">
+        {CLEAN_INSTALL_DELETIONS.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </Modal>
   );
 };
 

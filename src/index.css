@@ -841,6 +841,156 @@ code, pre {
   color: var(--text-primary);
 }
 
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Form dialogs (bug report): sized to content, the body scrolls. */
+.modal-content-form {
+  max-width: 640px;
+  height: auto;
+  max-height: 90vh;
+}
+
+.modal-content-form .modal-body {
+  overflow-y: auto;
+}
+
+/* Screenshot annotator: nearly the whole window. */
+.modal-content-annotator {
+  max-width: 96vw;
+  height: 94vh;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--accent-rose);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.field-hint-warning {
+  color: var(--accent-amber);
+}
+
+/* ─── Bug Report ─────────────────────────────────────────────────────────── */
+.bug-report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bug-description {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.bug-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bug-attachment-group {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bug-attachment-group legend {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bug-attachment-group:disabled {
+  opacity: 0.6;
+}
+
+.bug-screenshot-strip {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bug-screenshot-thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bug-screenshot-thumb img {
+  width: 96px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.bug-success {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.bug-success-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.bug-success-details dt {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.bug-success-details dd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  word-break: break-all;
+}
+
+.annotator-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.annotator-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+  border: 1px solid var(--border-color);
+}
+
 /* ─── Config & Manifest Editor ───────────────────────────────────────────── */
 .editor-toolbar {
   display: flex;

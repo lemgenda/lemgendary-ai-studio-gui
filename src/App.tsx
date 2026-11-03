@@ -12,6 +12,7 @@ import { CompilerPanel } from "./components/CompilerPanel";
 import { TrainingPanel } from "./components/TrainingPanel";
 import { ConfigEditorModal } from "./components/ConfigEditorModal";
 import { TestModal } from "./components/TestModal";
+import { BugReportModal } from "./components/bugReport/BugReportModal";
 import { ServiceTiles } from "./components/ServiceTiles";
 import { HelpTooltip } from "./components/HelpTooltip";
 import { PipelineStepCards } from "./components/PipelineStepCards";
@@ -61,9 +62,9 @@ export const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const runningSingleStepRef = useRef<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const initialModal = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("modal") : null;
-  const [isConfigEditorOpen, setIsConfigEditorOpen] = useState<boolean>(initialModal === "config" || initialModal === "secrets");
-  const [isTestModalOpen, setIsTestModalOpen] = useState<boolean>(false);
+  const activeModal = useStudioStore((s) => s.activeModal);
+  const openModal = useStudioStore((s) => s.openModal);
+  const closeModal = useStudioStore((s) => s.closeModal);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
@@ -398,8 +399,9 @@ export const App: React.FC = () => {
           title={getHeaderTitle()}
           onRefresh={loadData}
           isRefreshing={isRefreshing}
-          onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
-          onOpenTestModal={() => setIsTestModalOpen(true)}
+          onOpenConfigEditor={() => openModal("config")}
+          onOpenTestModal={() => openModal("tests")}
+          onOpenBugReport={() => openModal("bug-report")}
           envManagerOnline={meshStatus.envManager}
         />
 
@@ -537,7 +539,7 @@ export const App: React.FC = () => {
           {currentTab === "training" && (
             <TrainingPanel
               trainingSuiteOnline={meshStatus.trainingSuite}
-              onOpenConfigEditor={() => setIsConfigEditorOpen(true)}
+              onOpenConfigEditor={() => openModal("config")}
               onStartTrainingSuite={() => handleStartService("training-suite")}
               recentEvents={events}
               logSlot={
@@ -598,15 +600,19 @@ export const App: React.FC = () => {
       </div>
 
       <ConfigEditorModal
-        isOpen={isConfigEditorOpen}
-        onClose={() => setIsConfigEditorOpen(false)}
+        isOpen={activeModal === "config"}
+        onClose={closeModal}
       />
       <TestModal
-        isOpen={isTestModalOpen}
-        onClose={() => setIsTestModalOpen(false)}
+        isOpen={activeModal === "tests"}
+        onClose={closeModal}
         trainingSuiteOnline={meshStatus.trainingSuite}
         datasetCompilerOnline={meshStatus.datasetCompiler}
         onLogMessage={addTelemetryLog}
+      />
+      <BugReportModal
+        isOpen={activeModal === "bug-report"}
+        onClose={closeModal}
       />
     </div>
   );

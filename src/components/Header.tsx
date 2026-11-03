@@ -8,6 +8,7 @@ interface HeaderProps {
   isRefreshing: boolean;
   onOpenConfigEditor?: () => void;
   onOpenTestModal?: () => void;
+  onOpenBugReport?: () => void;
   envManagerOnline: boolean;
 }
 
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   isRefreshing,
   onOpenConfigEditor,
   onOpenTestModal,
+  onOpenBugReport,
   envManagerOnline,
 }) => {
   // The offline hub is served by the Environment Manager at `local_url`.
@@ -84,6 +86,21 @@ export const Header: React.FC<HeaderProps> = ({
               Config &amp; Secrets
             </button>
             <HelpTooltip content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens." />
+          </div>
+        )}
+
+        {onOpenBugReport && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              id="header-btn-report-issue"
+              type="button"
+              className="btn btn-secondary"
+              onClick={onOpenBugReport}
+              aria-label="Open the Report Issue form"
+            >
+              Report Issue
+            </button>
+            <HelpTooltip content="Report Issue: describe a problem, attach annotated screenshots and recent telemetry. The Environment Manager saves a ZIP report and opens your mail client to send it." />
           </div>
         )}
 

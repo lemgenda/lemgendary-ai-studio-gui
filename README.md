@@ -81,6 +81,12 @@ LemGendary AI Studio operates as a unified client communicating across a tripart
   - Served by the Environment Manager at the `local_url` reported by `GET /api/docs/status` (`http://127.0.0.1:8000/documentation-hub/index.html`); the header button opens it in the system browser and is disabled while the Environment Manager is offline.
   - Provides full offline access to all 46 scientific whitepapers, manuals, and architectural specifications with zero external internet dependencies.
 
+- **Report Issue (Bug Reporter)**:
+  - Header button "Report Issue" opens a form: email, module (the sidebar's workspace tabs, preselected from the active tab), description with a live character counter (50 to 10000), "Attach telemetry" (the recent event buffer as `telemetry.csv`, header `timestamp,status,source,message`, RFC 4180 quoting), up to 5 annotated screenshots, and a recording slot (desktop app only; added in a later release).
+  - Screenshot annotator: captures the app window with `modern-screenshot` (the bug report form and the annotator are left out), one red highlight rectangle (a new drag replaces it), saved as WebP 0.92 or PNG where the WebView cannot encode WebP; Retake and Cancel.
+  - The form checks the Environment Manager's limits before sending (`src/bugReport/limits.ts`) and posts multipart to `POST /api/bug-report`. Server field errors (422) appear next to their fields, 413 explains the size limits, and an unreachable Environment Manager shows "Environment Manager is not running".
+  - The success view shows the saved archive name and path, the recipient and the subject with "Copy address" and "Copy subject", and says when the mail client or the reports folder did not open.
+
 - **Embedded Real-Time Telemetry & Diagnostics**:
   - 3-tab live console (Local Training, Remote Cloud, Ecosystem Mesh) embedded directly on individual operational panels.
   - Streaming WebSockets over `/ws/log` and `/api/ws/logs` with color-coded severity badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`).
@@ -113,6 +119,16 @@ npm test
 npm run build
 ```
 
+## Runtime Dependencies
+
+| Package | Version | Purpose |
+| --- | --- | --- |
+| `react`, `react-dom` | ^18.3.1 | UI rendering |
+| `zustand` | ^5.0.15 | Central store (`useStudioStore`) |
+| `@radix-ui/react-progress` | ^1.1.2 | Telemetry progress bar |
+| `@tauri-apps/api`, `@tauri-apps/plugin-shell` | ^2.0.0 | Desktop IPC and opening external links |
+| `modern-screenshot` | 4.7.0 (pinned) | Bug report screenshots: renders the app DOM through an SVG `foreignObject`, so the WebView draws every CSS feature itself |
+
 ## Content Security Policy
 
 The desktop window runs with a strict CSP set in `src-tauri/tauri.conf.json`
@@ -120,7 +136,8 @@ The desktop window runs with a strict CSP set in `src-tauri/tauri.conf.json`
 
 - `default-src 'self'`, `script-src 'self'`, `object-src 'none'`, `frame-src 'none'`, `base-uri 'self'`, `form-action 'self'`.
 - `style-src 'self' https://fonts.googleapis.com` and `font-src 'self' https://fonts.gstatic.com` for the Google Fonts stylesheet in `index.html`. React `style={...}` props are applied through the CSSOM and need no `'unsafe-inline'`; inline `<style>` elements are not allowed, so keyframes live in `src/index.css`.
-- `img-src 'self' data: blob:` because Vite inlines the small branding SVGs as `data:` URLs.
+- `img-src 'self' data: blob:` because Vite inlines the small branding SVGs as `data:` URLs; bug report screenshots and their thumbnails are `data:`/`blob:` images too.
+- `connect-src` includes `https://fonts.gstatic.com` so the screenshot capture can download the web fonts it embeds. The Google Fonts `<link>` in `index.html` has `crossorigin="anonymous"` so the capture can read its `@font-face` rules.
 - `connect-src` allows only Tauri IPC (`ipc:`, `http://ipc.localhost`) and the three sidecars over HTTP and WebSocket on `127.0.0.1` and `localhost`, ports 8000 (Environment Manager), 8100 (Dataset Compiler) and 8200 (Training Suite). If you point a sidecar elsewhere with a `VITE_*_URL` variable, add that origin to `connect-src`.
 - `app.security.devCsp` (used by `npm run tauri dev`) adds `'unsafe-inline'` for scripts and styles (Vite HMR and the React refresh preamble) and `ws://localhost:1420` for the HMR socket.
 
@@ -133,6 +150,19 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.19 - Report Issue Modal with Annotated Screenshots
+
+- **Bug Reporter (src/components/bugReport/, src/bugReport/)**: new "Report Issue" header button (`header-btn-report-issue`) opens `BugReportModal` (Phase 4 frontend). Fields: email, module (select built from the sidebar tabs, preselected from `currentTab`), description with live counter, "Attach telemetry" (on by default), screenshot strip (max 5, thumbnails with Remove) and a disabled "Recording" slot ("available in the desktop app") with the props the recorder will use (`RecordingSlot`). Limits mirror the Environment Manager in one module (`limits.ts`); `draft.ts` validates, `formData.ts` builds the multipart body with the server field names (`fields.ts`), `telemetryCsv.ts` writes RFC 4180 CSV from the store's `events`. The success view shows archive name and path, recipient and subject with copy buttons, and notes when the mail client or folder did not open; closing resets the form. Stable ids `bug-modal-*` and `annotator-*`.
+- **Screenshot Annotator (src/components/bugReport/ScreenshotAnnotator.tsx, src/bugReport/screenshotCapture.ts)**: captures `#root` with `modern-screenshot` 4.7.0 (pinned); elements marked `data-capture-exclude` (the bug report modal and the annotator) are left out. One rectangle (red stroke, 20% fill; a new drag replaces it), Save (WebP 0.92, PNG when `toBlob` WebP returns null or PNG, as in WebKit; halved until it fits 5 MB), Retake, Cancel. A side-by-side check in Chromium (the Windows WebView2 engine) matched the native screenshot, including web fonts, gradients and `backdrop-filter`; html2canvas was not chosen because it is unmaintained and does not draw `backdrop-filter`.
+- **API Client (src/api/client.ts, src/api/types.ts, src/bugReport/serverErrors.ts)**: `submitBugReport(FormData)` posts to the Environment Manager (`POST /api/bug-report`). Errors are `BugReportSubmitError` with `kind` `offline` ("Environment Manager is not running"), `validation` (422 `detail` entries mapped to fields by `loc`), `too_large` (413) or `server`. New `BugReportResponse` type.
+- **Shared Modal (src/components/common/Modal.tsx)**: `role="dialog"`, `aria-modal`, `aria-labelledby`, Tab focus trap, Escape closes only the innermost open modal, focus returns to the opener. `CleanInstallConfirmDialog` now uses it; `ConfigEditorModal` and `TestModal` keep their own markup for now.
+- **One Open-Modal Field (src/store/useStudioStore.ts, src/App.tsx)**: `activeModal` (`config`, `tests`, `bug-report`) replaces the two `useState` flags in `App.tsx`; `?modal=config|secrets` still opens the config editor.
+- **Workspace Tabs (src/navigation/workspaceTabs.ts)**: the tab ids, labels and help texts moved out of `Sidebar.tsx`; the sidebar, the `?tab=` parser and the bug report module select read them from there.
+- **Version (package.json, src/appVersion.ts, src-tauri/tauri.conf.json)**: `package.json` `version` is now the GUI line (`2.10.19`, was `2.0.0`); the bug report sends it as `app_version`, and `tauri.conf.json` reads it (`"version": "../package.json"`).
+- **CSP (src-tauri/tauri.conf.json, index.html)**: `connect-src` adds `https://fonts.gstatic.com` (csp and devCsp) for font embedding in screenshots; the Google Fonts link gets `crossorigin="anonymous"`.
+- **Styles (src/index.css)**: `modal-title`, `modal-content-form`, `modal-content-annotator`, `btn-sm`, `field-error`, `field-hint`, `bug-*` and `annotator-*` rules.
+- **Tests**: `bugReport.test.ts` (20): validation limits, CSV header and quoting, FormData field names against `lemgendary-env-manager/openapi.json`, 422 mapping, 413, offline, 200, WebP and PNG fallback. `BugReportModal.test.tsx` (8): header button opens the modal with the module preselected, Escape and focus return, client validation, 422 field errors, offline error, success view and reset, screenshot cap at 5, Escape closing only the annotator.
 
 ### v2.10.18 - Vite Config Type Check in CI Gate
 
