@@ -1533,11 +1533,10 @@ section.
   - **Where / why**: v2.10.18
 - D41
   - **Severity**: Low
-  - **Status**: Partly fixed, rest deferred
-  - **Where / why**: Downgrade removed in v2.10.21. ESLint 9 flat-config
-    migration deferred: it needs a coordinated plugin upgrade
-    (`eslint-plugin-react-hooks` 5, `typescript-eslint` flat configs) and is a
-    toolchain step of its own
+  - **Status**: Fixed
+  - **Where / why**: Downgrade removed in v2.10.21. v2.10.31 migrates to ESLint
+    9 flat config (`eslint.config.js`) with `typescript-eslint` 8 and
+    `eslint-plugin-react-hooks` 5
 
 Deferred to step L7 (cross-repo SSOT): service ids, folders, modules and
 ports are still duplicated in `src/api/config.ts` and

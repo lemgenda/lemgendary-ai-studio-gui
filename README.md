@@ -274,6 +274,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.31 - ESLint 9 Flat Config
+
+Also: Remediation Status.
+
+- **Lint Toolchain (eslint.config.js, package.json)**: migrated from ESLint 8
+  (`.eslintrc.json`, end-of-life) to ESLint 9 flat config with
+  `typescript-eslint` 8.72.0, `eslint-plugin-react-hooks` 5.2.0 and exact
+  pinned versions. Same rule set and strictness (`jsx-a11y` strict with
+  `no-autofocus` as error, `react/prop-types`, `react/jsx-runtime`); `lint` no
+  longer needs `--ext` (D41).
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.31`.
+
 ### v2.10.29 - Logger Everywhere, Status Fallback Without Epoch Rule
 
 Also: Remediation Status.
