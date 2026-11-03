@@ -8,6 +8,8 @@ import { useStudioStore } from "../../store/useStudioStore";
 import { BugReportResponse } from "../../api/types";
 import { BugReportSubmitError, ENV_MANAGER_OFFLINE_MESSAGE } from "../../bugReport/serverErrors";
 import { BUG_REPORT_LIMITS } from "../../bugReport/limits";
+import { NativeRecordingStatus, RecorderBackend } from "../../bugReport/recording";
+import { packRecording } from "../../bugReport/__tests__/packRecording";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -26,7 +28,13 @@ const SAVED: BugReportResponse = {
 type Submit = (form: FormData) => Promise<BugReportResponse>;
 
 /** Mirrors the App wiring: the open modal lives in one store field, the header opens it. */
-const Shell: React.FC<{ submit: Submit; capture: () => Promise<HTMLCanvasElement> }> = ({ submit, capture }) => {
+interface ShellProps {
+  submit: Submit;
+  capture: () => Promise<HTMLCanvasElement>;
+  recorderBackend?: RecorderBackend;
+}
+
+const Shell: React.FC<ShellProps> = ({ submit, capture, recorderBackend }) => {
   const activeModal = useStudioStore((s) => s.activeModal);
   const openModal = useStudioStore((s) => s.openModal);
   const closeModal = useStudioStore((s) => s.closeModal);
@@ -39,7 +47,14 @@ const Shell: React.FC<{ submit: Submit; capture: () => Promise<HTMLCanvasElement
         onOpenBugReport={() => openModal("bug-report")}
         envManagerOnline={false}
       />
-      <BugReportModal isOpen={activeModal === "bug-report"} onClose={closeModal} submit={submit} captureScreen={capture} />
+      <BugReportModal
+        isOpen={activeModal === "bug-report"}
+        onClose={closeModal}
+        submit={submit}
+        captureScreen={capture}
+        recorderBackend={recorderBackend}
+        recordingAvailable={recorderBackend !== undefined}
+      />
     </>
   );
 };
@@ -238,5 +253,67 @@ describe("Report Issue modal", () => {
     });
     expect(query("#annotator-dialog")).toBeNull();
     expect(query("#bug-modal-dialog")).not.toBeNull();
+  });
+
+  it("hides the dialog while recording the app window and attaches the MP4 on stop", async () => {
+    const status = (state: NativeRecordingStatus["state"], elapsedMs: number): NativeRecordingStatus => ({
+      state,
+      elapsedMs,
+      maxMs: 60_000,
+      frames: 10,
+      error: null,
+    });
+    const video = new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]);
+    const backend: RecorderBackend = {
+      start: vi.fn().mockResolvedValue(status("recording", 0)),
+      pause: vi.fn().mockResolvedValue(status("paused", 1200)),
+      resume: vi.fn().mockResolvedValue(status("recording", 1200)),
+      status: vi.fn().mockResolvedValue(status("recording", 1300)),
+      stop: vi.fn().mockResolvedValue(
+        packRecording({ mime: "video/mp4", durationMs: 2500, frames: 60, fps: 24, width: 730, height: 480 }, video)
+      ),
+    };
+    await act(async () => {
+      root.render(<Shell submit={submit} capture={capture} recorderBackend={backend} />);
+    });
+    await click("#header-btn-report-issue");
+    await click("#bug-modal-btn-start-recording");
+    expect(query("#bug-modal-dialog")).toBeNull();
+    expect(query("#recording-control-status")?.textContent).toBe("Recording");
+
+    await click("#recording-btn-pause");
+    expect(query("#recording-control-status")?.textContent).toBe("Paused");
+    expect(query("#recording-control-time")?.textContent).toBe("0:01 / 1:00");
+    await click("#recording-btn-resume");
+    await click("#recording-btn-stop");
+
+    expect(query("#recording-control-bar")).toBeNull();
+    expect(query("#bug-modal-dialog")).not.toBeNull();
+    expect(query("#bug-modal-recording-summary")?.textContent).toContain("0:02, 730x480");
+
+    fillValidForm();
+    await click("#bug-modal-btn-submit");
+    const recording = submit.mock.calls[0][0].get("recording") as File;
+    expect(recording.name).toBe("recording.mp4");
+    expect(recording.type).toBe("video/mp4");
+    expect(recording.size).toBe(video.length);
+  });
+
+  it("shows a recorder failure in the dialog", async () => {
+    const backend: RecorderBackend = {
+      start: vi.fn().mockRejectedValue("Could not start window capture: access denied"),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      status: vi.fn(),
+      stop: vi.fn(),
+    };
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await act(async () => {
+      root.render(<Shell submit={submit} capture={capture} recorderBackend={backend} />);
+    });
+    await click("#header-btn-report-issue");
+    await click("#bug-modal-btn-start-recording");
+    expect(query("#bug-modal-dialog")).not.toBeNull();
+    expect(query("#bug-modal-recorder-error")?.textContent).toContain("access denied");
   });
 });

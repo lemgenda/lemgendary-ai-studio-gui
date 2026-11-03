@@ -3,6 +3,7 @@ import { Modal } from "../common/Modal";
 import { ScreenshotAnnotator } from "./ScreenshotAnnotator";
 import { ScreenshotAttachment, ScreenshotStrip } from "./ScreenshotStrip";
 import { RecordingSlot } from "./RecordingSlot";
+import { RecordingControlBar } from "./RecordingControlBar";
 import { BugReportSuccess } from "./BugReportSuccess";
 import { useStudioStore } from "../../store/useStudioStore";
 import { submitBugReport } from "../../api/client";
@@ -15,6 +16,8 @@ import { BugReportFieldErrors } from "../../bugReport/fields";
 import { buildBugReportFormData } from "../../bugReport/formData";
 import { buildTelemetryCsv } from "../../bugReport/telemetryCsv";
 import { BugReportSubmitError } from "../../bugReport/serverErrors";
+import { RecordedClip, RecorderBackend, isRecordingAvailable, tauriRecorderBackend } from "../../bugReport/recording";
+import { useRecorder } from "../../bugReport/useRecorder";
 import { CAPTURE_EXCLUDE_PROPS, ScreenCapturer, captureAppScreen } from "../../bugReport/screenshotCapture";
 
 interface BugReportModalProps {
@@ -24,6 +27,10 @@ interface BugReportModalProps {
   submit?: (form: FormData) => Promise<BugReportResponse>;
   /** Renders the app into a canvas; defaults to the DOM capture. */
   captureScreen?: ScreenCapturer;
+  /** Native app-window recorder; defaults to the desktop app's commands. */
+  recorderBackend?: RecorderBackend;
+  /** Whether recording is offered; defaults to "running in the desktop app". */
+  recordingAvailable?: boolean;
 }
 
 interface FormState {
@@ -32,7 +39,7 @@ interface FormState {
   description: string;
   attachTelemetry: boolean;
   screenshots: ScreenshotAttachment[];
-  recording: Blob | null;
+  recording: RecordedClip | null;
 }
 
 const emptyForm = (currentTab: string): FormState => ({
@@ -61,6 +68,8 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
   onClose,
   submit = submitBugReport,
   captureScreen = captureAppScreen,
+  recorderBackend = tauriRecorderBackend,
+  recordingAvailable = isRecordingAvailable(),
 }) => {
   const currentTab = useStudioStore((s) => s.currentTab);
   const events = useStudioStore((s) => s.events);
@@ -73,6 +82,10 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
   const [isAnnotating, setIsAnnotating] = useState<boolean>(false);
   const requestRef = useRef(0);
   const nextScreenshotId = useRef(0);
+  const recorder = useRecorder((clip) => setForm((prev) => ({ ...prev, recording: clip })), recorderBackend);
+  // The dialog hides while the app window is recorded, so the clip shows the app, not the form.
+  const isRecording = recorder.view.phase !== "idle";
+  const { clearError: clearRecorderError } = recorder;
 
   // Preselect the module from the active tab whenever the modal opens.
   useEffect(() => {
@@ -91,8 +104,9 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
     setIsSubmitting(false);
     setResult(null);
     setIsAnnotating(false);
+    clearRecorderError();
     onClose();
-  }, [currentTab, onClose]);
+  }, [currentTab, onClose, clearRecorderError]);
 
   const buildDraft = (): BugReportDraft => ({
     email: form.email,
@@ -102,7 +116,7 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
     description: form.description,
     screenshots: form.screenshots.map((shot) => shot.blob),
     telemetryCsv: form.attachTelemetry ? buildTelemetryCsv(events) : null,
-    recording: form.recording,
+    recording: form.recording?.blob ?? null,
   });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -175,7 +189,7 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
   return (
     <>
       <Modal
-        isOpen={isOpen}
+        isOpen={isOpen && !isRecording}
         onClose={handleClose}
         id="bug-modal-dialog"
         title={result ? "Report saved" : "Report Issue"}
@@ -270,9 +284,11 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
             />
 
             <RecordingSlot
-              available={false}
+              available={recordingAvailable}
               recording={form.recording}
-              onRecordingChange={(recording) => update("recording", recording)}
+              onStart={recorder.start}
+              onRemove={() => update("recording", null)}
+              recorderError={recorder.view.error}
               error={fieldErrors.recording}
             />
 
@@ -287,6 +303,9 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
         onSave={addScreenshot}
         onCancel={() => setIsAnnotating(false)}
       />
+      {isRecording && (
+        <RecordingControlBar view={recorder.view} onPause={recorder.pause} onResume={recorder.resume} onStop={recorder.stop} />
+      )}
     </>
   );
 };
