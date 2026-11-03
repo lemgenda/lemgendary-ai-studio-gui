@@ -43,10 +43,8 @@ export function useModelFilters(models: ModelItem[]) {
         if (!matchesName && !matchesArch && !matchesCat && !matchesTask) return false;
       }
       if (statusFilter !== "ALL") {
-        if (statusFilter === "FULLY_TRAINED" && m.training_status !== "fully_trained") return false;
-        if (statusFilter === "PARTIALLY_TRAINED" && m.training_status !== "partially_trained" && (m.epochs_completed ?? 0) === 0) return false;
-        if (statusFilter === "WEIGHTS_READY" && (!m.checkpoint_exists || m.training_status === "fully_trained")) return false;
-        if (statusFilter === "INITIALIZING" && (m.training_status === "fully_trained" || m.checkpoint_exists || (m.epochs_completed ?? 0) > 0)) return false;
+        // Filter on the Training Suite verdict only (no epoch or checkpoint heuristics).
+        if (m.training_status.toUpperCase() !== statusFilter) return false;
       }
       if (categoryFilter !== "ALL" && m.category !== categoryFilter) return false;
       if (archFilter !== "ALL" && m.architecture !== archFilter) return false;

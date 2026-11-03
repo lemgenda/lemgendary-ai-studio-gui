@@ -4,7 +4,6 @@ import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrainingPanel } from "../TrainingPanel";
 import { useStudioStore } from "../../store/useStudioStore";
-import { FALLBACK_MODELS } from "../training/fallbackModels";
 import { ModelItem, PipelineEvent, TrainingJobInfo } from "../../api/types";
 import { servicePort } from "../../api/config";
 import * as client from "../../api/client";
@@ -31,6 +30,7 @@ const LIVE_MODEL: ModelItem = {
   architecture: "MobileNetV3-Small Parameter Regressor",
   task_type: "enhance",
   training_status: "partially_trained",
+  is_fully_trained: false,
   spatial_ladder: [256, 384, 512, 640],
   target_res: 640,
   active_res: 384,
@@ -95,13 +95,13 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     vi.clearAllMocks();
   });
 
-  it("never writes offline placeholders into the store cache", async () => {
+  it("shows an empty offline state instead of a fake catalog", async () => {
     await render({ online: false });
     expect(mocked.fetchModels).toHaveBeenCalledTimes(1);
     expect(useStudioStore.getState().cachedModels).toEqual([]);
-    expect(container.textContent).toContain("offline placeholders");
-    expect(container.textContent).toContain("UNKNOWN (OFFLINE)");
-    expect(container.textContent).toContain(FALLBACK_MODELS[0].display_name);
+    expect(container.querySelector('[data-testid="models-empty-state"]')).not.toBeNull();
+    expect(container.textContent).toContain("Training Suite sidecar is offline");
+    expect(container.querySelectorAll(".card-grid .card")).toHaveLength(0);
   });
 
   it("refetches the model registry when the sidecar comes back online", async () => {
@@ -114,7 +114,7 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(mocked.fetchModels).toHaveBeenCalledTimes(2);
     expect(useStudioStore.getState().cachedModels).toEqual([LIVE_MODEL]);
     expect(container.textContent).toContain("UPN v2 (live)");
-    expect(container.textContent).not.toContain("UNKNOWN (OFFLINE)");
+    expect(container.querySelector('[data-testid="models-empty-state"]')).toBeNull();
   });
 
   it("shows an error and keeps the local job when the cancel fails", async () => {

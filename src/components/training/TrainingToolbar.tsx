@@ -175,6 +175,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             <option value="PARTIALLY_TRAINED">Partially Trained</option>
             <option value="WEIGHTS_READY">Weights Ready</option>
             <option value="INITIALIZING">Initializing</option>
+            <option value="UNKNOWN">Unknown</option>
           </select>
         </div>
 

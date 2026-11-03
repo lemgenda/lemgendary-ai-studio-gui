@@ -3,6 +3,9 @@
  * Kaggle cloud training, unit tests, exports and model variations.
  */
 
+/** Training state from the Training Suite 4-pillar verdict (`ModelWithStats.training_status`). */
+export type TrainingStatus = "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | "unknown";
+
 export interface ModelItem {
   key: string;
   display_name: string;
@@ -28,7 +31,8 @@ export interface ModelItem {
   kaggle_ref?: string;
   kaggle_dataset_urls?: string[];
   checkpoint_exists?: boolean;
-  is_fully_trained?: boolean;
+  /** Always sent by the Training Suite; true only when all 4 completion pillars hold. */
+  is_fully_trained: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
   best_metric?: number;
@@ -40,14 +44,15 @@ export interface ModelItem {
   sota_all_met?: boolean;
   sota_details?: SotaMetricDetail[];
   best_metrics_details?: BestMetricDetail[];
-  training_status?: "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | string;
+  /** Always sent by the Training Suite; never guessed by the GUI. */
+  training_status: TrainingStatus;
+  /** Why the sidecar could not compute stats (status is then `unknown`). */
+  stats_error?: string | null;
   status?: "PLANNED" | "SPECIFICATION" | "DATASET_READY" | "TRAINING" | "TRAINED" | "VALIDATED" | "PRODUCTION" | "DEPRECATED" | string;
   authoritative_status?: string;
   learning_rate?: number;
   batch_size?: number;
   default_epochs?: number;
-  /** Set only on GUI offline placeholders; status fields are then unknown, never fabricated. */
-  offline_placeholder?: boolean;
 }
 
 export interface SotaMetricDetail {

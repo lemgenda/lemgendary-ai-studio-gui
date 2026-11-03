@@ -22,7 +22,6 @@ import { DatasetCompilationForm } from "./compiler/DatasetCompilationForm";
 import { DatasetManifoldCard } from "./compiler/DatasetManifoldCard";
 import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
-import { FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { useCompilationForm } from "./compiler/useCompilationForm";
 import { logger } from "../utils/logger";
@@ -100,12 +99,13 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setSelectedManifold((prev) => prev || dsList[0].key);
         showRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
-        // Offline placeholders are display-only: never cached, so the sidecar catalog replaces them on reconnect.
-        setDatasets(FALLBACK_DATASETS);
-        setSelectedManifold((prev) => prev || "upn_v2");
-        if (!datasetCompilerOnline) {
-          showRefreshFeedback(`Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. Displaying offline placeholder catalog (not live data).`);
-        }
+        // Empty or unreachable sidecar: show the empty/offline state, never a hand-written catalog.
+        setDatasets([]);
+        showRefreshFeedback(
+          datasetCompilerOnline
+            ? "Dataset Compiler returned no manifolds."
+            : `Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. The catalog stays empty until it is reachable.`
+        );
       }
 
       // No offline preset copies: presets.yaml on the sidecar is the only source.
@@ -409,7 +409,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <div className="card-grid card-grid-models">
             {filteredDatasets.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                No dataset manifolds matched your current search and filter settings.
+                {datasets.length > 0
+                  ? "No dataset manifolds matched your current search and filter settings."
+                  : datasetCompilerOnline
+                  ? "The Dataset Compiler returned no manifolds."
+                  : "No manifolds to show: the Dataset Compiler sidecar is offline. Start it to load the catalog."}
               </div>
             ) : (
               filteredDatasets.map((d) => (

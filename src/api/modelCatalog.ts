@@ -5,7 +5,7 @@
 import { logger } from "../utils/logger";
 import { TRAINING_BASE } from "./endpoints";
 import { sidecarFetch } from "./http";
-import { BestMetricDetail, ModelItem, SotaMetricDetail } from "./types";
+import { BestMetricDetail, ModelItem, SotaMetricDetail, TrainingStatus } from "./types";
 
 interface RawModelData {
   key?: string;
@@ -52,8 +52,11 @@ interface RawModelData {
   sota_all_met?: boolean;
   sota_details?: SotaMetricDetail[];
   best_metrics_details?: BestMetricDetail[];
-  is_fully_trained?: boolean;
-  training_status?: string;
+  /** Required in `ModelWithStats`: the GUI shows it and never derives it. */
+  is_fully_trained: boolean;
+  /** Required in `ModelWithStats`: the GUI shows it and never derives it. */
+  training_status: TrainingStatus;
+  stats_error?: string | null;
   learning_rate?: number;
   batch_size?: number;
   default_epochs?: number;
@@ -105,18 +108,6 @@ export async function fetchModels(): Promise<ModelItem[]> {
 
       // Data fraction is only passed if current rung >= 99% AND ladder is passed (or SOTA reached with checkpoint)
       const dataFractionPassed = item.data_fraction_passed ?? ((dataFractionCompleted >= 0.99 && ladderPassed) || (sotaReached && ckptExists));
-      // The Training Suite owns this verdict; without it, only the governance criteria count (no epoch-count rule).
-      const isFullyTrained = item.is_fully_trained ?? (sotaReached && ladderPassed && dataFractionPassed);
-
-      const status = item.training_status || (
-        isFullyTrained
-          ? "fully_trained"
-          : completedEpochs > 0
-          ? "partially_trained"
-          : ckptExists
-          ? "weights_ready"
-          : "initializing"
-      );
 
       return {
         key: modelKey,
@@ -143,7 +134,7 @@ export async function fetchModels(): Promise<ModelItem[]> {
         kaggle_ref: item.kaggle_ref,
         kaggle_dataset_urls: item.kaggle_dataset_urls,
         checkpoint_exists: ckptExists,
-        is_fully_trained: isFullyTrained,
+        is_fully_trained: item.is_fully_trained,
         preferred_parallel: parallelMode,
         epochs_completed: completedEpochs,
         best_metric: metricVal,
@@ -155,7 +146,9 @@ export async function fetchModels(): Promise<ModelItem[]> {
         sota_all_met: item.sota_all_met,
         sota_details: item.sota_details,
         best_metrics_details: item.best_metrics_details,
-        training_status: status,
+        // The Training Suite owns the verdict (4 pillars); the GUI shows it as sent.
+        training_status: item.training_status,
+        stats_error: item.stats_error ?? null,
         learning_rate: typeof item.learning_rate === "number" ? item.learning_rate : undefined,
         batch_size: typeof item.batch_size === "number" ? item.batch_size : undefined,
         default_epochs: typeof item.default_epochs === "number" ? item.default_epochs : undefined,

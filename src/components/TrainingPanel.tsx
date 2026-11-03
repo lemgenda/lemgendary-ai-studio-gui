@@ -13,7 +13,6 @@ import {
   fetchKaggleSuiteStatus,
 } from "../api/client";
 import { ModelItem, KaggleSuiteStatus } from "../api/types";
-import { FALLBACK_MODELS } from "./training/fallbackModels";
 import { errorMessage, logger } from "../utils/logger";
 import { useTransientValue } from "../utils/useTransientValue";
 import { useModelFilters } from "./training/useModelFilters";
@@ -40,10 +39,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const setLocalJob = useStudioStore((s) => s.setLocalJob);
   const setRemoteJob = useStudioStore((s) => s.setRemoteJob);
 
-  const [models, setModels] = useState<ModelItem[]>(() => {
-    const cached = useStudioStore.getState().cachedModels;
-    return cached.length > 0 ? cached : FALLBACK_MODELS;
-  });
+  // Only live sidecar data is shown: no offline placeholder catalog.
+  const [models, setModels] = useState<ModelItem[]>(() => useStudioStore.getState().cachedModels);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshFeedback, showRefreshFeedback] = useTransientValue<string>(4000);
 
@@ -71,14 +68,14 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         setCachedModels(modelList);
         showRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
       } else {
-        // Offline placeholders are display-only: never cached, so the sidecar list replaces them on reconnect.
-        setModels(FALLBACK_MODELS);
-        showRefreshFeedback(`Training sidecar returned no models. Showing ${FALLBACK_MODELS.length} offline placeholders (training status unknown).`);
+        // Empty or unreachable sidecar: show the empty/offline state, never a hand-written catalog.
+        setModels([]);
+        showRefreshFeedback("Training sidecar returned no models. The catalog stays empty until it is reachable.");
       }
     } catch (err: unknown) {
-      logger.warn("Training model registry fetch failed; showing offline placeholders", err);
-      setModels(FALLBACK_MODELS);
-      showRefreshFeedback(`Training sidecar unreachable (${errorMessage(err)}). Showing offline placeholders (training status unknown).`);
+      logger.warn("Training model registry fetch failed; catalog is empty", err);
+      setModels([]);
+      showRefreshFeedback(`Training sidecar unreachable (${errorMessage(err)}). The catalog stays empty until it is reachable.`);
     } finally {
       setIsRefreshing(false);
     }
@@ -308,7 +305,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               aria-label="Training Suite sidecar offline"
             />
             <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:8200)</strong> — Showing offline placeholders ({models.length} models); training status, ladders, and metrics are unknown until the sidecar is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
+              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:8200)</strong> — The model catalog, training status, ladders, and metrics come only from the sidecar and appear once it is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
             </span>
           </div>
           {onStartTrainingSuite && (
@@ -376,7 +373,20 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         ))}
       </div>
 
-      {filteredModels.length === 0 && (
+      {models.length === 0 && (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }} data-testid="models-empty-state">
+          <p style={{ fontSize: "14px", marginBottom: "8px" }}>
+            {trainingSuiteOnline
+              ? "The Training Suite returned no models."
+              : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
+          </p>
+          <button type="button" className="btn btn-secondary" onClick={() => void loadTrainingData()} style={{ fontSize: "12px" }}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {models.length > 0 && filteredModels.length === 0 && (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
           <p style={{ fontSize: "14px", marginBottom: "8px" }}>No architectures matched your search or filter criteria.</p>
           <button

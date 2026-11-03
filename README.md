@@ -274,6 +274,28 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.34 - Training Status Contract and No Fake Catalogs
+
+- **Training Status (src/api/contracts/training.ts, src/api/modelCatalog.ts)**:
+  `training_status` (new `TrainingStatus` union: `fully_trained`,
+  `partially_trained`, `weights_ready`, `initializing`, `unknown`) and
+  `is_fully_trained` are required, as in the training `ModelWithStats`
+  schema; `stats_error` is passed through. The GUI no longer derives them
+  from pillars, epochs or checkpoints.
+- **Badge and Filter (src/components/training/TrainingStatusBadge.tsx,
+  useModelFilters.ts, TrainingToolbar.tsx, ModelManifoldCard.tsx)**: the
+  badge and the status filter use the sidecar verdict only (no epoch-count
+  fallback). `unknown` shows an `UNKNOWN` badge with the `stats_error`
+  reason and hides metrics; the filter gets an "Unknown" option.
+- **Fake Catalogs Removed**: `src/components/training/fallbackModels.ts` and
+  `src/components/compiler/fallbackDatasets.ts` are deleted, and
+  `offline_placeholder` is gone. With a sidecar offline or empty, the training
+  and compiler catalogs show an empty/offline state (with Retry in the
+  training panel) instead of hand-maintained lists.
+- **Tests**: new `CompilerPanel.offline.test.tsx`; card, panel and catalog
+  tests use sidecar-shaped records. `ecosystem_ssot` GUI findings: 21 to 0.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.34`.
+
 ### v2.10.33 - Ecosystem Literals and Contract Parity
 
 - **Ports from the Snapshot (src/api/config.ts)**: new `servicePort(id)` and

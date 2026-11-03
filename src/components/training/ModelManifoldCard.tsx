@@ -37,7 +37,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
     }
   }, [m.batch_size]);
 
-  const statusUnknown = m.offline_placeholder === true;
+  // The sidecar could not compute this model's stats: metrics are unknown, never fabricated.
+  const statusUnknown = m.training_status === "unknown";
 
   return (
     <div

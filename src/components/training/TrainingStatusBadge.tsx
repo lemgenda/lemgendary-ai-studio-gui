@@ -1,39 +1,40 @@
 import React from "react";
-import { ModelItem } from "../../api/types";
+import { ModelItem, TrainingStatus } from "../../api/types";
 
 interface TrainingStatusBadgeProps {
   model: ModelItem;
-  /** Offline placeholder: the real training status is unknown. */
+  /** The sidecar sent `training_status: "unknown"` (stats could not be computed). */
   statusUnknown: boolean;
 }
 
-/** Training progress badge of a model card. */
-export const TrainingStatusBadge: React.FC<TrainingStatusBadgeProps> = ({ model: m, statusUnknown }) => (
-  <div>
-    {statusUnknown ? (
-      <span
-        className="badge badge-secondary"
-        style={{ fontWeight: 700 }}
-        title="Offline placeholder: the training sidecar is unreachable, so the real training status is unknown."
-      >
-        UNKNOWN (OFFLINE)
+const BADGES: Record<Exclude<TrainingStatus, "unknown">, { className: string; label: string }> = {
+  fully_trained: { className: "badge badge-success", label: "FULLY TRAINED" },
+  partially_trained: { className: "badge badge-info", label: "PARTIALLY TRAINED" },
+  weights_ready: { className: "badge badge-success", label: "WEIGHTS READY" },
+  initializing: { className: "badge badge-warning", label: "INITIALIZING" },
+};
+
+/** Training progress badge of a model card: shows the Training Suite verdict as sent, never derived. */
+export const TrainingStatusBadge: React.FC<TrainingStatusBadgeProps> = ({ model: m, statusUnknown }) => {
+  if (statusUnknown || m.training_status === "unknown") {
+    return (
+      <div>
+        <span
+          className="badge badge-secondary"
+          style={{ fontWeight: 700 }}
+          title={m.stats_error ? `Training Suite could not compute stats: ${m.stats_error}` : "Training Suite reported the training status as unknown."}
+        >
+          UNKNOWN
+        </span>
+      </div>
+    );
+  }
+  const badge = BADGES[m.training_status];
+  return (
+    <div>
+      <span className={badge.className} style={{ fontWeight: 700 }}>
+        {badge.label}
       </span>
-    ) : m.training_status === "fully_trained" ? (
-      <span className="badge badge-success" style={{ fontWeight: 700 }}>
-        FULLY TRAINED
-      </span>
-    ) : m.training_status === "partially_trained" || (m.epochs_completed ?? 0) > 0 ? (
-      <span className="badge badge-info" style={{ fontWeight: 700 }}>
-        PARTIALLY TRAINED
-      </span>
-    ) : m.checkpoint_exists ? (
-      <span className="badge badge-success" style={{ fontWeight: 700 }}>
-        WEIGHTS READY
-      </span>
-    ) : (
-      <span className="badge badge-warning" style={{ fontWeight: 700 }}>
-        INITIALIZING
-      </span>
-    )}
-  </div>
-);
+    </div>
+  );
+};
