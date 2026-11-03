@@ -274,6 +274,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.35 - README NUL Byte Removed
+
+- The v2.10.7 changelog entry held a NUL byte where "0.0 GB" was meant,
+  which made `grep` and other tools treat `README.md` as binary. It now
+  reads "0.0 GB".
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.35`.
+
 ### v2.10.34 - Training Status Contract and No Fake Catalogs
 
 - **Training Status (src/api/contracts/training.ts, src/api/modelCatalog.ts)**:
@@ -1003,7 +1010,7 @@ Also: Manifold Footprint.
   (src/components/compiler/DatasetManifoldCard.tsx)**:
   - Enhanced disk footprint formatting to automatically render in MB for
     lightweight instruction and tabular datasets under 100 MB (2.9 MB) rather
-    than rounding down to  .0 GB.
+    than rounding down to 0.0 GB.
 
 ### v2.10.6 - Pipeline Step 5 Safe Dependency Upgrade Alignment
 
