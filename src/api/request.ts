@@ -60,3 +60,10 @@ export function postJson(url: string, payload?: unknown): Promise<Response> {
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
 }
+
+/** POST JSON and return the parsed body; throws with the sidecar's detail on HTTP errors. */
+export async function postJsonOrThrow<T>(url: string, payload: unknown, action: string): Promise<T> {
+  const res = await postJson(url, payload);
+  if (!res.ok) return throwHttpError(res, action);
+  return (await res.json()) as T;
+}

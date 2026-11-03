@@ -1,6 +1,6 @@
 [package]
 name = "lemgendary-ai-studio-gui"
-version = "2.10.21"
+version = "2.10.22"
 description = "LemGendary AI Studio Desktop GUI"
 authors = ["LemGendary AI"]
 edition = "2021"

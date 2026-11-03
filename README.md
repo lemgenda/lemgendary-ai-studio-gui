@@ -152,6 +152,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.22 - API Client Split per Sidecar Service
+
+- **API Client (src/api/)**: `client.ts` (1491 lines) is now a 60-line barrel over per-service modules, so `../api/client` imports and test mocks are unchanged. Environment Manager: `envManager.ts` (hardware, health, pipeline, maintenance, docs status, bug report), `serviceLifecycle.ts` (liveness probes, start/stop through the Environment Manager or native spawn), `manifests.ts`, `secrets.ts`, `platform.ts` (`openExternalUrl`). Dataset Compiler: `datasets.ts` (catalog, presets, compilation, modernization), `datasetKaggle.ts`. Training Suite: `modelCatalog.ts` (`fetchModels` normalization), `training.ts` (dispatch, jobs, evaluation, export, soup, LLM), `trainingKaggle.ts`, `modelArtifacts.ts` (notebooks, model docs, variations), `unitTests.ts`. Telemetry: `telemetry.ts` (ANSI cleanup, progress detection, roll-up), `eventRouting.ts`, `socketMessages.ts`, `logSocket.ts`. Base URLs live in `endpoints.ts`.
+- **Shared Request Helpers (src/api/request.ts)**: new `postJsonOrThrow`; the Dataset Compiler's private `postDatasetJson` is gone.
+- **Contracts (src/api/contracts/)**: `types.ts` (705 lines) is now a barrel over `mesh.ts`, `envManager.ts`, `datasets.ts` and `training.ts`; `../api/types` imports are unchanged.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.22`.
+
 ### v2.10.21 - No Silent Error Handling or Rule-Offs
 
 - **Diagnostic Logger (src/utils/logger.ts)**: new `logger.debug/warn/error(context, err)` and `nullOnFailure(promise, context)`; `errorMessage(err)` gives readable text for any thrown value. Recovered failures (offline sidecar, fallback catalog, non-JSON error body) are now logged with context instead of dropped.
