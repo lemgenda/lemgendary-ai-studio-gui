@@ -88,8 +88,8 @@ pub fn spawn_all_services() -> Result<String, String> {
     Ok("All services spawned successfully".to_string())
 }
 
+/// Legacy alias for `spawn_service("env-manager")`; the interpreter comes from the project venv.
 #[tauri::command]
-pub fn spawn_sidecar(python_path: Option<String>) -> Result<String, String> {
-    let _ = python_path;
+pub fn spawn_sidecar() -> Result<String, String> {
     spawn_service("env-manager".to_string())
 }

@@ -32,6 +32,7 @@ import {
   startAllServices,
 } from "./api/client";
 import { MeshStatus, ProjectHealth } from "./api/types";
+import { logger, nullOnFailure } from "./utils/logger";
 
 const FALLBACK_PROJECTS: ProjectHealth[] = [
   { name: "lemgendary-env-manager", project_dir: "./lemgendary-env-manager", venv_exists: false, total_required: 0, total_installed: 0, missing_packages: [], installed_packages: {}, is_healthy: false },
@@ -80,7 +81,8 @@ export const App: React.FC = () => {
       };
       setMeshStatus(newMesh);
       return true;
-    } catch {
+    } catch (err: unknown) {
+      logger.debug("Ecosystem mesh endpoint unreachable; probing each sidecar port", err);
       const [em, dc, ts] = await Promise.all([
         probeSidecarPort("env-manager"),
         probeSidecarPort("dataset-compiler"),
@@ -99,9 +101,9 @@ export const App: React.FC = () => {
 
     try {
       const [hwData, healthData, pipeStatus] = await Promise.all([
-        fetchHardware().catch(() => null),
-        fetchHealth().catch(() => null),
-        fetchPipelineStatus().catch(() => null),
+        nullOnFailure(fetchHardware(), "Hardware profile refresh failed"),
+        nullOnFailure(fetchHealth(), "Health report refresh failed"),
+        nullOnFailure(fetchPipelineStatus(), "Pipeline status refresh failed"),
       ]);
 
       if (hwData) {
@@ -124,7 +126,8 @@ export const App: React.FC = () => {
       await refreshMeshStatus();
       setLastUpdated(new Date().toISOString());
       setRefreshError(null);
-    } catch {
+    } catch (err: unknown) {
+      logger.error("Dashboard refresh failed", err);
       setRefreshError(
         "Refresh failed: No sidecars reachable on ports 8000, 8100, or 8200. " +
         "Launch the ecosystem mesh to synchronize live data."
@@ -203,8 +206,8 @@ export const App: React.FC = () => {
           runningSingleStepRef.current = null;
           void loadData();
         }
-      } catch {
-        // Polling error ignored during active pipeline execution
+      } catch (err: unknown) {
+        logger.debug("Pipeline status poll failed; retrying", err);
       }
     }, 1500);
 
@@ -232,7 +235,7 @@ export const App: React.FC = () => {
               await new Promise((resolve) => setTimeout(resolve, 1000));
               if (cancelled) return;
               await refreshMeshStatus();
-              const check = await fetchEcosystemMesh().catch(() => null);
+              const check = await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug");
               if (check?.dataset_compiler.reachable && check?.training_suite.reachable) {
                 break;
               }
@@ -240,7 +243,8 @@ export const App: React.FC = () => {
             await loadData();
           }
           break;
-        } catch {
+        } catch (err: unknown) {
+          logger.warn(`Sidecar auto-start attempt ${attempt + 1} of 3 failed`, err);
           await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
@@ -257,7 +261,8 @@ export const App: React.FC = () => {
       runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
       await triggerPipeline({ clean });
-    } catch {
+    } catch (err: unknown) {
+      logger.error("Pipeline trigger failed", err);
       setRefreshError("Pipeline trigger failed: Environment Manager (Port 8000) is not reachable.");
       setIsRunningPipeline(false);
     }
@@ -268,7 +273,8 @@ export const App: React.FC = () => {
       runningSingleStepRef.current = null;
       setIsRunningPipeline(true);
       await triggerPipeline({ clean: false, targetProject: projectName });
-    } catch {
+    } catch (err: unknown) {
+      logger.error(`Reconcile failed for ${projectName}`, err);
       setRefreshError(`Reconcile failed for ${projectName}: Environment Manager (Port 8000) is not reachable.`);
       setIsRunningPipeline(false);
     }
@@ -279,7 +285,8 @@ export const App: React.FC = () => {
       runningSingleStepRef.current = stepNumber;
       setIsRunningPipeline(true);
       await triggerPipelineStep(stepNumber, false);
-    } catch {
+    } catch (err: unknown) {
+      logger.error(`Pipeline step ${stepNumber} trigger failed`, err);
       setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port 8000) is not reachable.`);
       runningSingleStepRef.current = null;
       setIsRunningPipeline(false);
@@ -301,7 +308,7 @@ export const App: React.FC = () => {
       for (let i = 0; i < 15; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await refreshMeshStatus();
-        const check = await fetchEcosystemMesh().catch(() => null);
+        const check = await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug");
         if (serviceId === "env-manager" && check?.env_manager?.reachable) break;
         if (serviceId === "dataset-compiler" && check?.dataset_compiler?.reachable) break;
         if (serviceId === "training-suite" && check?.training_suite?.reachable) break;
@@ -326,7 +333,7 @@ export const App: React.FC = () => {
       for (let i = 0; i < 10; i++) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         await refreshMeshStatus();
-        const check = await fetchEcosystemMesh().catch(() => null);
+        const check = await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug");
         if (serviceId === "env-manager" && !check?.env_manager?.reachable) break;
         if (serviceId === "dataset-compiler" && !check?.dataset_compiler?.reachable) break;
         if (serviceId === "training-suite" && !check?.training_suite?.reachable) break;
@@ -351,7 +358,7 @@ export const App: React.FC = () => {
       for (let i = 0; i < 15; i++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await refreshMeshStatus();
-        const check = await fetchEcosystemMesh().catch(() => null);
+        const check = await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug");
         if (check?.dataset_compiler?.reachable && check?.training_suite?.reachable) {
           break;
         }

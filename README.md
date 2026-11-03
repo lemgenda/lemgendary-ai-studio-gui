@@ -152,6 +152,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.21 - No Silent Error Handling or Rule-Offs
+
+- **Diagnostic Logger (src/utils/logger.ts)**: new `logger.debug/warn/error(context, err)` and `nullOnFailure(promise, context)`; `errorMessage(err)` gives readable text for any thrown value. Recovered failures (offline sidecar, fallback catalog, non-JSON error body) are now logged with context instead of dropped.
+- **Shared Request Helpers (src/api/request.ts)**: `sidecarErrorDetail` moved here (still re-exported from `client.ts`); new `readErrorBody` (logs a non-JSON error body), `throwSidecarError`, `throwHttpError` and `postJson`. The 13 `res.json().catch(() => ({}))` error paths in `client.ts` now use them, and FastAPI list `detail` entries read as text instead of `[object Object]`.
+- **API Client (src/api/client.ts)**: empty catches in `probeSidecarPort`, `fetchSecrets`, `fetchDatasets`, `fetchKaggleStatus`, `fetchKaggleRegistryDatasets`, `fetchModels`, `fetchRunningTrainingJobs`, `fetchKaggleSuiteStatus`, `fetchKaggleKernels` and the log WebSocket now log the failure; non-OK responses that return an empty list are logged too. Return values are unchanged.
+- **Components (src/App.tsx, CloudTrainModal.tsx, CompilerPanel.tsx, ConfigEditorModal.tsx, TrainingPanel.tsx, src/utils/clipboard.ts, src/api/config.ts)**: every `catch {}` and `.catch(() => null)` now logs with context; banners and fallbacks are unchanged.
+- **ESLint (.eslintrc.json)**: removed rule-offs and downgrades. `react/react-in-jsx-scope` is now turned off by the `plugin:react/jsx-runtime` preset (React 17+ JSX transform) instead of a manual off; `react/prop-types` is back on (TypeScript props satisfy it); `jsx-a11y/no-autofocus` is no longer downgraded to `warn`.
+- **Tauri (src-tauri/src/commands.rs)**: `spawn_sidecar` drops its unused `python_path` argument instead of discarding it with `let _ =`.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.21`.
+
 ### v2.10.20 - Screen Recording for the Bug Reporter
 
 - **Native Recorder (src-tauri/src/recording/)**: records the app's own window only. `windows_source.rs` captures the main window's HWND with Windows Graphics Capture (`windows-capture` =2.0.1, Windows only); `scale.rs` box-filters frames into an even-sized 854x480 box with letterboxing; `encoder.rs` encodes H.264 with openh264 =0.9.9 (bundled source build, screen-content mode, 1 Mbit/s, key frame every 2 s, frame skipping on so bitrate control works) and muxes an MP4 in memory with `mp4` =0.14.0 (`bytes` =1.12.1). `session.rs` is the pure state machine (start, pause, continue, stop, 60 s limit on unpaused time, capture failures kept for `stop`); `recorder.rs` runs it on a worker thread at 24 fps behind the `WindowRecorder` trait with an injectable `Clock`. Commands `recording_start`, `recording_pause`, `recording_resume`, `recording_stop`, `recording_status`; `recording_stop` returns raw bytes (`[u32 LE header length][JSON header][MP4]`) instead of a JSON number array. Other platforms return "not supported on this platform yet". App commands need no capability entry; `capabilities/default.json` is unchanged.

@@ -99,8 +99,10 @@ import { MESH_SERVICES, ServiceId } from "./config";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { open as openWithShell } from "@tauri-apps/plugin-shell";
 import { sidecarFetch } from "./http";
+import { readErrorBody, sidecarErrorDetail, throwHttpError, throwSidecarError } from "./request";
+import { logger } from "../utils/logger";
 import { BugReportSubmitError, bugReportErrorFromResponse } from "../bugReport/serverErrors";
-export { MESH_SERVICES };
+export { MESH_SERVICES, sidecarErrorDetail };
 export type { ServiceId };
 
 export const ENV_BASE = MESH_SERVICES["env-manager"].httpUrl;
@@ -187,21 +189,22 @@ export async function fetchEcosystemMesh(): Promise<EcosystemSidecarMesh> {
 export async function probeSidecarPort(target: number | ServiceId): Promise<boolean> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 2000);
+  let url: string;
+  if (typeof target === "string" && target in MESH_SERVICES) {
+    const service = MESH_SERVICES[target];
+    url = `${service.httpUrl}${service.livenessPath}`;
+  } else {
+    const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
+    url = match ? `${match.httpUrl}${match.livenessPath}` : `http://127.0.0.1:${target}/api/health`;
+  }
   try {
-    let url: string;
-    if (typeof target === "string" && target in MESH_SERVICES) {
-      const service = MESH_SERVICES[target];
-      url = `${service.httpUrl}${service.livenessPath}`;
-    } else {
-      const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
-      url = match ? `${match.httpUrl}${match.livenessPath}` : `http://127.0.0.1:${target}/api/health`;
-    }
     const res = await sidecarFetch(url, {
       method: "GET",
       signal: controller.signal,
     });
     return res.ok;
-  } catch {
+  } catch (err: unknown) {
+    logger.debug(`Liveness probe failed for ${url}`, err);
     return false;
   } finally {
     window.clearTimeout(timer);
@@ -209,18 +212,6 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
 }
 
 // ─── Ecosystem Sidecar Daemon Lifecycle Management (Port 8000) ───────────────
-
-/** Raise an `Error` carrying the sidecar's `detail` (or status text) for a failed response. */
-async function throwHttpError(res: Response, action: string): Promise<never> {
-  let detail = "";
-  try {
-    const body = (await res.json()) as { detail?: unknown };
-    if (typeof body.detail === "string") detail = body.detail;
-  } catch (parseErr) {
-    console.warn(`${action}: error response body was not JSON`, parseErr);
-  }
-  throw new Error(detail || `${action} failed: HTTP ${res.status} ${res.statusText}`);
-}
 
 /** Tauri native command used when the Environment Manager cannot start services itself. */
 async function invokeNativeSpawn(command: "spawn_service" | "spawn_all_services", args?: Record<string, unknown>): Promise<void> {
@@ -311,9 +302,9 @@ export async function triggerSafeUpdate(
     body: JSON.stringify({ dry_run: dryRun, project: project ?? null }),
   });
   if (!resp.ok) {
-    const err = (await resp.json().catch(() => ({}))) as { detail?: unknown };
-    const detail = typeof err.detail === "string" ? err.detail : resp.statusText;
-    throw new Error(`Safe package update failed (${resp.status}): ${detail}`);
+    const body = await readErrorBody(resp, "Safe package update");
+    const detail = (body as { detail?: unknown } | null)?.detail;
+    throw new Error(`Safe package update failed (${resp.status}): ${typeof detail === "string" ? detail : resp.statusText}`);
   }
   return resp.json();
 }
@@ -392,13 +383,18 @@ export async function saveManifest(name: string, content: string): Promise<Manif
 
 // ─── Ecosystem Secrets & Tokens Vault ───────────────────────────────────────
 
+/** Stored secrets (masked); an unreachable or failing vault is logged and yields `[]`. */
 export async function fetchSecrets(): Promise<SecretItem[]> {
   try {
     const res = await sidecarFetch(`${ENV_BASE}/api/secrets`);
-    if (!res.ok) return [];
-    const data = await res.json();
+    if (!res.ok) {
+      logger.warn(`Secrets vault request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
+    const data = (await res.json()) as { secrets?: SecretItem[] };
     return data.secrets || [];
-  } catch {
+  } catch (err: unknown) {
+    logger.warn("Secrets vault is unreachable", err);
     return [];
   }
 }
@@ -426,10 +422,7 @@ export async function saveSecrets(drafts: SecretDraft[]): Promise<SecretsSaveRes
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ secrets: toSecretWriteItems(drafts) }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to save secrets: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to save secrets: ${res.statusText}`);
   return res.json();
 }
 
@@ -470,10 +463,7 @@ export async function submitBugReport(form: FormData): Promise<BugReportResponse
     throw BugReportSubmitError.offline(err);
   }
   if (!res.ok) {
-    const body: unknown = await res.json().catch((parseError: unknown) => {
-      console.warn("Bug report error response is not JSON:", parseError);
-      return null;
-    });
+    const body = await readErrorBody(res, "Bug report submission");
     throw bugReportErrorFromResponse(res.status, res.statusText, body);
   }
   return (await res.json()) as BugReportResponse;
@@ -484,9 +474,15 @@ export async function submitBugReport(form: FormData): Promise<BugReportResponse
 export async function fetchDatasets(): Promise<DatasetItem[]> {
   try {
     const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!data.datasets || !Array.isArray(data.datasets)) return [];
+    if (!res.ok) {
+      logger.warn(`Dataset catalog request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
+    const data = (await res.json()) as { datasets?: unknown };
+    if (!data.datasets || !Array.isArray(data.datasets)) {
+      logger.warn("Dataset catalog response has no datasets list", data);
+      return [];
+    }
 
     return (data.datasets as BackendDatasetStats[]).map((item: BackendDatasetStats): DatasetItem => {
       const key = item.key || item.name.toLowerCase().replace(/^lemgendized/, "");
@@ -520,32 +516,10 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
         kaggle_ref: item.kaggle_ref,
       };
     });
-  } catch {
+  } catch (err: unknown) {
+    logger.warn("Dataset Compiler is unreachable; dataset catalog is empty", err);
     return [];
   }
-}
-
-/**
- * Readable message from a sidecar error body: FastAPI `detail` is either a
- * string (HTTPException) or a list of `{loc, msg}` entries (422 validation).
- */
-export function sidecarErrorDetail(body: unknown, fallback: string): string {
-  if (typeof body !== "object" || body === null) return fallback;
-  const { detail, message } = body as { detail?: unknown; message?: unknown };
-  if (typeof detail === "string" && detail) return detail;
-  if (Array.isArray(detail)) {
-    const parts = detail
-      .map((entry: unknown) => {
-        if (typeof entry !== "object" || entry === null) return String(entry);
-        const { loc, msg } = entry as { loc?: unknown; msg?: unknown };
-        const where = Array.isArray(loc) ? loc.filter((p) => p !== "body").join(".") : "";
-        return where ? `${where}: ${String(msg)}` : String(msg);
-      })
-      .filter((part) => part.length > 0);
-    if (parts.length > 0) return parts.join("; ");
-  }
-  if (typeof message === "string" && message) return message;
-  return fallback;
 }
 
 /** POST JSON to the Dataset Compiler and return the parsed body; throws with the server's detail on HTTP errors. */
@@ -556,8 +530,7 @@ async function postDatasetJson<T>(path: string, payload: unknown, action: string
     body: payload === undefined ? undefined : JSON.stringify(payload),
   });
   if (!res.ok) {
-    const body: unknown = await res.json().catch(() => null);
-    throw new Error(sidecarErrorDetail(body, `${action} failed: HTTP ${res.status} ${res.statusText}`.trim()));
+    return throwHttpError(res, action);
   }
   return (await res.json()) as T;
 }
@@ -569,8 +542,7 @@ async function postDatasetJson<T>(path: string, payload: unknown, action: string
 export async function fetchCompilerPresets(): Promise<CompilerPreset[]> {
   const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/presets`);
   if (!res.ok) {
-    const body: unknown = await res.json().catch(() => null);
-    throw new Error(sidecarErrorDetail(body, `Preset request failed: HTTP ${res.status} ${res.statusText}`.trim()));
+    return throwHttpError(res, "Preset request");
   }
   return parseCompilerPresets(await res.json());
 }
@@ -594,22 +566,36 @@ export async function triggerCustomCompile(payload: CustomCompilePayload): Promi
   return postDatasetJson<DatasetJobResponse>("/api/gui/custom-compile", payload, "Custom compilation request");
 }
 
+const KAGGLE_UNAUTHENTICATED: KaggleStatusResponse = {
+  authenticated: false,
+  auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false },
+};
+
+/** Kaggle auth state from the Dataset Compiler; failures are logged and read as unauthenticated. */
 export async function fetchKaggleStatus(): Promise<KaggleStatusResponse> {
   try {
     const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/status`);
-    if (!res.ok) return { authenticated: false, auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false } };
-    return res.json();
-  } catch {
-    return { authenticated: false, auth_methods: { environment_variables: false, dot_kaggle_token: false, user_kaggle_json: false } };
+    if (!res.ok) {
+      logger.warn(`Kaggle status request failed: HTTP ${res.status} ${res.statusText}`);
+      return KAGGLE_UNAUTHENTICATED;
+    }
+    return (await res.json()) as KaggleStatusResponse;
+  } catch (err: unknown) {
+    logger.warn("Dataset Compiler is unreachable; Kaggle reads as unauthenticated", err);
+    return KAGGLE_UNAUTHENTICATED;
   }
 }
 
 export async function fetchKaggleRegistryDatasets(): Promise<KaggleDatasetRegistryItem[]> {
   try {
     const res = await sidecarFetch(`${DATASETS_BASE}/api/kaggle/registry-datasets`);
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
+    if (!res.ok) {
+      logger.warn(`Kaggle registry request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
+    return (await res.json()) as KaggleDatasetRegistryItem[];
+  } catch (err: unknown) {
+    logger.warn("Dataset Compiler is unreachable; Kaggle registry is empty", err);
     return [];
   }
 }
@@ -640,8 +626,7 @@ export async function updateAllKaggleMetadata(): Promise<DatasetJobResponse> {
 export async function fetchModernizationQueue(): Promise<ModernizationQueueItem[]> {
   const resp = await sidecarFetch(`${DATASETS_BASE}/api/modernize/queue`);
   if (!resp.ok) {
-    const body: unknown = await resp.json().catch(() => null);
-    throw new Error(sidecarErrorDetail(body, `Failed to fetch modernization queue: HTTP ${resp.status}`));
+    return throwSidecarError(resp, `Failed to fetch modernization queue: HTTP ${resp.status}`);
   }
   return parseModernizationQueue(await resp.json());
 }
@@ -723,7 +708,10 @@ interface RawModelData {
 export async function fetchModels(): Promise<ModelItem[]> {
   try {
     const res = await sidecarFetch(`${TRAINING_BASE}/api/gui/models/with-stats`);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      logger.warn(`Model catalog request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
     const data = (await res.json()) as RawModelData[] | { models?: RawModelData[] };
     const rawList: RawModelData[] = Array.isArray(data) ? data : (data.models || []);
 
@@ -818,7 +806,8 @@ export async function fetchModels(): Promise<ModelItem[]> {
         default_epochs: typeof item.default_epochs === "number" ? item.default_epochs : undefined,
       };
     });
-  } catch {
+  } catch (err: unknown) {
+    logger.warn("Training Suite is unreachable; model catalog is empty", err);
     return [];
   }
 }
@@ -836,9 +825,13 @@ export async function triggerQuickTrain(payload: QuickTrainPayload): Promise<{ s
 export async function fetchRunningTrainingJobs(): Promise<TrainingJobInfo[]> {
   try {
     const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs?status=running`);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      logger.warn(`Running jobs request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
     return (await res.json()) as TrainingJobInfo[];
-  } catch {
+  } catch (err: unknown) {
+    logger.warn("Training Suite is unreachable; no running jobs listed", err);
     return [];
   }
 }
@@ -862,10 +855,7 @@ export async function cancelTrainingJob(jobId: string): Promise<CancelJobResult>
   const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
     method: "POST",
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Cancel request failed: HTTP ${res.status} ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Cancel request failed: HTTP ${res.status} ${res.statusText}`);
   const data = (await res.json()) as CancelJobResult;
   if (!data.cancelled || data.status !== "cancelled") {
     throw new Error(
@@ -878,30 +868,31 @@ export async function cancelTrainingJob(jobId: string): Promise<CancelJobResult>
 /** Read one sidecar job record (`GET /api/jobs/{job_id}`); throws on any failure. */
 export async function fetchTrainingJob(jobId: string): Promise<TrainingJobInfo> {
   const res = await sidecarFetch(`${TRAINING_BASE}/api/jobs/${encodeURIComponent(jobId)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Job status request failed: HTTP ${res.status} ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Job status request failed: HTTP ${res.status} ${res.statusText}`);
   return (await res.json()) as TrainingJobInfo;
 }
 
 // ─── Kaggle Cloud Engine Orchestration (Port 8200) ───────────────────────────
 
+const KAGGLE_SUITE_UNAUTHENTICATED: KaggleSuiteStatus = { authenticated: false, username: "", token_configured: false };
+
+/** Training Suite Kaggle status merged with the vault's default Kaggle secret; failures are logged. */
 export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
   try {
     const [res, secrets] = await Promise.all([
-      sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/status`).catch(() => null),
-      fetchSecrets().catch(() => []),
+      sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/status`).catch((err: unknown) => {
+        logger.warn("Training Suite Kaggle status is unreachable", err);
+        return null;
+      }),
+      fetchSecrets(),
     ]);
 
-    const defaultKaggle = (secrets || []).find(
+    const defaultKaggle = secrets.find(
       (s) => s.service.toLowerCase() === "kaggle" && s.is_default
     );
 
     const data: KaggleSuiteStatus =
-      res && res.ok
-        ? await res.json()
-        : { authenticated: false, username: "", token_configured: false };
+      res && res.ok ? ((await res.json()) as KaggleSuiteStatus) : { ...KAGGLE_SUITE_UNAUTHENTICATED };
 
     if (defaultKaggle && defaultKaggle.username) {
       data.username = defaultKaggle.username;
@@ -911,17 +902,22 @@ export async function fetchKaggleSuiteStatus(): Promise<KaggleSuiteStatus> {
       }
     }
     return data;
-  } catch {
-    return { authenticated: false, username: "", token_configured: false };
+  } catch (err: unknown) {
+    logger.warn("Kaggle suite status response could not be read", err);
+    return { ...KAGGLE_SUITE_UNAUTHENTICATED };
   }
 }
 
 export async function fetchKaggleKernels(limit: number = 20): Promise<KaggleKernelItem[]> {
   try {
     const res = await sidecarFetch(`${TRAINING_BASE}/api/training/kaggle/kernels?limit=${limit}`);
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
+    if (!res.ok) {
+      logger.warn(`Kaggle kernels request failed: HTTP ${res.status} ${res.statusText}`);
+      return [];
+    }
+    return (await res.json()) as KaggleKernelItem[];
+  } catch (err: unknown) {
+    logger.warn("Training Suite is unreachable; Kaggle kernel list is empty", err);
     return [];
   }
 }
@@ -932,10 +928,7 @@ export async function launchKaggleTrain(payload: KaggleTrainPayload): Promise<{ 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to launch Kaggle training: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to launch Kaggle training: ${res.statusText}`);
   return res.json();
 }
 
@@ -945,10 +938,7 @@ export async function monitorKaggleKernel(payload: KaggleMonitorPayload): Promis
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to connect to Kaggle kernel: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to connect to Kaggle kernel: ${res.statusText}`);
   return res.json();
 }
 
@@ -958,10 +948,7 @@ export async function pullKaggleModelArtifacts(model: string): Promise<{ job_id:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to pull Kaggle artifacts: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to pull Kaggle artifacts: ${res.statusText}`);
   return res.json();
 }
 
@@ -971,10 +958,7 @@ export async function pushKaggleModelArtifacts(model: string): Promise<{ job_id:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to push Kaggle artifacts: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to push Kaggle artifacts: ${res.statusText}`);
   return res.json();
 }
 
@@ -1000,10 +984,7 @@ export async function generateNotebooks(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to generate notebooks: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to generate notebooks: ${res.statusText}`);
   return res.json();
 }
 
@@ -1103,10 +1084,7 @@ export async function generateModelDocs(modelKey: string): Promise<ModelDocGenRe
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to generate model documentation: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to generate model documentation: ${res.statusText}`);
   return res.json();
 }
 
@@ -1115,19 +1093,13 @@ export async function stageModelVariations(modelKey: string): Promise<ModelStage
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to stage model variations: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to stage model variations: ${res.statusText}`);
   return res.json();
 }
 
 export async function validateModelIsolation(modelKey: string): Promise<ModelValidateIsolationResponse> {
   const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/variations/validate`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Failed to validate model isolation: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to validate model isolation: ${res.statusText}`);
   return res.json();
 }
 
@@ -1137,10 +1109,7 @@ export async function pushKaggleModelVariation(payload: KagglePushModelPayload):
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to push model variation to Kaggle: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to push model variation to Kaggle: ${res.statusText}`);
   return res.json();
 }
 
@@ -1150,10 +1119,7 @@ export async function pushAllKaggleModels(payload: KagglePushAllPayload = {}): P
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to enqueue fleet Kaggle push: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to enqueue fleet Kaggle push: ${res.statusText}`);
   return res.json();
 }
 
@@ -1163,10 +1129,7 @@ export async function trainLLM(config: LLMTrainingConfig): Promise<LLMTrainRespo
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(config),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Failed to dispatch LLM training: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to dispatch LLM training: ${res.statusText}`);
   return res.json();
 }
 
@@ -1436,8 +1399,8 @@ export function createLogWebSocket(
           if (normalized) {
             onEvent(normalized);
           }
-        } catch {
-          // Ignore non-JSON heartbeat
+        } catch (err: unknown) {
+          logger.debug(`Ignoring non-JSON frame from ${endpoint.id} socket`, err);
         }
       };
 
@@ -1453,7 +1416,8 @@ export function createLogWebSocket(
       ws.onerror = () => {
         ws.close();
       };
-    } catch {
+    } catch (err: unknown) {
+      logger.warn(`Could not open ${endpoint.id} socket at ${endpoint.url}; retrying in 3 s`, err);
       connectionStates.set(endpoint.id, false);
       updateAggregatedStatus();
       if (active) {

@@ -26,6 +26,7 @@ import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
 import { FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { logger } from "../utils/logger";
 
 interface CompilerPanelProps {
   datasetCompilerOnline?: boolean;
@@ -135,7 +136,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       if (presetResult.error) {
         console.error("Failed to load compiler presets:", presetResult.error);
       }
-    } catch {
+    } catch (err: unknown) {
+      logger.error("Dataset Compiler refresh failed", err);
       setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
     } finally {
       setIsRefreshing(false);

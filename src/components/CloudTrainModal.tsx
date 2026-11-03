@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { logger } from "../utils/logger";
 import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
 import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse } from "../api/types";
 import {
@@ -47,7 +48,8 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     try {
       const rep = await validateModelIsolation(modelKey);
       setIsolationReport(rep);
-    } catch {
+    } catch (err: unknown) {
+      logger.warn(`Variation isolation check failed for ${modelKey}`, err);
       setIsolationReport(null);
     } finally {
       setIsValidatingIsolation(false);

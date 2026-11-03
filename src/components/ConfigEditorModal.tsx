@@ -4,6 +4,7 @@ import { ManifestEditorTab } from "./config/ManifestEditorTab";
 import { SecretsEditorTab } from "./config/SecretsEditorTab";
 import { fetchManifestRegistry, fetchSecrets } from "../api/client";
 import { ManifestItem, SecretDraft } from "../api/types";
+import { logger } from "../utils/logger";
 
 interface ConfigEditorModalProps {
   isOpen: boolean;
@@ -32,7 +33,8 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
       if (items.length > 0 && !selectedName) {
         setSelectedName(items[0].name);
       }
-    } catch {
+    } catch (err: unknown) {
+      logger.warn("Manifest registry is unreachable; showing the offline manifest list", err);
       setManifests([
         { name: "unified_data.yaml", project: "lemgendary-datasets", format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
         { name: "unified_models_v2.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
@@ -49,8 +51,8 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
     try {
       const data = await fetchSecrets();
       setSecrets(data);
-    } catch {
-      // Secrets endpoint handled gracefully by SecretsEditorTab
+    } catch (err: unknown) {
+      logger.warn("Secrets list could not be loaded", err);
     } finally {
       setIsSecretsLoading(false);
     }

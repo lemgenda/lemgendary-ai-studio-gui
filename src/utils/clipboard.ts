@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 /**
  * Copy text to the system clipboard with fallback support for Tauri/WebView environments.
  */
@@ -6,7 +8,8 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
     return true;
-  } catch {
+  } catch (clipboardErr: unknown) {
+    logger.debug("Async clipboard API unavailable; falling back to execCommand", clipboardErr);
     try {
       const textarea = document.createElement("textarea");
       textarea.value = text;
@@ -17,7 +20,8 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
       const copied = document.execCommand("copy");
       document.body.removeChild(textarea);
       return copied;
-    } catch {
+    } catch (fallbackErr: unknown) {
+      logger.warn("Clipboard copy failed", fallbackErr);
       return false;
     }
   }

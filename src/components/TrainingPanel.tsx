@@ -29,6 +29,7 @@ import {
 import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
 import { copyTextToClipboard } from "../utils/clipboard";
+import { logger } from "../utils/logger";
 
 /** Interval for polling the active local job's status on the training sidecar. */
 const JOB_STATUS_POLL_MS = 3000;
@@ -122,8 +123,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     try {
       const kStatus = await fetchKaggleSuiteStatus();
       setKaggleAuthStatus(kStatus);
-    } catch {
-      // Offline mode
+    } catch (err: unknown) {
+      logger.warn("Kaggle suite status could not be loaded", err);
     }
   }, []);
 
@@ -175,8 +176,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             setLocalJob({ jobId: active.id, modelKey: activeKey });
           }
         }
-      } catch {
-        // Ignored in offline mode
+      } catch (err: unknown) {
+        logger.warn("Running training jobs could not be listed", err);
       }
     };
     checkActiveJobs();

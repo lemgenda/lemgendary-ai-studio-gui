@@ -7,6 +7,8 @@
  * Docker containers, or hosted cloud HTTPS/WSS endpoints without code modification.
  */
 
+import { logger } from "../utils/logger";
+
 export type ServiceId = "env-manager" | "dataset-compiler" | "training-suite";
 
 export interface MeshServiceConfig {
@@ -32,7 +34,8 @@ export const toWebSocketUrl = (httpUrl: string, wsPath: string): string => {
     const parsed = new URL(wsPath, httpUrl);
     parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
     return parsed.toString();
-  } catch {
+  } catch (err: unknown) {
+    logger.warn(`Invalid sidecar URL "${httpUrl}" + "${wsPath}"; deriving the WebSocket URL by prefix swap`, err);
     return httpUrl.replace(/^http/, "ws") + (wsPath.startsWith("/") ? wsPath : `/${wsPath}`);
   }
 };
