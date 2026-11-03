@@ -54,13 +54,19 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         safe package updates, and zero-emoji bytecode compilation.
       </p>
 
+      {/* The progressbar holds no interactive content; the step list (with help buttons) is separate. */}
       <div
         role="progressbar"
+        className="sr-only"
+        aria-label="Pipeline progress"
         aria-valuenow={activeStep}
         aria-valuemin={0}
-        aria-valuemax={7}
-        aria-valuetext={isRunning ? `Step ${activeStep} of 7: ${currentStepName}` : "Pipeline ready to execute"}
-        style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}
+        aria-valuemax={PIPELINE_STEPS.length}
+        aria-valuetext={isRunning ? `Step ${activeStep} of ${PIPELINE_STEPS.length}: ${currentStepName}` : "Pipeline ready to execute"}
+      />
+      <ol
+        aria-label="Pipeline steps"
+        style={{ display: "flex", gap: "10px", flexWrap: "wrap", listStyle: "none", padding: 0, margin: "0 0 24px 0" }}
       >
         {PIPELINE_STEPS.map((s) => {
           const isCurrent = isRunning && activeStep === s.num;
@@ -70,7 +76,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           const statusBadge = isCurrent ? "badge-warning" : isDone ? "badge-success" : "badge-info";
 
           return (
-            <div
+            <li
               key={s.num}
               style={{
                 flex: "1 1 120px",
@@ -93,10 +99,10 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
                 <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
                 <HelpTooltip content={`Step ${s.num}: ${s.shortDesc}`} position="top" />
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <button

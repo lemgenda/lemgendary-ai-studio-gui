@@ -1,5 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { Modal } from "./common/Modal";
+import { TabItem, TabList, TabPanel } from "./common/Tabs";
 import { runDatasetTestSuite, runTrainingUnitTests, triggerUnitTestAll, UnitTestSuiteResult } from "../api/client";
+
+type TestTab = "fleet" | "training_unit" | "dataset_unit";
+
+const TEST_TABS: readonly TabItem<TestTab>[] = [
+  { id: "fleet", label: "Fleet 1-Epoch Smoke Test", domId: "test-modal-tab-fleet" },
+  { id: "training_unit", label: "Training Suite Unit Tests", domId: "test-modal-tab-training" },
+  { id: "dataset_unit", label: "Dataset Compiler Tests", domId: "test-modal-tab-dataset" },
+];
 
 interface TestModalProps {
   isOpen: boolean;
@@ -16,23 +26,10 @@ export const TestModal: React.FC<TestModalProps> = ({
   datasetCompilerOnline,
   onLogMessage,
 }) => {
-  const [activeTab, setActiveTab] = useState<"fleet" | "training_unit" | "dataset_unit">("fleet");
+  const [activeTab, setActiveTab] = useState<TestTab>("fleet");
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<string | null>(null);
   const [statusState, setStatusState] = useState<"idle" | "running" | "queued" | "passed" | "failed">("idle");
-
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const describeFailures = (result: UnitTestSuiteResult): string => {
     const names = [...result.failures, ...result.errors];
@@ -102,60 +99,41 @@ export const TestModal: React.FC<TestModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="test-modal-title">
-      <div className="modal-content" style={{ maxWidth: "760px", maxHeight: "88vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h3 id="test-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-              Test &amp; Diagnostic Orchestrator
-            </h3>
-            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-error" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
-              {statusState.toUpperCase()}
-            </span>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      id="test-modal"
+      className="modal-content-medium"
+      title="Test & Diagnostic Orchestrator"
+      headerActions={
+        <>
+          <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-error" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
+            {statusState.toUpperCase()}
+          </span>
           <button
             type="button"
             id="test-modal-btn-close"
+            className="btn btn-secondary btn-sm"
             onClick={onClose}
             aria-label="Close test modal"
-            style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: "18px", padding: "4px" }}
           >
-            X
+            Close
           </button>
-        </div>
+        </>
+      }
+    >
+          <TabList
+            idPrefix="test-modal"
+            label="Test suites"
+            items={TEST_TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            tabClassName={(selected) => `btn ${selected ? "btn-primary" : "btn-secondary"}`}
+            style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}
+            tabStyle={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
+          />
 
-        <div style={{ padding: "20px 24px" }}>
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "18px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-            <button
-              type="button"
-              id="test-modal-tab-fleet"
-              className={`btn ${activeTab === "fleet" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("fleet")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Fleet 1-Epoch Smoke Test
-            </button>
-            <button
-              type="button"
-              id="test-modal-tab-training"
-              className={`btn ${activeTab === "training_unit" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("training_unit")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Training Suite Unit Tests
-            </button>
-            <button
-              type="button"
-              id="test-modal-tab-dataset"
-              className={`btn ${activeTab === "dataset_unit" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("dataset_unit")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Dataset Compiler Tests
-            </button>
-          </div>
-
+          <TabPanel idPrefix="test-modal" items={TEST_TABS} value={activeTab}>
           {/* Description & Action */}
           <div style={{ marginBottom: "18px" }}>
             {activeTab === "fleet" && (
@@ -239,8 +217,7 @@ export const TestModal: React.FC<TestModalProps> = ({
               </pre>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+          </TabPanel>
+    </Modal>
   );
 };

@@ -118,6 +118,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 1: Local Training */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "local"}
                 className={`btn ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("local")}
                 style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
@@ -137,6 +138,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 2: Remote / Cloud Training */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "remote"}
                 className={`btn ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("remote")}
                 style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
@@ -158,6 +160,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 3: Mesh Stream */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "mesh"}
                 className={`btn ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("mesh")}
                 style={{ fontSize: "11px", padding: "4px 10px" }}

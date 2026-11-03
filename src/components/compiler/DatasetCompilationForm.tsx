@@ -123,9 +123,11 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             <HelpTooltip content="Compile raw multi-source imagery into production WebDataset (.data) or MosaicML Streaming containers." />
           </div>
 
-          <div className="segmented-control" style={{ maxWidth: "260px" }}>
+          <div className="segmented-control" role="group" aria-label="Compilation mode" style={{ maxWidth: "260px" }}>
             <button
               type="button"
+              id="comp-mode-standard"
+              aria-pressed={compileMode === "standard"}
               className={`segmented-btn ${compileMode === "standard" ? "active" : ""}`}
               onClick={() => onChangeCompileMode("standard")}
               style={{ fontSize: "11px", padding: "4px 10px" }}
@@ -134,6 +136,8 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             </button>
             <button
               type="button"
+              id="comp-mode-custom"
+              aria-pressed={compileMode === "custom"}
               className={`segmented-btn ${compileMode === "custom" ? "active" : ""}`}
               onClick={() => onChangeCompileMode("custom")}
               style={{ fontSize: "11px", padding: "4px 10px" }}

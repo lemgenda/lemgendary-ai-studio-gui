@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { ConfirmDialog } from "./common/ConfirmDialog";
 import { HealthAuditReport } from "../api/types";
 import {
   triggerSafeUpdate,
@@ -21,6 +22,8 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [maintenanceFeedback, setMaintenanceFeedback] = useState<string | null>(null);
   const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+  /** Destructive maintenance action waiting for confirmation. */
+  const [pendingAction, setPendingAction] = useState<"upgrade" | "purge" | null>(null);
   if (!report) {
     return (
       <section className="card" aria-labelledby="health-offline-title">
@@ -314,7 +317,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             id="health-btn-safe-upgrade"
             type="button"
             className="btn btn-primary"
-            onClick={() => handleSafeUpdate(false)}
+            onClick={() => setPendingAction("upgrade")}
             disabled={isUpdating}
             style={{ fontSize: "12px", padding: "8px 14px", fontWeight: 600 }}
           >
@@ -336,7 +339,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             id="health-btn-deep-clean"
             type="button"
             className="btn btn-secondary"
-            onClick={handleDeepClean}
+            onClick={() => setPendingAction("purge")}
             disabled={isCleaning}
             style={{ fontSize: "12px", padding: "8px 14px" }}
           >
@@ -382,6 +385,25 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           />
         )}
       </section>
+
+      <ConfirmDialog
+        isOpen={pendingAction !== null}
+        id="health-dialog-confirm"
+        title={pendingAction === "purge" ? "Purge workspace caches?" : "Upgrade packages?"}
+        message={
+          pendingAction === "purge"
+            ? "Deep Cache Purge deletes __pycache__ folders, build caches and temporary artifacts across all workspace projects. They are rebuilt on the next run, which can be slow."
+            : "Safe Package Upgrade installs newer package versions into every project virtual environment. Run Upgrade Dry Run first to see what would change."
+        }
+        confirmLabel={pendingAction === "purge" ? "Purge caches" : "Upgrade packages"}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action === "purge") void handleDeepClean();
+          else if (action === "upgrade") void handleSafeUpdate(false);
+        }}
+      />
     </div>
   );
 };

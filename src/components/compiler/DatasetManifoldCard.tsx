@@ -2,6 +2,8 @@ import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { HoverPinPopover } from "../common/HoverPinPopover";
 import { DatasetItem } from "../../api/types";
+import { ExternalLink } from "../common/ExternalLink";
+import { kaggleRefOwner } from "../training/kaggleLinks";
 
 export interface DatasetManifoldCardProps {
   dataset: DatasetItem;
@@ -26,6 +28,8 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
   onUploadManifold,
   datasetCompilerOnline,
 }) => {
+  // Kaggle owner of this manifold (from its kaggle_ref); no link when unknown.
+  const auditOwner = kaggleRefOwner(d.kaggle_ref);
   const isDirectoryFormat = d.canonical_format === "directory" || d.format === "directory";
 
   return (
@@ -224,10 +228,9 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
           <span>{actionBusyKey === `meta_${d.key}` ? "Updating..." : "Update Metadata"}</span>
         </button>
 
-        <a
-          href="https://www.kaggle.com/code/lemtreursi/registry-metadata-training"
-          target="_blank"
-          rel="noopener noreferrer"
+        {auditOwner && (
+        <ExternalLink
+          href={`https://www.kaggle.com/code/${encodeURIComponent(auditOwner)}/registry-metadata-training`}
           className="btn btn-cloud"
           style={{
             fontSize: "11px",
@@ -258,7 +261,8 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             <line x1="10" y1="14" x2="21" y2="3" />
           </svg>
           <span>Audit Notebooks</span>
-        </a>
+        </ExternalLink>
+        )}
 
         {/* Bottom Row: Download from Kaggle & Upload to Kaggle */}
         <button

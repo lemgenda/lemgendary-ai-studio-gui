@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 import { SecretDraft, SecretsSaveResponse } from "../../api/types";
 import { fetchSecrets, saveSecrets } from "../../api/client";
 
@@ -112,6 +113,8 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
 }) => {
   const [isSecretsSaving, setIsSecretsSaving] = useState<boolean>(false);
   const [secretsSuccessMsg, setSecretsSuccessMsg] = useState<string | null>(null);
+  /** Credential whose Delete button was pressed, waiting for confirmation. */
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [secretsErrorMsg, setSecretsErrorMsg] = useState<string | null>(null);
   const [isAddingSecret, setIsAddingSecret] = useState<boolean>(false);
 
@@ -175,6 +178,10 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
   };
 
   const handleDeleteSecret = (id: string) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDeleteSecret = (id: string) => {
     const remaining = secrets.filter((s) => s.id !== id);
     setSecrets(remaining);
     setSecretsSuccessMsg("Credential removed. Click 'Save Secrets to Ecosystem' to persist changes.");
@@ -226,8 +233,23 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
 
   const hasKaggleConfigured = secrets.some((s) => s.service.toLowerCase() === "kaggle" && secretHasValue(s));
 
+  const pendingDelete = secrets.find((sec) => sec.id === pendingDeleteId);
+
   return (
     <div className="secrets-container">
+      <ConfirmDialog
+        isOpen={pendingDeleteId !== null}
+        id="config-dialog-delete-secret"
+        title="Delete this credential?"
+        message={`The ${pendingDelete?.service ?? ""} credential is removed from the list; saving the secrets then deletes it from the vault.`}
+        confirmLabel="Delete credential"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          const id = pendingDeleteId;
+          setPendingDeleteId(null);
+          if (id) confirmDeleteSecret(id);
+        }}
+      />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span className={`service-badge ${hasKaggleConfigured ? "badge-mandatory" : "badge-error"}`}>

@@ -148,16 +148,18 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
         </div>
 
         <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none", paddingBottom: "6px" }}>
-            <input
-              type="checkbox"
-              checked={dryRun}
-              onChange={(e) => onToggleDryRun(e.target.checked)}
-              style={{ cursor: "pointer", width: "16px", height: "16px" }}
-            />
-            <span>Dry-Run Validation Only</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "6px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+              <input
+                type="checkbox"
+                checked={dryRun}
+                onChange={(e) => onToggleDryRun(e.target.checked)}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <span>Dry-Run Validation Only</span>
+            </label>
             <HelpTooltip content="Runs StrictIsolationValidator and verifies upload payloads without communicating with Kaggle servers." />
-          </label>
+          </div>
         </div>
       </div>
 

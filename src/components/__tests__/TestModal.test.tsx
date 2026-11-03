@@ -81,7 +81,7 @@ describe("Test & Diagnostic modal", () => {
   it("closes on Escape", () => {
     openModal();
     act(() => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
     expect(container.querySelector('[role="dialog"]')).toBeNull();
   });

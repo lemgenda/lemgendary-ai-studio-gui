@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { Modal } from "./common/Modal";
+import { ExternalLink } from "./common/ExternalLink";
+import { TabItem, TabList, TabPanel } from "./common/Tabs";
+import { kaggleModelLinks } from "./training/kaggleLinks";
 import { logger } from "../utils/logger";
 import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
 import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse } from "../api/types";
@@ -10,6 +14,14 @@ import {
   stageModelVariations,
   generateModelDocs,
 } from "../api/client";
+
+type CloudPlatform = "kaggle" | "colab" | "upload";
+
+const PLATFORM_TABS: readonly TabItem<CloudPlatform>[] = [
+  { id: "kaggle", label: "Kaggle GPU Cloud" },
+  { id: "colab", label: "Google Colab FUSE" },
+  { id: "upload", label: "Kaggle Models Hub", domId: "train-modal-tab-upload" },
+];
 
 interface CloudTrainModalProps {
   isOpen: boolean;
@@ -28,7 +40,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   kaggleAuthStatus,
   isBusy,
 }) => {
-  const [targetPlatform, setTargetPlatform] = useState<"kaggle" | "colab" | "upload">("kaggle");
+  const [targetPlatform, setTargetPlatform] = useState<CloudPlatform>("kaggle");
   const [selectedGpu, setSelectedGpu] = useState<"T4" | "P100">("T4");
   const [autoPull, setAutoPull] = useState<boolean>(true);
   const [launchError, setLaunchError] = useState<string | null>(null);
@@ -68,9 +80,8 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const datasetSlug = isForex
     ? "ForexUniverse (2019-2026)"
     : `LemGendized${model.key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
-  const datasetSearchQuery = isForex ? "lemtreursi/forexuniverse" : `lemtreursi/${model.key.replace(/_/g, "-")}`;
-  const kaggleTrainingUrl = `https://www.kaggle.com/code/lemtreursi/${model.key.replace(/_/g, "-")}-training`;
-  const kaggleModelHubUrl = `https://www.kaggle.com/models/lemtreursi/${model.key.replace(/_/g, "-")}`;
+  // Owner comes from the Kaggle credentials; without them no Kaggle link can be built.
+  const kaggleLinks = kaggleModelLinks(kaggleAuthStatus?.username, model, isForex);
   const notebookFilename =
     targetPlatform === "colab"
       ? `${model.key}_colab_training.ipynb`
@@ -142,56 +153,39 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cloud-modal-title">
-      <div className="modal-content" style={{ maxWidth: "720px", height: "auto", maxHeight: "90vh", overflowY: "auto" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h3 id="cloud-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-              Cloud &amp; Registry Dispatch: {model.display_name}
-            </h3>
-            <HelpTooltip content="Dispatches remote execution notebooks to Kaggle GPU cloud or pushes isolated multi-variation models to Kaggle Models Hub." />
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      id="cloud-modal"
+      className="modal-content-medium"
+      title={`Cloud & Registry Dispatch: ${model.display_name}`}
+      headerActions={
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <HelpTooltip content="Dispatches remote execution notebooks to Kaggle GPU cloud or pushes isolated multi-variation models to Kaggle Models Hub." />
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-sm"
             onClick={onClose}
             aria-label="Close cloud training modal"
-            style={{ padding: "4px 10px", fontSize: "14px" }}
           >
-            X
+            Close
           </button>
         </div>
-
-        <div style={{ padding: "20px 24px" }}>
+      }
+    >
           {/* Platform Switcher */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-            <button
-              type="button"
-              className={`btn ${targetPlatform === "kaggle" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setTargetPlatform("kaggle")}
-              style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
-            >
-              Kaggle GPU Cloud
-            </button>
-            <button
-              type="button"
-              className={`btn ${targetPlatform === "colab" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setTargetPlatform("colab")}
-              style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
-            >
-              Google Colab FUSE
-            </button>
-            <button
-              type="button"
-              className={`btn ${targetPlatform === "upload" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setTargetPlatform("upload")}
-              style={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
-            >
-              Kaggle Models Hub
-            </button>
-          </div>
+          <TabList
+            idPrefix="cloud-modal"
+            label="Cloud target platform"
+            items={PLATFORM_TABS}
+            value={targetPlatform}
+            onChange={setTargetPlatform}
+            tabClassName={(selected) => `btn ${selected ? "btn-primary" : "btn-secondary"}`}
+            style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}
+            tabStyle={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
+          />
 
+          <TabPanel idPrefix="cloud-modal" items={PLATFORM_TABS} value={targetPlatform}>
           {/* Pre-Flight Checklist */}
           <div style={{ marginBottom: "20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
@@ -208,7 +202,9 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Canonical Notebook Template</div>
                   <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{notebookFilename}</div>
                 </div>
-                <span className="badge badge-success" style={{ fontSize: "11px" }}>READY</span>
+                <span className="badge badge-secondary" style={{ fontSize: "11px" }} title="The sidecar generates the notebook when the job is dispatched; it is not checked beforehand.">
+                  GENERATED ON LAUNCH
+                </span>
               </div>
 
               {/* Check 2: Dataset Manifold */}
@@ -216,10 +212,13 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Required Dataset Manifold</div>
                   <div style={{ fontSize: "11px", color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
-                    {datasetSlug} (search: {datasetSearchQuery})
+                    {datasetSlug}
+                    {kaggleLinks ? ` (search: ${kaggleLinks.datasetSearch})` : " (Kaggle username unknown: set the Kaggle credentials)"}
                   </div>
                 </div>
-                <span className="badge badge-info" style={{ fontSize: "11px" }}>AUTO-DISCOVERED</span>
+                <span className="badge badge-secondary" style={{ fontSize: "11px" }} title="The notebook resolves the dataset on Kaggle at run time; the GUI does not check that it exists.">
+                  NOT CHECKED
+                </span>
               </div>
 
               {/* Check 3: Checkpoint Vault */}
@@ -274,16 +273,18 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                 </div>
 
                 <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none", paddingBottom: "8px" }}>
-                    <input
-                      type="checkbox"
-                      checked={autoPull}
-                      onChange={(e) => setAutoPull(e.target.checked)}
-                      style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                    />
-                    <span>Auto-pull checkpoints to LemGendaryModels</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "8px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+                      <input
+                        type="checkbox"
+                        checked={autoPull}
+                        onChange={(e) => setAutoPull(e.target.checked)}
+                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                      />
+                      <span>Auto-pull checkpoints to LemGendaryModels</span>
+                    </label>
                     <HelpTooltip content="Automatically pulls latest .pth, .onnx, and metrics.csv artifacts down to local LemGendaryModels upon epoch completion." />
-                  </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,6 +293,9 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6 }}>
                 Google Colab execution mounts <strong>Google Drive FUSE</strong> directly at <code>/content/drive/MyDrive/LemGendaryModels</code>.
                 Background daemon threads stream updated model weights and metrics every 30 seconds.
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.6, marginTop: "8px" }}>
+                The GUI cannot launch Colab runs: generate the training notebook from the model card and open it in Colab yourself.
               </div>
             </div>
           ) : (
@@ -331,24 +335,26 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
           {/* Action Buttons */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
             <div style={{ display: "flex", gap: "8px" }}>
-              <a
-                href={kaggleTrainingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-secondary"
-                style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
-              >
-                Kaggle Notebook
-              </a>
-              <a
-                href={kaggleModelHubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-secondary"
-                style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
-              >
-                Kaggle Model Hub
-              </a>
+              {kaggleLinks ? (
+                <>
+                  <ExternalLink
+                    href={kaggleLinks.notebookUrl}
+                    className="btn btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+                  >
+                    Kaggle Notebook
+                  </ExternalLink>
+                  <ExternalLink
+                    href={kaggleLinks.modelHubUrl}
+                    className="btn btn-secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+                  >
+                    Kaggle Model Hub
+                  </ExternalLink>
+                </>
+              ) : (
+                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Kaggle links need the Kaggle credentials (username).</span>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: "8px" }}>
@@ -387,9 +393,8 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               )}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+          </TabPanel>
+    </Modal>
   );
 };
 

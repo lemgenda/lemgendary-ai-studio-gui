@@ -128,6 +128,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
         <div style={{ flex: "1 1 220px", position: "relative" }}>
           <input
             type="text"
+            aria-label="Filter models by name, architecture or category"
             placeholder="Filter by model name, architecture, category..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -138,6 +139,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             <button
               type="button"
               onClick={() => onSearchChange("")}
+              aria-label="Clear model filter"
               style={{
                 position: "absolute",
                 right: "8px",
@@ -161,6 +163,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Status:
           </span>
           <select
+            aria-label="Status filter"
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
             className="editor-select"
@@ -180,6 +183,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Category:
           </span>
           <select
+            aria-label="Category filter"
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
             className="editor-select"
@@ -200,6 +204,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Architecture:
           </span>
           <select
+            aria-label="Architecture filter"
             value={archFilter}
             onChange={(e) => onArchFilterChange(e.target.value)}
             className="editor-select"

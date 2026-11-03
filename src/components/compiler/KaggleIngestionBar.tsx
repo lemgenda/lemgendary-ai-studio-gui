@@ -43,7 +43,7 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
         <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase" }}>
           Direct Kaggle Ingestion:
         </span>
-        <HelpTooltip content="Download any public or private dataset from Kaggle into LemGendaryDatasets using its dataset slug (e.g. lemtreursi/forexuniverse) or full URL." />
+        <HelpTooltip content="Download any public or private dataset from Kaggle into LemGendaryDatasets using its dataset slug (owner/dataset-name) or full URL." />
       </div>
       <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
         Format: username/dataset-slug or https://www.kaggle.com/datasets/...
@@ -52,9 +52,11 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
 
     <div style={{ display: "grid", gridTemplateColumns: "1fr 180px auto auto", gap: "10px", alignItems: "center" }}>
       <input
+        id="comp-input-kaggle-custom-ref"
         type="text"
         className="editor-input"
-        placeholder="e.g. lemtreursi/forexuniverse or https://www.kaggle.com/datasets/..."
+        aria-label="Kaggle dataset slug or URL"
+        placeholder="e.g. owner/dataset-name or https://www.kaggle.com/datasets/..."
         value={customKaggleRef}
         onChange={(e) => onChangeCustomKaggleRef(e.target.value)}
         disabled={isDownloadingKaggle}
@@ -64,6 +66,7 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
       <input
         type="text"
         className="editor-input"
+        aria-label="Target folder under LemGendaryDatasets (optional)"
         placeholder="Target folder (optional)"
         value={downloadTargetFolder}
         onChange={(e) => onChangeDownloadTargetFolder(e.target.value)}

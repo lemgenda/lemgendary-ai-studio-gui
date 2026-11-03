@@ -1,5 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { ExternalLink } from "./common/ExternalLink";
 import { MeshStatus } from "../api/types";
 import { WORKSPACE_TABS } from "../navigation/workspaceTabs";
 import lemgendaIcon from "../branding/lemgenda-icon.svg";
@@ -67,7 +68,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="nav-menu" role="tablist" aria-orientation="vertical" aria-label="Workspace Sections">
+      {/* Navigation, not a tablist: each entry has a help button next to it, which a tablist may not contain. */}
+      <nav className="nav-menu" aria-label="Workspace Sections">
         {navItems.map((item, index) => {
           const isSelected = currentTab === item.id;
           const isOnline = tabSidecarOnline[item.id] ?? false;
@@ -76,10 +78,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 id={`tab-${item.id}`}
                 type="button"
-                role="tab"
-                tabIndex={isSelected ? 0 : -1}
-                aria-selected={isSelected}
-                aria-controls={`panel-${item.id}`}
+                aria-current={isSelected ? "page" : undefined}
+                aria-controls="main-content"
                 className={`nav-item ${isSelected ? "active" : ""}`}
                 style={{ flex: 1, paddingRight: "36px" }}
                 onClick={() => onSelectTab(item.id)}
@@ -98,13 +98,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           );
         })}
-      </div>
+      </nav>
 
       <div className="sidebar-brand-footer">
-        <a
+        <ExternalLink
           href="https://www.lemgenda.hr/"
-          target="_blank"
-          rel="noopener noreferrer"
           className="sidebar-brand-link"
           aria-label="Visit LemGenda Official Website (https://www.lemgenda.hr/)"
         >
@@ -120,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               transition: "transform 0.2s ease, opacity 0.2s ease",
             }}
           />
-        </a>
+        </ExternalLink>
       </div>
     </aside>
   );

@@ -71,7 +71,6 @@ export const App: React.FC = () => {
         <main
           id="main-content"
           className="view-container"
-          role="tabpanel"
           aria-labelledby={`tab-${currentTab}`}
           tabIndex={-1}
         >

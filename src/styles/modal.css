@@ -119,3 +119,23 @@
 .field-hint-warning {
   color: var(--accent-amber);
 }
+
+/* Medium dialogs (Test & Diagnostic, Cloud Training): scrolling body. */
+.modal-content-medium {
+  max-width: 760px;
+  height: auto;
+  max-height: 90vh;
+}
+
+.modal-content-medium .modal-body {
+  overflow-y: auto;
+}
+
+/* Content of a tab inside a modal body (fills the body, scrolls inside). */
+.modal-tab-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
