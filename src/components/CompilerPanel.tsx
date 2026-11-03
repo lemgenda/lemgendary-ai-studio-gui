@@ -3,8 +3,6 @@ import { useStudioStore } from "../store/useStudioStore";
 import {
   fetchDatasets,
   fetchCompilerPresets,
-  triggerQuickCompile,
-  triggerCustomCompile,
   downloadKaggleDataset,
   uploadKaggleDataset,
   updateKaggleMetadata,
@@ -26,6 +24,7 @@ import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
 import { FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { useCompilationForm } from "./compiler/useCompilationForm";
 import { logger } from "../utils/logger";
 
 interface CompilerPanelProps {
@@ -44,24 +43,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [presets, setPresets] = useState<CompilerPreset[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
-  // "" = omit `preset` so the sidecar applies its own default.
-  const [selectedPreset, setSelectedPreset] = useState<string>("");
-  const [isCompiling, setIsCompiling] = useState<boolean>(false);
-  const [compileStatus, setCompileStatus] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
-
-  // Compilation Mode (Standard vs Custom Multi-Source)
-  const [compileMode, setCompileMode] = useState<"standard" | "custom">("standard");
-  const [customName, setCustomName] = useState<string>("");
-  const [customTask, setCustomTask] = useState<string>("restoration");
-  const [customPreset, setCustomPreset] = useState<string>("");
-  const [customCanonicalFormat, setCustomCanonicalFormat] = useState<"webdataset" | "parquet" | "mds" | "litdata">("webdataset");
-  const [customShardSize, setCustomShardSize] = useState<number>(5000);
-  const [customSourcesText, setCustomSourcesText] = useState<string>("");
-  const [customPurgeLoose, setCustomPurgeLoose] = useState<boolean>(true);
-  const [isCustomCompiling, setIsCustomCompiling] = useState<boolean>(false);
-  const [customCompileStatus, setCustomCompileStatus] = useState<string | null>(null);
 
   // Search & Filter State for Manifolds Catalog
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -71,13 +54,6 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   // Pinned Upstream Sources details
   const [pinnedSourcesManifold, setPinnedSourcesManifold] = useState<string | null>(null);
-
-  // Custom Kaggle Link / Slug Download Bar state
-  const [customKaggleRef, setCustomKaggleRef] = useState<string>("");
-  const [downloadTargetFolder, setDownloadTargetFolder] = useState<string>("");
-  const [downloadForce, setDownloadForce] = useState<boolean>(false);
-  const [isDownloadingKaggle, setIsDownloadingKaggle] = useState<boolean>(false);
-  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // Card-level action busy states & status notices
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
@@ -134,7 +110,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       setPresets(presetResult.list);
       setPresetsError(presetResult.error);
       if (presetResult.error) {
-        console.error("Failed to load compiler presets:", presetResult.error);
+        logger.error("Failed to load compiler presets", presetResult.error);
       }
     } catch (err: unknown) {
       logger.error("Dataset Compiler refresh failed", err);
@@ -149,103 +125,12 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     loadCompilerData();
   }, [loadCompilerData]);
 
-  // Standard Compile Handler
-  const handleCompile = async () => {
-    if (!datasetCompilerOnline) {
-      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
-      return;
-    }
-    setIsCompiling(true);
-    setCompileStatus(null);
-    try {
-      const res = await triggerQuickCompile({
-        model: selectedManifold,
-        ...(selectedPreset ? { preset: selectedPreset } : {}),
-      });
-      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);
-      addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.id}]`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setCompileStatus(`Compilation failed: ${msg}`);
-    } finally {
-      setIsCompiling(false);
-    }
-  };
-
-  // Custom Multi-Source Compile Handler
-  const handleCustomCompile = async () => {
-    if (!datasetCompilerOnline) {
-      setCustomCompileStatus("Custom compile failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
-      return;
-    }
-    const trimmedName = customName.trim();
-    if (!trimmedName) {
-      setCustomCompileStatus("Please specify a custom manifold name.");
-      return;
-    }
-
-    const rawLines = customSourcesText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.startsWith("#"));
-
-    if (rawLines.length === 0) {
-      setCustomCompileStatus("Please enter at least one source dataset reference or URL (Kaggle, HuggingFace, Google Drive, or GitHub).");
-      return;
-    }
-
-    setIsCustomCompiling(true);
-    setCustomCompileStatus(null);
-    try {
-      const res = await triggerCustomCompile({
-        custom_name: trimmedName,
-        task: customTask,
-        ...(customPreset ? { preset: customPreset } : {}),
-        canonical_format: customCanonicalFormat,
-        shard_size: customShardSize,
-        sources: rawLines,
-        purge_loose_images: customPurgeLoose,
-      });
-      setCustomCompileStatus(`Custom compilation initiated successfully (Job ID: ${res.id}). Added to unified_data.yaml.`);
-      addTelemetryLog(`Custom compilation started for '${trimmedName}' [Job: ${res.id}]`);
-      loadCompilerData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setCustomCompileStatus(`Custom compilation failed: ${msg}`);
-    } finally {
-      setIsCustomCompiling(false);
-    }
-  };
-
-  // Custom Kaggle Slug Download Handler
-  const handleCustomKaggleDownload = async () => {
-    if (!datasetCompilerOnline) {
-      setDownloadStatus("Kaggle download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
-      return;
-    }
-    const targetRef = customKaggleRef.trim();
-    if (!targetRef) {
-      setDownloadStatus("Please enter a Kaggle dataset link or repository slug (e.g. owner/dataset).");
-      return;
-    }
-
-    setIsDownloadingKaggle(true);
-    setDownloadStatus(null);
-    try {
-      const res = await downloadKaggleDataset({
-        kaggle_ref: targetRef,
-        target_folder: downloadTargetFolder.trim() || undefined,
-        force: downloadForce,
-      });
-      setDownloadStatus(`Kaggle download initiated for ${targetRef} (Job ID: ${res.id}). Streaming to disk.`);
-      loadCompilerData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setDownloadStatus(`Download failed: ${msg}`);
-    } finally {
-      setIsDownloadingKaggle(false);
-    }
-  };
+  const compilationForm = useCompilationForm({
+    datasetCompilerOnline,
+    selectedManifold,
+    addTelemetryLog,
+    reloadCatalog: loadCompilerData,
+  });
 
   // Per-Dataset Card Actions
   const handleDownloadManifold = async (dataset: DatasetItem) => {
@@ -464,40 +349,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         presets={presets}
         selectedManifold={selectedManifold}
         onSelectManifold={setSelectedManifold}
-        selectedPreset={selectedPreset}
-        onSelectPreset={setSelectedPreset}
         presetsError={presetsError}
-        isCompiling={isCompiling}
-        compileStatus={compileStatus}
-        onCompile={handleCompile}
-        compileMode={compileMode}
-        onChangeCompileMode={setCompileMode}
-        customName={customName}
-        onChangeCustomName={setCustomName}
-        customTask={customTask}
-        onChangeCustomTask={setCustomTask}
-        customPreset={customPreset}
-        onChangeCustomPreset={setCustomPreset}
-        customCanonicalFormat={customCanonicalFormat}
-        onChangeCustomCanonicalFormat={setCustomCanonicalFormat}
-        customShardSize={customShardSize}
-        onChangeCustomShardSize={setCustomShardSize}
-        customSourcesText={customSourcesText}
-        onChangeCustomSourcesText={setCustomSourcesText}
-        customPurgeLoose={customPurgeLoose}
-        onToggleCustomPurgeLoose={setCustomPurgeLoose}
-        isCustomCompiling={isCustomCompiling}
-        customCompileStatus={customCompileStatus}
-        onCustomCompile={handleCustomCompile}
-        customKaggleRef={customKaggleRef}
-        onChangeCustomKaggleRef={setCustomKaggleRef}
-        downloadTargetFolder={downloadTargetFolder}
-        onChangeDownloadTargetFolder={setDownloadTargetFolder}
-        downloadForce={downloadForce}
-        onToggleDownloadForce={setDownloadForce}
-        isDownloadingKaggle={isDownloadingKaggle}
-        downloadStatus={downloadStatus}
-        onDownloadKaggleDirect={handleCustomKaggleDownload}
+        {...compilationForm}
         datasetCompilerOnline={datasetCompilerOnline}
       />
 

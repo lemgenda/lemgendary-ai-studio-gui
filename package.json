@@ -1,7 +1,7 @@
 {
   "name": "lemgendary-ai-studio-gui",
   "private": true,
-  "version": "2.10.24",
+  "version": "2.10.25",
   "type": "module",
   "scripts": {
     "dev": "vite",

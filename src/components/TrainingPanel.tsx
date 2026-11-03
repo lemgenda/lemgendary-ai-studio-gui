@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { CloudTrainModal } from "./CloudTrainModal";
 import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
@@ -7,29 +7,17 @@ import { ValidationBanner } from "./common/ValidationBanner";
 import { useStudioStore } from "../store/useStudioStore";
 import {
   fetchModels,
-  triggerQuickTrain,
   fetchRunningTrainingJobs,
-  cancelTrainingJob,
   fetchTrainingJob,
   TERMINAL_JOB_STATUSES,
   fetchKaggleSuiteStatus,
-  launchKaggleTrain,
-  pullKaggleModelArtifacts,
-  pushKaggleModelArtifacts,
-  generateNotebooks,
-  triggerModelEvaluate,
-  triggerModelExport,
-  generateAllNotebooks,
-  generateModelDocs,
-  stageModelVariations,
-  pushAllKaggleModels,
-  isLocalTrainingEvent,
-  isRemoteTrainingEvent,
 } from "../api/client";
 import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
-import { copyTextToClipboard } from "../utils/clipboard";
 import { logger } from "../utils/logger";
+import { useModelFilters } from "./training/useModelFilters";
+import { TelemetryTab, useModelActions } from "./training/useModelActions";
+import { useTelemetryStream } from "./training/useTelemetryStream";
 
 /** Interval for polling the active local job's status on the training sidecar. */
 const JOB_STATUS_POLL_MS = 3000;
@@ -64,25 +52,9 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
 
-  // Attached remote kernel & busy states
-  const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
-  const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
+  // Status banners
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
-  const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
-  const [isPushingAllKaggle, setIsPushingAllKaggle] = useState<boolean>(false);
-
-  // Local & Remote telemetry stream isolation and clipboard controls
-  const [localCopied, setLocalCopied] = useState<boolean>(false);
-  const [clearedLocalTimestamp, setClearedLocalTimestamp] = useState<number>(0);
-  const [remoteCopied, setRemoteCopied] = useState<boolean>(false);
-  const [clearedRemoteTimestamp, setClearedRemoteTimestamp] = useState<number>(0);
-
-  // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
-  const [archFilter, setArchFilter] = useState<string>("ALL");
 
   // Pinned SOTA target details
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
@@ -93,7 +65,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [kaggleAuthStatus, setKaggleAuthStatus] = useState<KaggleSuiteStatus | null>(null);
 
   // Active telemetry tab: "local" | "remote" | "mesh"
-  const [activeTelemetryTab, setActiveTelemetryTab] = useState<"local" | "remote" | "mesh">("local");
+  const [activeTelemetryTab, setActiveTelemetryTab] = useState<TelemetryTab>("local");
 
   const loadTrainingData = useCallback(async () => {
     setIsRefreshing(true);
@@ -229,305 +201,68 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     };
   }, [localJob.jobId, setLocalJob]);
 
-  // Derived filter options
-  const uniqueCategories = useMemo(() => {
-    const cats = new Set<string>();
-    models.forEach((m) => {
-      if (m.category) cats.add(m.category);
-    });
-    return Array.from(cats).sort();
-  }, [models]);
+  const {
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    categoryFilter,
+    setCategoryFilter,
+    archFilter,
+    setArchFilter,
+    uniqueCategories,
+    uniqueArchitectures,
+    filteredModels,
+  } = useModelFilters(models);
 
-  const uniqueArchitectures = useMemo(() => {
-    const archCounts: Record<string, number> = {};
-    models.forEach((m) => {
-      const arch = m.architecture || "Unknown";
-      archCounts[arch] = (archCounts[arch] || 0) + 1;
-    });
-    return Object.entries(archCounts)
-      .map(([arch, count]) => ({ arch, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [models]);
-
-  // Filtered models
-  const filteredModels = useMemo(() => {
-    return models.filter((m) => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = m.display_name.toLowerCase().includes(q) || m.key.toLowerCase().includes(q);
-        const matchesArch = m.architecture.toLowerCase().includes(q);
-        const matchesCat = (m.category || "").toLowerCase().includes(q);
-        const matchesTask = (m.task_type || "").toLowerCase().includes(q);
-        if (!matchesName && !matchesArch && !matchesCat && !matchesTask) return false;
-      }
-      if (statusFilter !== "ALL") {
-        if (statusFilter === "FULLY_TRAINED" && m.training_status !== "fully_trained") return false;
-        if (statusFilter === "PARTIALLY_TRAINED" && m.training_status !== "partially_trained" && (m.epochs_completed ?? 0) === 0) return false;
-        if (statusFilter === "WEIGHTS_READY" && (!m.checkpoint_exists || m.training_status === "fully_trained")) return false;
-        if (statusFilter === "INITIALIZING" && (m.training_status === "fully_trained" || m.checkpoint_exists || (m.epochs_completed ?? 0) > 0)) return false;
-      }
-      if (categoryFilter !== "ALL" && m.category !== categoryFilter) return false;
-      if (archFilter !== "ALL" && m.architecture !== archFilter) return false;
-      return true;
-    });
-  }, [models, searchQuery, statusFilter, categoryFilter, archFilter]);
-
-  // Handlers
-  const handleStartLocalTrain = async (m: ModelItem, batchSize?: number) => {
-    setActionBusyKey(`local_${m.key}`);
-    try {
-      const res = await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
-      setLocalJob({ jobId: res.job_id || null, modelKey: m.key });
-      setActiveTelemetryTab("local");
-      setStatusNotice(`Local training initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to start local training for ${m.display_name}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handleStopLocalTrain = async () => {
-    if (!localJob.jobId) return;
-    const jobId = localJob.jobId;
-    setActionBusyKey("stopping");
-    setStatusError(null);
-    try {
-      // Resolves only after the sidecar confirms status "cancelled"; job state is kept otherwise.
-      await cancelTrainingJob(jobId);
-      setStatusNotice(`Cancelled local training job ${jobId}.`);
-      setLocalJob({ jobId: null, modelKey: null });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusError(`Failed to stop job ${jobId}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
+  const {
+    actionBusyKey,
+    generatingNotebookModel,
+    isGeneratingAllNotebooks,
+    isPushingAllKaggle,
+    handleStartLocalTrain,
+    handleStopLocalTrain,
+    handleLaunchKaggle,
+    handlePushArtifacts,
+    handlePullArtifacts,
+    handleGenerateTrainingNotebook,
+    handleGenerateUsageNotebook,
+    handleGenerateAllNotebooks,
+    handleEvaluateModel,
+    handleExportModel,
+    handleGenerateDocs,
+    handleStageVariations,
+    handlePushAllKaggle,
+  } = useModelActions({
+    localJob,
+    setLocalJob,
+    setRemoteJob,
+    setActiveTelemetryTab,
+    setStatusNotice,
+    setStatusError,
+    loadTrainingData,
+    loadKaggleData,
+    kaggleUsername: kaggleAuthStatus?.username,
+  });
 
   const handleOpenCloudModal = (m: ModelItem) => {
     setCloudModalModel(m);
     setIsCloudModalOpen(true);
   };
 
-  const handleLaunchKaggle = async (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => {
-    setActionBusyKey(`cloud_${modelKey}`);
-    try {
-      const res = await launchKaggleTrain({
-        model: modelKey,
-        gpu,
-        auto_pull: autoPull,
-        username: kaggleAuthStatus?.username || undefined,
-      });
-      setRemoteJob({ jobId: res.job_id, modelKey });
-      setActiveTelemetryTab("remote");
-      setStatusNotice(`Dispatched Kaggle training for ${modelKey} (Kernel: ${res.job_id}). Stream attached.`);
-      await loadKaggleData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to dispatch Kaggle training: ${msg}`);
-      throw err;
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
+  const {
+    events: displayedLocalEvents,
+    copied: localCopied,
+    copy: handleCopyLocalStream,
+    clear: handleClearLocalStream,
+  } = useTelemetryStream(_recentEvents, remoteJob.jobId, "local");
+  const {
+    events: displayedRemoteEvents,
+    copied: remoteCopied,
+    copy: handleCopyRemoteStream,
+    clear: handleClearRemoteStream,
+  } = useTelemetryStream(_recentEvents, remoteJob.jobId, "remote");
 
-  const handlePushArtifacts = async (modelKey: string) => {
-    setActionBusyKey(`push_${modelKey}`);
-    setActiveTelemetryTab("local");
-    try {
-      const res = await pushKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed pushing artifacts for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handlePullArtifacts = async (modelKey: string) => {
-    setActionBusyKey(`pull_${modelKey}`);
-    setActiveTelemetryTab("local");
-    try {
-      const res = await pullKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed pulling model for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handleGenerateTrainingNotebook = async (modelKey: string) => {
-    setGeneratingNotebookModel(`${modelKey}_training`);
-    try {
-      await generateNotebooks({ model_key: modelKey, kinds: ["training"] });
-      setStatusNotice(`Successfully regenerated training notebooks for ${modelKey}.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to generate training notebooks: ${msg}`);
-    } finally {
-      setGeneratingNotebookModel(null);
-    }
-  };
-
-  const handleGenerateUsageNotebook = async (modelKey: string) => {
-    setGeneratingNotebookModel(`${modelKey}_usage`);
-    try {
-      await generateNotebooks({ model_key: modelKey, kinds: ["usage"] });
-      setStatusNotice(`Successfully regenerated standalone usage guide notebook for ${modelKey}.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to generate usage guide notebook: ${msg}`);
-    } finally {
-      setGeneratingNotebookModel(null);
-    }
-  };
-
-  const handleGenerateAllNotebooks = async () => {
-    setIsGeneratingAllNotebooks(true);
-    try {
-      const res = await generateAllNotebooks("all");
-      setStatusNotice(`Regenerated notebooks across all ${res.total_models} models (${res.total_files} files created).`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Batch notebook generation failed: ${msg}`);
-    } finally {
-      setIsGeneratingAllNotebooks(false);
-    }
-  };
-
-  const handleEvaluateModel = async (modelKey: string) => {
-    setActionBusyKey(`eval_${modelKey}`);
-    try {
-      const res = await triggerModelEvaluate({ model: modelKey, env: "local" });
-      setStatusNotice(`Evaluation dispatched for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming below.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Evaluation failed for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handleExportModel = async (modelKey: string) => {
-    setActionBusyKey(`export_${modelKey}`);
-    try {
-      const res = await triggerModelExport({
-        model: modelKey,
-        targets: ["onnx_fp32", "onnx_fp16", "torch_pt"],
-      });
-      setStatusNotice(`Export dispatched for ${modelKey} (Job ID: ${res.job_id}). Artifacts written to LemGendaryModels.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Export failed for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handleGenerateDocs = async (modelKey: string) => {
-    setActionBusyKey(`docs_${modelKey}`);
-    try {
-      await generateModelDocs(modelKey);
-      setStatusNotice(`Regenerated README.md and model-metadata.json for ${modelKey}.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Docs generation failed for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handleStageVariations = async (modelKey: string) => {
-    setActionBusyKey(`stage_${modelKey}`);
-    try {
-      const res = await stageModelVariations(modelKey);
-      const stagedCount = Object.keys(res.staged_files || {}).length;
-      setStatusNotice(`Staged ${stagedCount} isolated variation binaries for ${modelKey}.`);
-      await loadTrainingData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Staging failed for ${modelKey}: ${msg}`);
-    } finally {
-      setActionBusyKey(null);
-    }
-  };
-
-  const handlePushAllKaggle = async () => {
-    setIsPushingAllKaggle(true);
-    setActiveTelemetryTab("local");
-    try {
-      const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
-      setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to enqueue fleet Kaggle push: ${msg}`);
-    } finally {
-      setIsPushingAllKaggle(false);
-    }
-  };
-
-
-  const displayedLocalEvents = useMemo(() => {
-    return (_recentEvents || [])
-      .filter((ev) => isLocalTrainingEvent(ev, remoteJob.jobId))
-      .filter(
-        (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedLocalTimestamp
-      );
-  }, [_recentEvents, clearedLocalTimestamp, remoteJob.jobId]);
-
-  const displayedRemoteEvents = useMemo(() => {
-    return (_recentEvents || [])
-      .filter((ev) => isRemoteTrainingEvent(ev, remoteJob.jobId))
-      .filter(
-        (ev) => !ev.timestamp || new Date(ev.timestamp).getTime() > clearedRemoteTimestamp
-      );
-  }, [_recentEvents, clearedRemoteTimestamp, remoteJob.jobId]);
-
-  // Clipboard & Clear Controls
-  const handleCopyLocalStream = async () => {
-    if (displayedLocalEvents.length === 0) return;
-    const text = displayedLocalEvents
-      .map((e) => {
-        const timeStr = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : "--:--:--";
-        return `[${timeStr}] [${e.step_name}] ${e.message}`;
-      })
-      .join("\n");
-
-    const copiedOk = await copyTextToClipboard(text);
-    if (copiedOk) {
-      setLocalCopied(true);
-      setTimeout(() => setLocalCopied(false), 2000);
-    }
-  };
-
-  const handleClearLocalStream = () => {
-    setClearedLocalTimestamp(Date.now());
-  };
-
-  const handleCopyRemoteStream = async () => {
-    if (displayedRemoteEvents.length === 0) return;
-    const text = displayedRemoteEvents
-      .map((e) => {
-        const timeStr = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : "--:--:--";
-        return `[${timeStr}] [${e.step_name}] ${e.message}`;
-      })
-      .join("\n");
-
-    const copiedOk = await copyTextToClipboard(text);
-    if (copiedOk) {
-      setRemoteCopied(true);
-      setTimeout(() => setRemoteCopied(false), 2000);
-    }
-  };
-
-  const handleClearRemoteStream = () => {
-    setClearedRemoteTimestamp(Date.now());
-  };
 
   return (
     <div style={{ padding: "20px 24px" }}>

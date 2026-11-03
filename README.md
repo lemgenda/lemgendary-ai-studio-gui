@@ -152,6 +152,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.25 - Training and Compiler Panel Hooks, Compilation Form Sections
+
+- **Training Panel (src/components/TrainingPanel.tsx, src/components/training/)**: 714 to 450 lines. `useModelActions.ts` owns the per-model and fleet actions (local/cloud training, Kaggle push/pull, notebooks, evaluation, export, docs, staging) and their busy state; `useModelFilters.ts` owns search and filters; `useTelemetryStream.ts` serves the local and remote streams (routing, copy, clear), replacing two copies of the same code.
+- **Compiler Panel (src/components/CompilerPanel.tsx, src/components/compiler/useCompilationForm.ts)**: 621 to 476 lines. The compilation form's state and submit handlers (standard compile, custom multi-source compile, direct Kaggle download) moved to `useCompilationForm`, typed by the new `CompilationFormControls`; the panel passes it to the form in one spread instead of 37 separate props. The preset load error is logged through `logger`.
+- **Compilation Form (src/components/compiler/)**: `DatasetCompilationForm.tsx` (558 to 199 lines) composes `KaggleIngestionBar`, `StandardCompileForm` and `CustomCompileForm`, each typed with only the props it reads; `PresetOptions` is shared by both modes.
+- Rendered markup of every tab is unchanged (server-rendered HTML diffed before and after).
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.25`.
+
 ### v2.10.24 - App Shell Hooks and Model Card Sub-Components
 
 - **App Shell (src/App.tsx, src/app/)**: `App.tsx` (621 lines) is now 236 lines of layout. `useMeshSync.ts` owns mesh status, dashboard refresh, the log WebSocket fan-in, pipeline completion detection, safety polling and sidecar auto-start; `useServiceControls.ts` starts and stops sidecars; `usePipelineControls.ts` runs the pipeline, one step or a project reconcile; `waitForMesh.ts` is the one mesh readiness poll the four former copies now share; `fallbackProjects.ts` holds the offline project cards.
