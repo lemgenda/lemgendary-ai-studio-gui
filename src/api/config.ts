@@ -73,3 +73,6 @@ export const MESH_SERVICES: Record<ServiceId, MeshServiceConfig> = {
     livenessPath: "/api/health",
   },
 };
+
+/** Every mesh service id, Environment Manager first (it starts the others). */
+export const SERVICE_IDS: readonly ServiceId[] = Object.keys(MESH_SERVICES) as ServiceId[];

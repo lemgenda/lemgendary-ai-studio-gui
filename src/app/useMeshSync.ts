@@ -11,14 +11,35 @@ import {
   fetchHardware,
   fetchHealth,
   fetchPipelineStatus,
-  isProgressLine,
   probeSidecarPort,
-  startAllServices,
 } from "../api/client";
 import { MeshStatus, PipelineEvent } from "../api/types";
 import { useStudioStore } from "../store/useStudioStore";
-import { logger, nullOnFailure } from "../utils/logger";
-import { sleep, waitForMesh } from "./waitForMesh";
+import { errorMessage, logger } from "../utils/logger";
+import { appendLiveEvent, mergeRecentEvents } from "./eventLog";
+import { startOfflineServices } from "./serviceStartup";
+import { sleep } from "./waitForMesh";
+
+/**
+ * Banner text for a dashboard refresh, or null when every source loaded.
+ * Each rejected source is logged with its label.
+ */
+export function refreshErrorMessage(
+  labels: readonly string[],
+  results: readonly PromiseSettledResult<unknown>[]
+): string | null {
+  const failed: string[] = [];
+  let firstError = "";
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      logger.warn(`${labels[i]} refresh failed`, result.reason);
+      if (failed.length === 0) firstError = errorMessage(result.reason);
+      failed.push(labels[i]);
+    }
+  });
+  if (failed.length === 0) return null;
+  return `Refresh incomplete: ${failed.join(", ")} could not be loaded from the Environment Manager (${firstError}).`;
+}
 
 export interface MeshSync {
   /** Refresh mesh status, hardware, health and pipeline status. */
@@ -31,21 +52,6 @@ export interface MeshSync {
   setRefreshError: (message: string | null) => void;
   /** Step number of a running single-step pipeline run, or null. */
   runningSingleStepRef: MutableRefObject<number | null>;
-}
-
-/** Append a live event; consecutive progress ticks of one step replace each other. */
-function appendLiveEvent(prev: PipelineEvent[], ev: PipelineEvent): PipelineEvent[] {
-  if (prev.length > 0) {
-    const last = prev[prev.length - 1];
-    const isCurrProgress = Boolean(ev.is_progress || isProgressLine(ev.message));
-    const wasLastProgress = Boolean(last.is_progress || isProgressLine(last.message));
-    if (isCurrProgress && wasLastProgress && last.step_name === ev.step_name) {
-      const next = [...prev];
-      next[next.length - 1] = ev;
-      return next;
-    }
-  }
-  return [...prev.slice(-199), ev];
 }
 
 function isPipelineTerminalEvent(ev: PipelineEvent, targetStep: number | null): boolean {
@@ -106,38 +112,34 @@ export function useMeshSync(): MeshSync {
     void refreshMeshStatus();
 
     try {
-      const [hwData, healthData, pipeStatus] = await Promise.all([
-        nullOnFailure(fetchHardware(), "Hardware profile refresh failed"),
-        nullOnFailure(fetchHealth(), "Health report refresh failed"),
-        nullOnFailure(fetchPipelineStatus(), "Pipeline status refresh failed"),
+      const [hwResult, healthResult, pipeResult] = await Promise.allSettled([
+        fetchHardware(),
+        fetchHealth(),
+        fetchPipelineStatus(),
       ]);
 
-      if (hwData) {
-        setHardware(hwData);
+      if (hwResult.status === "fulfilled") {
+        setHardware(hwResult.value);
       }
-      if (healthData) {
-        setHealth(healthData);
+      if (healthResult.status === "fulfilled") {
+        setHealth(healthResult.value);
       }
-      if (pipeStatus) {
+      if (pipeResult.status === "fulfilled") {
+        const pipeStatus = pipeResult.value;
         setIsRunningPipeline(pipeStatus.is_running);
         if (pipeStatus.recent_events && pipeStatus.recent_events.length > 0) {
-          setEvents((prev) => {
-            const combined = [...prev, ...pipeStatus.recent_events];
-            const unique = Array.from(new Set(combined.map((e) => JSON.stringify(e)))).map((s) => JSON.parse(s));
-            return unique.slice(-200);
-          });
+          setEvents((prev) => mergeRecentEvents(prev, pipeStatus.recent_events));
         }
       }
 
       await refreshMeshStatus();
       setLastUpdated(new Date().toISOString());
-      setRefreshError(null);
+      setRefreshError(
+        refreshErrorMessage(["Hardware profile", "Health report", "Pipeline status"], [hwResult, healthResult, pipeResult])
+      );
     } catch (err: unknown) {
       logger.error("Dashboard refresh failed", err);
-      setRefreshError(
-        "Refresh failed: No sidecars reachable on ports 8000, 8100, or 8200. " +
-        "Launch the ecosystem mesh to synchronize live data."
-      );
+      setRefreshError(`Refresh failed: ${errorMessage(err)}`);
     } finally {
       setIsRefreshing(false);
     }
@@ -200,24 +202,19 @@ export function useMeshSync(): MeshSync {
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const mesh = await fetchEcosystemMesh();
+          const started = await startOfflineServices({
+            attempts: 15,
+            intervalMs: 1000,
+            beforeCheck: refreshMeshStatus,
+            isCancelled: () => cancelled,
+          });
           if (cancelled) return;
-          const needsStart = !mesh.dataset_compiler.reachable || !mesh.training_suite.reachable;
-          if (needsStart) {
-            await startAllServices();
-            if (cancelled) return;
-            // Poll mesh status until all sidecars report ready
-            await waitForMesh(
-              (check) => Boolean(check?.dataset_compiler.reachable && check?.training_suite.reachable),
-              { attempts: 15, intervalMs: 1000, beforeCheck: refreshMeshStatus, isCancelled: () => cancelled }
-            );
-            if (cancelled) return;
-            await loadData();
-          }
+          if (started.length > 0) await loadData();
           break;
         } catch (err: unknown) {
           logger.warn(`Sidecar auto-start attempt ${attempt + 1} of 3 failed`, err);
           await sleep(2000);
+          if (cancelled) return;
         }
       }
     };

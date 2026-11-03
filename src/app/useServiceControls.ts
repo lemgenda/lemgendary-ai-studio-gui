@@ -1,30 +1,20 @@
 /**
  * LemGendary AI Studio - start and stop sidecars from the UI, then wait until
- * the mesh reports the new state.
+ * each service's own liveness probe reports the new state.
  */
 
 import { useState } from "react";
-import { startAllServices, startService, stopService } from "../api/client";
-import { EcosystemSidecarMesh, SidecarNodeStatus } from "../api/types";
+import { MESH_SERVICES, ServiceId, probeSidecarPort, startService, stopService } from "../api/client";
 import { errorMessage } from "../utils/logger";
-import { waitForMesh } from "./waitForMesh";
+import { ServiceStartTimeoutError, startOfflineServices } from "./serviceStartup";
+import { PollOptions, waitUntil } from "./waitForMesh";
 
-/** Mesh node of a service id; `undefined` for an id the mesh does not report. */
-function meshNode(mesh: EcosystemSidecarMesh | null, serviceId: string): SidecarNodeStatus | undefined {
-  if (!mesh) return undefined;
-  switch (serviceId) {
-    case "env-manager":
-      return mesh.env_manager;
-    case "dataset-compiler":
-      return mesh.dataset_compiler;
-    case "training-suite":
-      return mesh.training_suite;
-    default:
-      return undefined;
-  }
+const START_POLL: PollOptions = { attempts: 15, intervalMs: 1000 };
+const STOP_POLL: PollOptions = { attempts: 10, intervalMs: 500 };
+
+function isServiceId(id: string): id is ServiceId {
+  return id in MESH_SERVICES;
 }
-
-const KNOWN_SERVICE_IDS = new Set(["env-manager", "dataset-compiler", "training-suite"]);
 
 export interface ServiceControlDeps {
   refreshMeshStatus: () => Promise<boolean>;
@@ -49,15 +39,14 @@ export function useServiceControls({ refreshMeshStatus, loadData, setRefreshErro
     try {
       setStartingServiceId(serviceId);
       setRefreshError(null);
+      if (!isServiceId(serviceId)) throw new Error(`Unknown service '${serviceId}'`);
 
       await startService(serviceId);
 
-      // Poll mesh status for up to 15 seconds to confirm readiness
-      await waitForMesh((check) => meshNode(check, serviceId)?.reachable === true, {
-        attempts: 15,
-        intervalMs: 1000,
-        beforeCheck: refreshMeshStatus,
-      });
+      const ready = await waitUntil(() => probeSidecarPort(serviceId), { ...START_POLL, beforeCheck: refreshMeshStatus });
+      if (!ready) {
+        throw new ServiceStartTimeoutError([serviceId], (START_POLL.attempts * START_POLL.intervalMs) / 1000);
+      }
       await loadData();
     } catch (err: unknown) {
       setRefreshError(`Failed to start ${serviceId}: ${errorMessage(err)}`);
@@ -70,15 +59,17 @@ export function useServiceControls({ refreshMeshStatus, loadData, setRefreshErro
     try {
       setStoppingServiceId(serviceId);
       setRefreshError(null);
+      if (!isServiceId(serviceId)) throw new Error(`Unknown service '${serviceId}'`);
 
       await stopService(serviceId);
 
-      // Poll mesh status to confirm offline state
-      await waitForMesh((check) => KNOWN_SERVICE_IDS.has(serviceId) && !meshNode(check, serviceId)?.reachable, {
-        attempts: 10,
-        intervalMs: 500,
+      const stopped = await waitUntil(async () => !(await probeSidecarPort(serviceId)), {
+        ...STOP_POLL,
         beforeCheck: refreshMeshStatus,
       });
+      if (!stopped) {
+        throw new Error(`${MESH_SERVICES[serviceId].name} still answers after the stop request.`);
+      }
       await loadData();
     } catch (err: unknown) {
       setRefreshError(`Failed to stop ${serviceId}: ${errorMessage(err)}`);
@@ -91,14 +82,7 @@ export function useServiceControls({ refreshMeshStatus, loadData, setRefreshErro
     try {
       setStartingServiceId("all");
       setRefreshError(null);
-
-      await startAllServices();
-
-      // Poll mesh status for up to 15 seconds to confirm all 3 sidecars report ready
-      await waitForMesh(
-        (check) => Boolean(check?.dataset_compiler?.reachable && check?.training_suite?.reachable),
-        { attempts: 15, intervalMs: 1000, beforeCheck: refreshMeshStatus }
-      );
+      await startOfflineServices({ ...START_POLL, beforeCheck: refreshMeshStatus });
       await loadData();
     } catch (err: unknown) {
       setRefreshError(`Failed to start services: ${errorMessage(err)}`);

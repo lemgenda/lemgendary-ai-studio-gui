@@ -23,7 +23,7 @@ export * from "./eventRouting";
 export * from "./socketMessages";
 export * from "./logSocket";
 
-export { MESH_SERVICES } from "./config";
+export { MESH_SERVICES, SERVICE_IDS } from "./config";
 export type { ServiceId } from "./config";
 export { sidecarErrorDetail } from "./request";
 

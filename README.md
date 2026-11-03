@@ -152,6 +152,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.26 - Honest Refresh Errors, Direct Service Probes and Logged Sidecar Output
+
+- **Dashboard Refresh (src/app/useMeshSync.ts)**: `loadData` reads hardware, health and pipeline status with `Promise.allSettled`; the banner names every source that failed and the first error, and is cleared only when all three loaded (review finding D14: the banner could never show). The message no longer hardcodes ports.
+- **Event Log (src/app/eventLog.ts)**: REST `recent_events` go through the same normalizer as WebSocket events (same `origin` and `port`) and are de-duplicated by timestamp, step and message, so a refresh no longer repeats log lines (D18). `appendLiveEvent` moved here; the buffer limit is `EVENT_BUFFER_LIMIT` (200).
+- **Auto-Start (src/app/serviceStartup.ts, src/api/config.ts)**: `startOfflineServices` probes each service's own liveness endpoint, so an offline Environment Manager is detected and started first; once it answers it starts the rest, otherwise the rest are spawned natively one by one (nothing is spawned twice). Launch auto-start and Start All use it (D17). New `SERVICE_IDS` in `config.ts`.
+- **Start and Stop Feedback (src/app/useServiceControls.ts, src/app/waitForMesh.ts)**: new `waitUntil` resolves `false` on timeout and `waitForMesh` returns it. Starting a service now waits on that service's own probe (works with the Environment Manager down) and reports "did not answer within 15 s" instead of nothing; stopping reports a service that still answers (D16).
+- **Native Spawn (src-tauri/src/commands.rs, src-tauri/src/main.rs)**: `spawn_service` and `spawn_all_services` append the sidecar's stdout and stderr to `<app log folder>/<service-id>.log` instead of discarding them, and the reply names the pid and log file. The unused `check_server_status` and `spawn_sidecar` commands were removed.
+- **Tests**: `src/app/__tests__/meshLifecycle.test.ts` (11): `waitUntil`, start order and no double spawn, timeout naming the services, REST/WebSocket event de-duplication, buffer cap, refresh banner text. Rust (+3): service table, unknown service, log file create and append.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.26`.
+
 ### v2.10.25 - Training and Compiler Panel Hooks, Compilation Form Sections
 
 - **Training Panel (src/components/TrainingPanel.tsx, src/components/training/)**: 714 to 450 lines. `useModelActions.ts` owns the per-model and fleet actions (local/cloud training, Kaggle push/pull, notebooks, evaluation, export, docs, staging) and their busy state; `useModelFilters.ts` owns search and filters; `useTelemetryStream.ts` serves the local and remote streams (routing, copy, clear), replacing two copies of the same code.

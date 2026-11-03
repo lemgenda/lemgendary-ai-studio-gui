@@ -1,12 +1,13 @@
 /**
- * LemGendary AI Studio - poll the ecosystem mesh until a condition holds.
+ * LemGendary AI Studio - poll until a condition holds (mesh readiness, a
+ * sidecar answering its liveness probe).
  */
 
 import { fetchEcosystemMesh } from "../api/client";
 import { EcosystemSidecarMesh } from "../api/types";
 import { nullOnFailure } from "../utils/logger";
 
-export interface MeshPollOptions {
+export interface PollOptions {
   attempts: number;
   intervalMs: number;
   /** Called before each check (for example to refresh the store's mesh status). */
@@ -18,20 +19,34 @@ export interface MeshPollOptions {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Poll `GET /api/gui/ecosystem` until `done(mesh)` is true or the attempts run out.
- * An unreachable mesh endpoint counts as `null` for `done`.
+ * Run `check` after each interval until it resolves true or the attempts run
+ * out. Resolves true when the condition held, false on timeout or cancel.
  */
-export async function waitForMesh(
-  done: (mesh: EcosystemSidecarMesh | null) => boolean,
-  { attempts, intervalMs, beforeCheck, isCancelled }: MeshPollOptions
-): Promise<void> {
+export async function waitUntil(
+  check: () => Promise<boolean>,
+  { attempts, intervalMs, beforeCheck, isCancelled }: PollOptions
+): Promise<boolean> {
   for (let i = 0; i < attempts; i++) {
     await sleep(intervalMs);
-    if (isCancelled?.()) return;
+    if (isCancelled?.()) return false;
     if (beforeCheck) await beforeCheck();
-    const check = await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug");
-    if (done(check)) return;
+    if (await check()) return true;
   }
+  return false;
+}
+
+/**
+ * Poll `GET /api/gui/ecosystem` until `done(mesh)` is true or the attempts run out.
+ * An unreachable mesh endpoint counts as `null` for `done`. Resolves false on timeout.
+ */
+export function waitForMesh(
+  done: (mesh: EcosystemSidecarMesh | null) => boolean,
+  options: PollOptions
+): Promise<boolean> {
+  return waitUntil(
+    async () => done(await nullOnFailure(fetchEcosystemMesh(), "Mesh readiness poll failed", "debug")),
+    options
+  );
 }
 
 export { sleep };
