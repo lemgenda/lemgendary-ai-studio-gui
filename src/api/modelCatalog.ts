@@ -18,7 +18,7 @@ interface RawModelData {
   architecture_type?: string;
   class_name?: string;
   canonical_format?: string;
-  parameters_m?: number;
+  parameters_m?: number | null;
   best_checkpoint_size_mb?: number | null;
   spatial_ladder?: number[];
   resolution?: number | number[] | null;
@@ -43,9 +43,9 @@ interface RawModelData {
   data_fraction_passed?: boolean;
   kaggle_ref?: string;
   kaggle_dataset_urls?: string[];
-  best_metric?: number;
+  best_metric?: number | string | null;
   metric_name?: string;
-  sota_target?: number;
+  sota_target?: number | string | null;
   sota_reached?: boolean;
   sota_targets_total?: number;
   sota_targets_met?: number;
@@ -57,9 +57,9 @@ interface RawModelData {
   /** Required in `ModelWithStats`: the GUI shows it and never derives it. */
   training_status: TrainingStatus;
   stats_error?: string | null;
-  learning_rate?: number;
-  batch_size?: number;
-  default_epochs?: number;
+  learning_rate?: number | null;
+  batch_size?: number | null;
+  default_epochs?: number | null;
 }
 
 export async function fetchModels(): Promise<ModelItem[]> {
@@ -91,13 +91,14 @@ export async function fetchModels(): Promise<ModelItem[]> {
       const arch = item.architecture || item.architecture_type || item.class_name || "PyTorch Architecture";
       const task = item.task_type || item.category || "general";
       const canonicalFmt = item.canonical_format || "webdataset";
-      const paramsM = item.parameters_m ?? (item.best_checkpoint_size_mb ? Math.round(item.best_checkpoint_size_mb * 0.25 * 10) / 10 : undefined);
+      const sizeMb = item.best_checkpoint_size_mb;
+      const paramsM = item.parameters_m ?? (sizeMb != null && sizeMb > 0 ? Math.round(sizeMb * 0.25 * 10) / 10 : null);
       const ckptExists = item.checkpoint_exists ?? (item.has_best_checkpoint === true || (item.checkpoints_count !== undefined && item.checkpoints_count > 0));
       const parallelMode = item.preferred_parallel || "single";
       const completedEpochs = item.epochs_completed ?? item.latest_checkpoint_epoch ?? 0;
-      const metricVal = item.best_metric;
+      const metricVal = item.best_metric ?? null;
       const metricLabel = item.metric_name || "Metric";
-      const sotaTarget = item.sota_target;
+      const sotaTarget = item.sota_target ?? null;
       const sotaReached = item.sota_reached ?? false;
       const targetRes = item.target_res ?? (spatialLadder.length > 0 ? spatialLadder[spatialLadder.length - 1] : null);
 

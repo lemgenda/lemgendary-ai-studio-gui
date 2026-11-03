@@ -146,6 +146,56 @@ describe("API Client & Telemetry Utilities", () => {
     expect(llm?.ladder_type).toBe("context_tokens");
     expect(llm?.parameters_m).toBe(1500.0);
   });
+  it("keeps null parameters_m, best_metric and other unknown numbers as null in fetchModels", async () => {
+    const mockBackendModels = [
+      {
+        model_key: "unknown_model",
+        name: "Unknown Model",
+        training_status: "unknown",
+        is_fully_trained: false,
+        parameters_m: null,
+        best_checkpoint_size_mb: null,
+        best_metric: null,
+        sota_target: null,
+        learning_rate: null,
+        batch_size: null,
+        default_epochs: null,
+        sota_details: [
+          { key: "psnr", label: "PSNR", target: null, achieved: null, lower_is_better: false, passed: false },
+        ],
+        best_metrics_details: [
+          { key: "psnr", label: "PSNR", value: null, target: null, lower_is_better: false, passed: false },
+        ],
+      },
+      {
+        model_key: "tiny_model",
+        name: "Tiny Model",
+        training_status: "initializing",
+        is_fully_trained: false,
+        parameters_m: 0,
+        best_metric: 0,
+      },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBackendModels) })
+    );
+
+    const [unknown, tiny] = await fetchModels();
+    expect(unknown.parameters_m).toBeNull();
+    expect(unknown.best_metric).toBeNull();
+    expect(unknown.sota_target).toBeNull();
+    expect(unknown.learning_rate).toBeUndefined();
+    expect(unknown.batch_size).toBeUndefined();
+    expect(unknown.default_epochs).toBeUndefined();
+    expect(unknown.sota_details?.[0].target).toBeNull();
+    expect(unknown.best_metrics_details?.[0].value).toBeNull();
+    expect(unknown.best_metrics_details?.[0].target).toBeNull();
+    // 0 is a known value, not "unknown".
+    expect(tiny.parameters_m).toBe(0);
+    expect(tiny.best_metric).toBe(0);
+  });
+
   it("always sends an explicit clean flag for project and single-step runs", async () => {
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ status: "accepted" })));
     vi.stubGlobal("fetch", fetchMock);

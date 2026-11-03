@@ -274,6 +274,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.38 - Null Model Stats From the Training Suite
+
+- **Model catalog**: `parameters_m`, `best_metric` and `sota_target` are
+  typed `number | null` (the last two also `string`), as the Training
+  Suite sends `null` when unknown. `fetchModels` keeps them `null`; the
+  raw `learning_rate`, `batch_size` and `default_epochs` accept `null`.
+- `SotaMetricDetail.target` and `BestMetricDetail.value` / `target` accept
+  `string | null`, matching the `ModelWithStats` Pydantic model.
+- **Model card**: Parameters shows `N/A` only for `null`; `0` is shown as
+  `0 M`. A `null` SOTA goal is shown as a dash.
+- Tests: `client.test.ts` and a new `ModelMetricsSection.test.tsx` cover
+  `null` and `0` values.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.38`.
+
 ### v2.10.37 - Service Ports Read From the Ecosystem Snapshot
 
 - **Training Panel**: the offline banner no longer hardcodes `:8200`; it

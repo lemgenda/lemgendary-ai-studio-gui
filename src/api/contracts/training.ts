@@ -13,7 +13,8 @@ export interface ModelItem {
   task_type: string;
   category?: string;
   canonical_format?: string;
-  parameters_m?: number;
+  /** `null` when the Training Suite does not know it. */
+  parameters_m?: number | null;
   spatial_ladder?: number[];
   ladder_type?: "spatial" | "timeframe" | "context_tokens";
   is_forex?: boolean;
@@ -35,9 +36,10 @@ export interface ModelItem {
   is_fully_trained: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";
   epochs_completed?: number;
-  best_metric?: number;
+  /** `null` until a best value is known; may be a non-numeric string. */
+  best_metric?: number | string | null;
   metric_name?: string;
-  sota_target?: number;
+  sota_target?: number | string | null;
   sota_reached?: boolean;
   sota_targets_total?: number;
   sota_targets_met?: number;
@@ -58,7 +60,7 @@ export interface ModelItem {
 export interface SotaMetricDetail {
   key: string;
   label: string;
-  target: number;
+  target: number | string | null;
   achieved: number | null;
   lower_is_better: boolean;
   passed: boolean;
@@ -67,8 +69,8 @@ export interface SotaMetricDetail {
 export interface BestMetricDetail {
   key: string;
   label: string;
-  value: number | null;
-  target?: number | null;
+  value: number | string | null;
+  target?: number | string | null;
   lower_is_better?: boolean;
   passed?: boolean;
 }
