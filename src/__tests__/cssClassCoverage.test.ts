@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import indexCss from "../index.css?raw";
 
 /**
- * Every class name the components use must have a rule in `src/index.css`;
+ * Every class name the components use must have a rule in the stylesheets
+ * that `src/index.css` imports (`src/styles/*.css`);
  * an undefined class renders unstyled (for example an uncoloured FAILED badge).
  *
  * Collected class names (deterministic, regex based):
@@ -17,6 +18,16 @@ const sources = import.meta.glob<string>(["../**/*.tsx", "!../**/__tests__/**"],
   import: "default",
   eager: true,
 });
+
+const stylesheets = import.meta.glob<string>("../styles/*.css", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+
+/** `src/styles/<name>.css` files in the order `src/index.css` imports them. */
+const IMPORTED_SHEETS = [...indexCss.matchAll(/@import\s+"\.\/styles\/([\w-]+\.css)";/g)].map((m) => m[1]);
+const allCss = IMPORTED_SHEETS.map((name) => stylesheets[`../styles/${name}`] ?? "").join("\n");
 
 const MODIFIER_LITERAL = /["'`]((?:badge|btn|log)-[a-z0-9-]+)["'`]/g;
 const STATIC_CLASSNAME = /className="([^"]*)"/g;
@@ -48,14 +59,20 @@ function usedClasses(source: string): Set<string> {
 }
 
 describe("CSS class coverage", () => {
-  it("loads the component sources and the stylesheet", () => {
+  it("loads the component sources and the stylesheets", () => {
     expect(Object.keys(sources).length).toBeGreaterThan(20);
-    // An empty stylesheet means vitest.config.ts no longer includes src/index.css.
-    expect(definedClasses(indexCss).size).toBeGreaterThan(50);
+    // An empty stylesheet means vitest.config.ts no longer includes the CSS files.
+    expect(definedClasses(allCss).size).toBeGreaterThan(50);
   });
 
-  it("defines every className used in TSX in src/index.css", () => {
-    const defined = definedClasses(indexCss);
+  it("imports every stylesheet under src/styles exactly once", () => {
+    const onDisk = Object.keys(stylesheets).map((path) => path.replace("../styles/", "")).sort();
+    expect([...IMPORTED_SHEETS].sort()).toEqual(onDisk);
+    expect(new Set(IMPORTED_SHEETS).size).toBe(IMPORTED_SHEETS.length);
+  });
+
+  it("defines every className used in TSX in the stylesheets", () => {
+    const defined = definedClasses(allCss);
     const missing: string[] = [];
     for (const [file, source] of Object.entries(sources)) {
       for (const name of usedClasses(source)) {

@@ -152,6 +152,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.23 - Stylesheet Split per UI Area
+
+- **Styles (src/index.css, src/styles/)**: `index.css` (1576 lines) is now an entry point that imports 13 per-area sheets in cascade order: `base.css` (tokens, reset), `accessibility.css`, `layout.css` (shell, sidebar, main area), `badges.css`, `buttons.css`, `console.css` (log panel, status bar), `tooltip.css`, `modal.css`, `bug-report.css`, `config-editor.css` (manifest editor, diff view, panels), `secrets-vault.css` (vault tabs, segmented controls, governed inputs), `popover.css`, `telemetry.css`. Vite inlines the imports; the built CSS is byte-identical (same content hash).
+- **CSS Class Coverage Test (src/__tests__/cssClassCoverage.test.ts, vitest.config.ts)**: reads the sheets in the order `index.css` imports them, and a new check fails when a file under `src/styles/` is not imported exactly once. Vitest now includes `src/styles/*.css`.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.23`.
+
 ### v2.10.22 - API Client Split per Sidecar Service
 
 - **API Client (src/api/)**: `client.ts` (1491 lines) is now a 60-line barrel over per-service modules, so `../api/client` imports and test mocks are unchanged. Environment Manager: `envManager.ts` (hardware, health, pipeline, maintenance, docs status, bug report), `serviceLifecycle.ts` (liveness probes, start/stop through the Environment Manager or native spawn), `manifests.ts`, `secrets.ts`, `platform.ts` (`openExternalUrl`). Dataset Compiler: `datasets.ts` (catalog, presets, compilation, modernization), `datasetKaggle.ts`. Training Suite: `modelCatalog.ts` (`fetchModels` normalization), `training.ts` (dispatch, jobs, evaluation, export, soup, LLM), `trainingKaggle.ts`, `modelArtifacts.ts` (notebooks, model docs, variations), `unitTests.ts`. Telemetry: `telemetry.ts` (ANSI cleanup, progress detection, roll-up), `eventRouting.ts`, `socketMessages.ts`, `logSocket.ts`. Base URLs live in `endpoints.ts`.

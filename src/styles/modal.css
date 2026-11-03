@@ -1,0 +1,121 @@
+/* LemGendary AI Studio - Modal architecture, form dialogs and the screenshot annotator frame. */
+
+/* ─── Modal Architecture ─────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(10, 13, 20, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  padding: 24px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 960px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(6, 182, 212, 0.15);
+  overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  gap: 16px;
+}
+
+.modal-content-compact {
+  max-width: 560px;
+  height: auto;
+  max-height: 90vh;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.modal-deletion-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Form dialogs (bug report): sized to content, the body scrolls. */
+.modal-content-form {
+  max-width: 640px;
+  height: auto;
+  max-height: 90vh;
+}
+
+.modal-content-form .modal-body {
+  overflow-y: auto;
+}
+
+/* Screenshot annotator: nearly the whole window. */
+.modal-content-annotator {
+  max-width: 96vw;
+  height: 94vh;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  min-height: 28px;
+  font-size: 12px;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--accent-rose);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.field-hint-warning {
+  color: var(--accent-amber);
+}

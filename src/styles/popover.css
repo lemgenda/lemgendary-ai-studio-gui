@@ -1,0 +1,25 @@
+/* LemGendary AI Studio - Hover-pin popover. */
+
+/* Hover-Pin Popover Component */
+.hover-pin-container {
+  border-radius: 6px;
+  padding: 8px 10px;
+  transition: all 0.15s ease;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+}
+
+.hover-pin-container:hover,
+.hover-pin-container.is-pinned {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.hover-pin-container:not(.is-pinned) .hover-pin-content {
+  display: none;
+}
+
+.hover-pin-container:hover .hover-pin-content,
+.hover-pin-container.is-pinned .hover-pin-content {
+  display: flex !important;
+}
