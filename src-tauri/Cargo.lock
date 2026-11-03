@@ -1718,7 +1718,7 @@ dependencies = [
 
 [[package]]
 name = "lemgendary-ai-studio-gui"
-version = "2.10.35"
+version = "2.10.36"
 dependencies = [
  "bytes",
  "mp4",

@@ -3,9 +3,13 @@
     "composite": true,
     "target": "ES2022",
     "lib": [
-      "ES2022"
+      "ES2022",
+      "ESNext.Disposable",
+      "DOM"
     ],
-    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true

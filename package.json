@@ -1,7 +1,7 @@
 {
   "name": "lemgendary-ai-studio-gui",
   "private": true,
-  "version": "2.10.35",
+  "version": "2.10.36",
   "type": "module",
   "scripts": {
     "sync:ecosystem": "node scripts/sync-ecosystem.mjs",
@@ -30,6 +30,7 @@
     "@axe-core/react": "^4.13.0",
     "@eslint/js": "9.39.5",
     "@tauri-apps/cli": "^2.0.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.4",

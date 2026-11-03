@@ -274,6 +274,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.36 - Library Types Checked (No skipLibCheck)
+
+- `tsconfig.json` and `tsconfig.node.json` no longer set `skipLibCheck`,
+  so `tsc` also checks the `.d.ts` files of dependencies. The errors that
+  surfaced are fixed by configuration, not hidden:
+  - `ESNext.Disposable` is added to `lib` in both configs
+    (`Symbol.asyncDispose` in the Tauri and Rollup typings).
+  - `tsconfig.node.json` adds `DOM` to `lib` and `types: ["node"]` for the
+    Vite typings; `@types/node` (^24.19.2, matching Node 24) is a new dev
+    dependency.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.36`.
+
 ### v2.10.35 - README NUL Byte Removed
 
 - The v2.10.7 changelog entry held a NUL byte where "0.0 GB" was meant,
