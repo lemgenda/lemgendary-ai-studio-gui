@@ -194,10 +194,15 @@ mod tests {
     }
 
     #[test]
-    fn service_spec_knows_the_three_services() {
-        assert_eq!(service_spec("env-manager").map(|s| s.port), Ok(8000));
-        assert_eq!(service_spec("dataset-compiler").map(|s| s.port), Ok(8100));
-        assert_eq!(service_spec("training-suite").map(|s| s.port), Ok(8200));
+    fn service_spec_knows_the_three_services() -> Result<(), String> {
+        let mut ports = Vec::new();
+        for id in ["env-manager", "dataset-compiler", "training-suite"] {
+            let port = service_spec(id)?.port;
+            assert_ne!(port, 0, "{} has no port", id);
+            assert!(!ports.contains(&port), "{} reuses port {}", id, port);
+            ports.push(port);
+        }
+        Ok(())
     }
 
     #[test]

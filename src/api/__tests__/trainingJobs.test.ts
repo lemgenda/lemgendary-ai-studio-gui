@@ -7,6 +7,7 @@ import {
   isRemoteTrainingEvent,
   normalizeSocketMessage,
 } from "../client";
+import { servicePort } from "../config";
 
 /** Shape broadcast by the training-suite job manager (`training/server/jobs.py::_broadcast_log`). */
 function trainingSuiteBroadcast(jobId: string, jobType: string, message: string) {
@@ -32,7 +33,7 @@ describe("training-suite telemetry routing", () => {
       trainingSuiteBroadcast("job-k1", "kaggle_train", "[PROGRESS] kernel pushed"),
       "Training",
       "training-suite",
-      8200
+      servicePort("training-suite")
     );
     expect(ev?.data).toEqual({ job_id: "job-k1", job_type: "kaggle_train" });
   });

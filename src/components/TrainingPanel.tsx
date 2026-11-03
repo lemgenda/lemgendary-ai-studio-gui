@@ -12,6 +12,7 @@ import {
   TERMINAL_JOB_STATUSES,
   fetchKaggleSuiteStatus,
 } from "../api/client";
+import { servicePort } from "../api/config";
 import { ModelItem, KaggleSuiteStatus } from "../api/types";
 import { errorMessage, logger } from "../utils/logger";
 import { useTransientValue } from "../utils/useTransientValue";
@@ -305,7 +306,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
               aria-label="Training Suite sidecar offline"
             />
             <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:8200)</strong> — The model catalog, training status, ladders, and metrics come only from the sidecar and appear once it is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
+              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:{servicePort("training-suite")})</strong> — The model catalog, training status, ladders, and metrics come only from the sidecar and appear once it is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
             </span>
           </div>
           {onStartTrainingSuite && (

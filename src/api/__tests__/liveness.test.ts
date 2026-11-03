@@ -12,7 +12,7 @@ describe("sidecar liveness probe", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(probeSidecarPort("env-manager")).resolves.toBe(true);
-    await expect(probeSidecarPort(8000)).resolves.toBe(true);
+    await expect(probeSidecarPort(MESH_SERVICES["env-manager"].defaultPort)).resolves.toBe(true);
 
     const urls = fetchMock.mock.calls.map(([url]) => String(url));
     expect(urls).toEqual([

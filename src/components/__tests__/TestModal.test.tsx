@@ -105,7 +105,9 @@ describe("Test & Diagnostic modal", () => {
 
   it("contains no literal sidecar URLs or ports", () => {
     expect(testModalSource).not.toMatch(/https?:\/\//);
-    expect(testModalSource).not.toMatch(/\b(8000|8100|8200)\b/);
+    for (const service of Object.values(MESH_SERVICES)) {
+      expect(testModalSource).not.toMatch(new RegExp(`\\b${service.defaultPort}\\b`));
+    }
     expect(testModalSource).not.toContain("sidecarFetch");
   });
 });

@@ -7,6 +7,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { logger } from "../utils/logger";
 import { MESH_SERVICES, ServiceId } from "./config";
 import { ENV_BASE } from "./endpoints";
+import { ECOSYSTEM } from "./ecosystem";
 import { sidecarFetch } from "./http";
 import { throwHttpError } from "./request";
 import { ServiceOperationResult } from "./types";
@@ -25,7 +26,7 @@ export async function probeSidecarPort(target: number | ServiceId): Promise<bool
     url = `${service.httpUrl}${service.livenessPath}`;
   } else {
     const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
-    url = match ? `${match.httpUrl}${match.livenessPath}` : `http://127.0.0.1:${target}/api/health`;
+    url = match ? `${match.httpUrl}${match.livenessPath}` : `http://${ECOSYSTEM.identity.bind_host}:${target}/api/health`;
   }
   try {
     const res = await sidecarFetch(url, {

@@ -11,6 +11,7 @@ import {
   runDatasetTestSuite,
 } from "../client";
 import { PipelineEvent } from "../types";
+import { ecosystemService } from "../ecosystem";
 
 describe("API Client & Telemetry Utilities", () => {
   afterEach(() => {
@@ -18,9 +19,9 @@ describe("API Client & Telemetry Utilities", () => {
   });
 
   it("exposes SSOT MESH_SERVICES registry for all 3 sidecars", () => {
-    expect(MESH_SERVICES["env-manager"].defaultPort).toBe(8000);
-    expect(MESH_SERVICES["dataset-compiler"].defaultPort).toBe(8100);
-    expect(MESH_SERVICES["training-suite"].defaultPort).toBe(8200);
+    for (const id of ["env-manager", "dataset-compiler", "training-suite"] as const) {
+      expect(MESH_SERVICES[id].defaultPort).toBe(ecosystemService(id).port);
+    }
   });
 
   it("strips ANSI escape sequences, carriage returns, and ASCII progress bars in cleanAnsiAndControlChars", () => {

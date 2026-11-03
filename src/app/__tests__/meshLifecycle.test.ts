@@ -119,7 +119,7 @@ describe("event log merge (D18)", () => {
     const merged = mergeRecentEvents([live], rest);
     expect(merged.map(eventKey)).toEqual([eventKey(live), "2026-11-03T10:00:01Z|Virtual Environments|Done"]);
     expect(merged[1].origin).toBe("env-manager");
-    expect(merged[1].port).toBe(8000);
+    expect(merged[1].port).toBe(servicePort("env-manager"));
     expect(mergeRecentEvents(merged, rest)).toHaveLength(2);
   });
 

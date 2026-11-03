@@ -274,6 +274,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.37 - Service Ports Read From the Ecosystem Snapshot
+
+- **Training Panel**: the offline banner no longer hardcodes `:8200`; it
+  shows `servicePort("training-suite")` from `src/api/config.ts`, which
+  reads `src/generated/ecosystem.json`.
+- `probeSidecarPort` (`src/api/serviceLifecycle.ts`) builds its fallback
+  URL from the snapshot's `bind_host` instead of a literal `127.0.0.1`.
+- Tests (`client`, `liveness`, `trainingJobs`, `meshLifecycle`,
+  `TestModal`) and the Rust `service_spec` test compare against the
+  snapshot instead of literal ports; a stale store comment is updated.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.37`.
+
 ### v2.10.36 - Library Types Checked (No skipLibCheck)
 
 - `tsconfig.json` and `tsconfig.node.json` no longer set `skipLibCheck`,

@@ -27,7 +27,7 @@ export interface StudioState {
   openModal: (modal: StudioModalId) => void;
   closeModal: () => void;
 
-  // Tripartite Sidecar Mesh Status (8000, 8100, 8200)
+  // Tripartite Sidecar Mesh Status (ports from src/generated/ecosystem.json)
   meshStatus: MeshStatus;
   setMeshStatus: (status: MeshStatus | ((prev: MeshStatus) => MeshStatus)) => void;
 
