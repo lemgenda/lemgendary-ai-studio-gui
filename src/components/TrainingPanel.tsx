@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { CloudTrainModal } from "./CloudTrainModal";
 import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
-import { TelemetryConsole } from "./training/TelemetryConsole";
+import { TrainingTelemetry } from "./training/TrainingTelemetry";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { useStudioStore } from "../store/useStudioStore";
 import {
@@ -12,12 +12,12 @@ import {
   TERMINAL_JOB_STATUSES,
   fetchKaggleSuiteStatus,
 } from "../api/client";
-import { ModelItem, PipelineEvent, KaggleSuiteStatus } from "../api/types";
+import { ModelItem, KaggleSuiteStatus } from "../api/types";
 import { FALLBACK_MODELS } from "./training/fallbackModels";
-import { logger } from "../utils/logger";
+import { errorMessage, logger } from "../utils/logger";
+import { useTransientValue } from "../utils/useTransientValue";
 import { useModelFilters } from "./training/useModelFilters";
 import { TelemetryTab, useModelActions } from "./training/useModelActions";
-import { useTelemetryStream } from "./training/useTelemetryStream";
 
 /** Interval for polling the active local job's status on the training sidecar. */
 const JOB_STATUS_POLL_MS = 3000;
@@ -26,31 +26,26 @@ interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
   onOpenConfigEditor?: () => void;
   onStartTrainingSuite?: () => void;
-  recentEvents?: PipelineEvent[];
   logSlot?: React.ReactNode;
 }
 
 export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   trainingSuiteOnline,
   onStartTrainingSuite,
-  recentEvents: _recentEvents,
   logSlot,
 }) => {
-  // Zustand State
-  const {
-    cachedModels,
-    setCachedModels,
-    localJob,
-    setLocalJob,
-    remoteJob,
-    setRemoteJob,
-  } = useStudioStore();
+  // Narrow store selectors: the panel re-renders only for the slices it reads (never per telemetry event)
+  const setCachedModels = useStudioStore((s) => s.setCachedModels);
+  const localJob = useStudioStore((s) => s.localJob);
+  const setLocalJob = useStudioStore((s) => s.setLocalJob);
+  const setRemoteJob = useStudioStore((s) => s.setRemoteJob);
 
-  const [models, setModels] = useState<ModelItem[]>(
-    cachedModels.length > 0 ? cachedModels : FALLBACK_MODELS
-  );
+  const [models, setModels] = useState<ModelItem[]>(() => {
+    const cached = useStudioStore.getState().cachedModels;
+    return cached.length > 0 ? cached : FALLBACK_MODELS;
+  });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
+  const [refreshFeedback, showRefreshFeedback] = useTransientValue<string>(4000);
 
   // Status banners
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
@@ -74,22 +69,20 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       if (modelList.length > 0) {
         setModels(modelList);
         setCachedModels(modelList);
-        setRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
+        showRefreshFeedback(`Loaded ${modelList.length} neural models from unified registry.`);
       } else {
         // Offline placeholders are display-only: never cached, so the sidecar list replaces them on reconnect.
         setModels(FALLBACK_MODELS);
-        setRefreshFeedback(`Training sidecar returned no models. Showing ${FALLBACK_MODELS.length} offline placeholders (training status unknown).`);
+        showRefreshFeedback(`Training sidecar returned no models. Showing ${FALLBACK_MODELS.length} offline placeholders (training status unknown).`);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn("Training model registry fetch failed:", err);
+      logger.warn("Training model registry fetch failed; showing offline placeholders", err);
       setModels(FALLBACK_MODELS);
-      setRefreshFeedback(`Training sidecar unreachable (${msg}). Showing offline placeholders (training status unknown).`);
+      showRefreshFeedback(`Training sidecar unreachable (${errorMessage(err)}). Showing offline placeholders (training status unknown).`);
     } finally {
       setIsRefreshing(false);
-      setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, [setCachedModels]);
+  }, [setCachedModels, showRefreshFeedback]);
 
   const loadKaggleData = useCallback(async () => {
     try {
@@ -100,14 +93,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     }
   }, []);
 
+  // Initial load on mount only: a cache refresh must not re-run it (review finding D11)
   useEffect(() => {
-    if (cachedModels.length > 0) {
-      setModels(cachedModels);
-    } else {
-      loadTrainingData();
+    if (useStudioStore.getState().cachedModels.length === 0) {
+      void loadTrainingData();
     }
-    loadKaggleData();
-  }, [loadTrainingData, loadKaggleData, cachedModels]);
+    void loadKaggleData();
+  }, [loadTrainingData, loadKaggleData]);
 
   // Refetch when the training sidecar comes back online (offline -> online transition)
   const prevTrainingOnlineRef = useRef<boolean>(trainingSuiteOnline);
@@ -165,9 +157,13 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     const activeKey = localJob.modelKey;
 
     const interval = setInterval(async () => {
-      const fresh = (await fetchModels()).find((m) => m.key === activeKey);
-      if (!fresh) return;
-      setModels((prev) => prev.map((m) => (m.key === activeKey ? fresh : m)));
+      try {
+        const fresh = (await fetchModels()).find((m) => m.key === activeKey);
+        if (!fresh) return;
+        setModels((prev) => prev.map((m) => (m.key === activeKey ? fresh : m)));
+      } catch (err: unknown) {
+        logger.debug(`Live telemetry refresh for ${activeKey} failed; retrying`, err);
+      }
     }, 5000);
 
     return () => clearInterval(interval);
@@ -190,7 +186,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           setStatusNotice(`Local training job ${jobId} ${job.status}.`);
         }
       } catch (err: unknown) {
-        console.warn(`Polling status of training job ${jobId} failed:`, err);
+        logger.debug(`Polling status of training job ${jobId} failed; retrying`, err);
       }
     };
 
@@ -249,20 +245,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setCloudModalModel(m);
     setIsCloudModalOpen(true);
   };
-
-  const {
-    events: displayedLocalEvents,
-    copied: localCopied,
-    copy: handleCopyLocalStream,
-    clear: handleClearLocalStream,
-  } = useTelemetryStream(_recentEvents, remoteJob.jobId, "local");
-  const {
-    events: displayedRemoteEvents,
-    copied: remoteCopied,
-    copy: handleCopyRemoteStream,
-    clear: handleClearRemoteStream,
-  } = useTelemetryStream(_recentEvents, remoteJob.jobId, "remote");
-
 
   return (
     <div style={{ padding: "20px 24px" }}>
@@ -414,23 +396,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       )}
 
       {/* 3. Real-Time Telemetry & Multi-Execution Console */}
-      <TelemetryConsole
+      <TrainingTelemetry
         activeTelemetryTab={activeTelemetryTab}
         onTabChange={setActiveTelemetryTab}
-        localJobId={localJob.jobId}
-        localJobModel={localJob.modelKey}
-        remoteJobId={remoteJob.jobId}
-        remoteJobModel={remoteJob.modelKey}
-        displayedLocalEvents={displayedLocalEvents}
-        displayedRemoteEvents={displayedRemoteEvents}
-        onCopyLocalStream={handleCopyLocalStream}
-        localCopied={localCopied}
-        onClearLocalStream={handleClearLocalStream}
         onStopLocalTrain={handleStopLocalTrain}
         isStoppingLocal={actionBusyKey === "stopping"}
-        onCopyRemoteStream={handleCopyRemoteStream}
-        remoteCopied={remoteCopied}
-        onClearRemoteStream={handleClearRemoteStream}
         logSlot={logSlot}
       />
 

@@ -65,8 +65,9 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
   let root: Root;
 
   const render = async (props: { online: boolean; events?: PipelineEvent[] }) => {
+    useStudioStore.setState({ events: props.events ?? [] });
     await act(async () => {
-      root.render(<TrainingPanel trainingSuiteOnline={props.online} recentEvents={props.events ?? []} />);
+      root.render(<TrainingPanel trainingSuiteOnline={props.online} />);
     });
     await flush();
   };
@@ -161,6 +162,14 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(mocked.fetchTrainingJob).toHaveBeenCalledWith("job-local-1");
     expect(useStudioStore.getState().localJob).toEqual({ jobId: null, modelKey: null });
     expect(container.textContent).toContain("Local training job job-local-1 completed.");
+  });
+
+  it("loads once on mount; caching the fetched models does not re-run the load (D11)", async () => {
+    mocked.fetchModels.mockResolvedValue([LIVE_MODEL]);
+    await render({ online: true });
+    expect(useStudioStore.getState().cachedModels).toEqual([LIVE_MODEL]);
+    expect(mocked.fetchModels).toHaveBeenCalledTimes(1);
+    expect(mocked.fetchKaggleSuiteStatus).toHaveBeenCalledTimes(1);
   });
 
   it("routes Kaggle job events to the Remote Cloud stream and keeps local events local", async () => {

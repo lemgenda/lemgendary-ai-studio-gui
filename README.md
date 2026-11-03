@@ -152,6 +152,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.27 - Narrow Re-Renders, Cleared Timers and Quiet Log Regions
+
+- **Event Subscriptions (src/app/liveViews.tsx, src/App.tsx, src/components/training/TrainingTelemetry.tsx)**: the App shell no longer subscribes to `events`. `LiveLogPanel`, `LivePipelinePanel` and `LivePipelineStepCards` read the event buffer themselves, and `TrainingTelemetry` binds the training console to it, so a telemetry event re-renders only those views, not every tab and model card (review finding D12). `TrainingPanel` uses one selector per store slice instead of the whole store and drops its `recentEvents` prop.
+- **Training Panel Load (src/components/TrainingPanel.tsx)**: the initial model and Kaggle status load runs once on mount; caching the fetched models no longer re-runs it (D11). A failed live telemetry refresh while a job runs is logged instead of an unhandled rejection; the remaining `console.warn` calls go through `logger`.
+- **Timers (src/utils/useTransientValue.ts)**: new `useTransientValue(ms)` for short-lived values; the pending timer is replaced on each new value and cleared on unmount. Refresh notices in `TrainingPanel` and `CompilerPanel` and the copy confirmations in `LogPanel` and the training streams use it (D35).
+- **Terminal Events (src/api/telemetry.ts, src/components/LogPanel.tsx, src/components/PipelineStepCards.tsx)**: new `isTerminalEvent` (error, non-progress success or warning, or the pipeline end message) replaces the substring test for "completed", so a line such as "epoch 3 completed" no longer hides the progress bar or marks a step done (D30).
+- **Live Regions (src/components/LogPanel.tsx, src/components/training/TelemetryConsole.tsx)**: the log containers keep `role="log"` with `aria-live="off"`; a visually hidden `role="status"` region announces only the latest milestone (`latestMilestone`: last non-progress success, warning or error) (D29). The log help text no longer hardcodes a port.
+- **Tests**: `LogPanelLiveRegion.test.tsx` (5): terminal events, progress bar kept for "completed" progress lines, milestone-only announcements, transient value reset and timer cleanup. `TrainingPanel.jobs.test.tsx` (+1): models load once on mount.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.27`.
+
 ### v2.10.26 - Honest Refresh Errors, Direct Service Probes and Logged Sidecar Output
 
 - **Dashboard Refresh (src/app/useMeshSync.ts)**: `loadData` reads hardware, health and pipeline status with `Promise.allSettled`; the banner names every source that failed and the first error, and is cleared only when all three loaded (review finding D14: the banner could never show). The message no longer hardcodes ports.

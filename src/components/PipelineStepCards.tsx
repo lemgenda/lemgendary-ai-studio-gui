@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
+import { isTerminalEvent } from "../api/client";
 
 export interface PipelineStepDefinition {
   num: number;
@@ -108,15 +109,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
       >
         {PIPELINE_STEPS.map((step) => {
           const latestEvent = getStepLatestEvent(step.num);
-          const isLatestCompleted = Boolean(
-            latestEvent && (
-              latestEvent.status === "success" ||
-              latestEvent.status === "error" ||
-              (latestEvent.status === "warning" && !latestEvent.is_progress) ||
-              (typeof latestEvent.message === "string" &&
-                latestEvent.message.toLowerCase().includes("completed"))
-            )
-          );
+          const isLatestCompleted = Boolean(latestEvent && isTerminalEvent(latestEvent));
           const isStepRunning =
             !isLatestCompleted &&
             ((isRunning && activeStepNum === step.num) || runningStep === step.num);

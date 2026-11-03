@@ -91,3 +91,30 @@ export function rollupTelemetryEvents(events: PipelineEvent[]): PipelineEvent[] 
 
   return result;
 }
+
+/** Messages that mark the end of a whole pipeline run. */
+const PIPELINE_DONE_MARKERS = ["pipeline execution completed", "ecosystem healthy status"];
+
+/**
+ * True when an event ends its step or run: an error, a non-progress success
+ * or warning, or the pipeline's completion message. Words such as
+ * "completed" inside an ordinary progress line ("epoch 3 completed") do not count.
+ */
+export function isTerminalEvent(ev: PipelineEvent): boolean {
+  if (ev.status === "error") return true;
+  if (!ev.is_progress && (ev.status === "success" || ev.status === "warning")) return true;
+  const msg = typeof ev.message === "string" ? ev.message.toLowerCase() : "";
+  return PIPELINE_DONE_MARKERS.some((marker) => msg.includes(marker));
+}
+
+/**
+ * Text for a screen-reader status region: the latest milestone (a
+ * non-progress success, warning or error) instead of every log line.
+ */
+export function latestMilestone(events: readonly PipelineEvent[]): string {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    if (!ev.is_progress && ev.status !== "info") return `${ev.step_name}: ${ev.message}`;
+  }
+  return "";
+}

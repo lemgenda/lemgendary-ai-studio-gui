@@ -4,9 +4,7 @@ import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { HardwareCard } from "./components/HardwareCard";
 import { ProjectCard } from "./components/ProjectCard";
-import { PipelinePanel } from "./components/PipelinePanel";
 import { HealthPanel } from "./components/HealthPanel";
-import { LogPanel } from "./components/LogPanel";
 import { StatusBar } from "./components/StatusBar";
 import { CompilerPanel } from "./components/CompilerPanel";
 import { TrainingPanel } from "./components/TrainingPanel";
@@ -15,7 +13,6 @@ import { TestModal } from "./components/TestModal";
 import { BugReportModal } from "./components/bugReport/BugReportModal";
 import { ServiceTiles } from "./components/ServiceTiles";
 import { HelpTooltip } from "./components/HelpTooltip";
-import { PipelineStepCards } from "./components/PipelineStepCards";
 import { MeshOfflineBanner, RefreshErrorBanner } from "./components/MeshBanners";
 import { isCompilerEvent } from "./api/client";
 import { workspaceTabTitle } from "./navigation/workspaceTabs";
@@ -23,17 +20,14 @@ import { FALLBACK_PROJECTS } from "./app/fallbackProjects";
 import { useMeshSync } from "./app/useMeshSync";
 import { useServiceControls } from "./app/useServiceControls";
 import { usePipelineControls } from "./app/usePipelineControls";
+import { LiveLogPanel, LivePipelinePanel, LivePipelineStepCards } from "./app/liveViews";
 
 export const App: React.FC = () => {
   const currentTab = useStudioStore((s) => s.currentTab);
   const setCurrentTab = useStudioStore((s) => s.setCurrentTab);
   const hardware = useStudioStore((s) => s.hardware);
   const health = useStudioStore((s) => s.health);
-  const events = useStudioStore((s) => s.events);
-  const setEvents = useStudioStore((s) => s.setEvents);
-  const clearEvents = useStudioStore((s) => s.clearEvents);
   const isRunningPipeline = useStudioStore((s) => s.isRunningPipeline);
-  const wsConnected = useStudioStore((s) => s.wsConnected);
   const meshStatus = useStudioStore((s) => s.meshStatus);
   const addTelemetryLog = useStudioStore((s) => s.addTelemetryLog);
   const activeModal = useStudioStore((s) => s.activeModal);
@@ -106,12 +100,7 @@ export const App: React.FC = () => {
                   hardware={hardware}
                   onStartEnvManager={() => handleStartService("env-manager")}
                 />
-                <PipelinePanel
-                  isRunning={isRunningPipeline}
-                  onRunPipeline={handleRunPipeline}
-                  recentEvents={events}
-                  envManagerOnline={meshStatus.envManager}
-                />
+                <LivePipelinePanel onRunPipeline={handleRunPipeline} />
               </div>
 
               <div>
@@ -132,22 +121,14 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              <LogPanel
-                events={events}
-                onClear={clearEvents}
-                isConnected={wsConnected}
-              />
+              <LiveLogPanel />
             </>
           )}
 
           {currentTab === "datasets" && (
             <>
               <CompilerPanel datasetCompilerOnline={meshStatus.datasetCompiler} />
-              <LogPanel
-                events={events.filter(isCompilerEvent)}
-                onClear={() => setEvents((prev) => prev.filter((e) => !isCompilerEvent(e)))}
-                isConnected={wsConnected}
-              />
+              <LiveLogPanel filter={isCompilerEvent} />
             </>
           )}
 
@@ -156,52 +137,22 @@ export const App: React.FC = () => {
               trainingSuiteOnline={meshStatus.trainingSuite}
               onOpenConfigEditor={() => openModal("config")}
               onStartTrainingSuite={() => handleStartService("training-suite")}
-              recentEvents={events}
-              logSlot={
-                <LogPanel
-                  events={events}
-                  onClear={clearEvents}
-                  isConnected={wsConnected}
-                />
-              }
+              logSlot={<LiveLogPanel />}
             />
           )}
 
           {currentTab === "pipeline" && (
             <>
-              <PipelinePanel
-                isRunning={isRunningPipeline}
-                onRunPipeline={handleRunPipeline}
-                recentEvents={events}
-                envManagerOnline={meshStatus.envManager}
-              />
-              <PipelineStepCards
-                isRunning={isRunningPipeline}
-                activeStepNum={
-                  events.length > 0 && isRunningPipeline
-                    ? events[events.length - 1].step_number
-                    : null
-                }
-                onRunStep={handleRunPipelineStep}
-                recentEvents={events}
-                envManagerOnline={meshStatus.envManager}
-              />
-              <LogPanel
-                events={events}
-                onClear={clearEvents}
-                isConnected={wsConnected}
-              />
+              <LivePipelinePanel onRunPipeline={handleRunPipeline} />
+              <LivePipelineStepCards onRunStep={handleRunPipelineStep} />
+              <LiveLogPanel />
             </>
           )}
 
           {currentTab === "health" && (
             <>
               <HealthPanel report={health} onStartEnvManager={() => handleStartService("env-manager")} />
-              <LogPanel
-                events={events}
-                onClear={clearEvents}
-                isConnected={wsConnected}
-              />
+              <LiveLogPanel />
             </>
           )}
         </main>

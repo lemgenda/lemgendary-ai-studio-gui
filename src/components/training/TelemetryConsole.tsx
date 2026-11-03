@@ -3,7 +3,7 @@ import { HelpTooltip } from "../HelpTooltip";
 import { PipelineEvent } from "../../api/types";
 import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../../utils/progressParser";
-import { isProgressLine, rollupTelemetryEvents } from "../../api/client";
+import { isProgressLine, latestMilestone, rollupTelemetryEvents } from "../../api/client";
 
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
@@ -276,10 +276,15 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             <TelemetryProgressTracker progress={activeLocalProgress} />
 
             {/* Local Training Monospace Stream */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {latestMilestone(cleanLocalEvents)}
+            </div>
             <div
               ref={localLogContainerRef}
               className="log-container"
               role="log"
+              aria-live="off"
+              aria-label="Local training stream log"
               style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}
             >
               {cleanLocalEvents.length === 0 ? (
@@ -319,10 +324,15 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             <TelemetryProgressTracker progress={activeRemoteProgress} />
 
             {/* Remote Cloud Monospace Stream */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {latestMilestone(cleanRemoteEvents)}
+            </div>
             <div
               ref={remoteLogContainerRef}
               className="log-container"
               role="log"
+              aria-live="off"
+              aria-label="Remote cloud training stream log"
               style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}
             >
               {cleanRemoteEvents.length === 0 ? (

@@ -26,6 +26,7 @@ import { FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { useCompilationForm } from "./compiler/useCompilationForm";
 import { logger } from "../utils/logger";
+import { useTransientValue } from "../utils/useTransientValue";
 
 interface CompilerPanelProps {
   datasetCompilerOnline?: boolean;
@@ -44,7 +45,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
+  const [refreshFeedback, showRefreshFeedback] = useTransientValue<string>(4000);
 
   // Search & Filter State for Manifolds Catalog
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -82,7 +83,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
-    setRefreshFeedback(null);
+    showRefreshFeedback(null);
     try {
       const [dsList, presetResult] = await Promise.all([
         fetchDatasets(),
@@ -96,13 +97,13 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setDatasets(dsList);
         setCachedDatasets(dsList);
         setSelectedManifold((prev) => prev || dsList[0].key);
-        setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
+        showRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
         // Offline placeholders are display-only: never cached, so the sidecar catalog replaces them on reconnect.
         setDatasets(FALLBACK_DATASETS);
         setSelectedManifold((prev) => prev || "upn_v2");
         if (!datasetCompilerOnline) {
-          setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying offline placeholder catalog (not live data).");
+          showRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying offline placeholder catalog (not live data).");
         }
       }
 
@@ -114,12 +115,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       }
     } catch (err: unknown) {
       logger.error("Dataset Compiler refresh failed", err);
-      setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
+      showRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
     } finally {
       setIsRefreshing(false);
-      setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, [datasetCompilerOnline, setCachedDatasets]);
+  }, [datasetCompilerOnline, setCachedDatasets, showRefreshFeedback]);
 
   useEffect(() => {
     loadCompilerData();
@@ -209,7 +209,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     try {
       setQueueItems(await fetchModernizationQueue());
     } catch (err: unknown) {
-      console.error("Failed to load modernization queue:", err);
+      logger.error("Failed to load modernization queue", err);
       setModernizeStatus(`Error loading modernization queue: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoadingQueue(false);
@@ -266,9 +266,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsUpdatingAllMetadata(true);
     try {
       const res = await updateAllKaggleMetadata();
-      setRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.id}).`);
+      showRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.id}).`);
     } catch (err: unknown) {
-      setRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
+      showRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsUpdatingAllMetadata(false);
     }
@@ -278,9 +278,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsRegeneratingIndex(true);
     try {
       const res = await triggerRegenerateManifolds();
-      setRefreshFeedback(res.message);
+      showRefreshFeedback(res.message);
     } catch (err: unknown) {
-      setRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
+      showRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsRegeneratingIndex(false);
     }

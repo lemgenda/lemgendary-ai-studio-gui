@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
 import { TelemetryProgressTracker } from "./common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../utils/progressParser";
 import { copyTextToClipboard } from "../utils/clipboard";
-import { isProgressLine, rollupTelemetryEvents } from "../api/client";
+import { isProgressLine, isTerminalEvent, latestMilestone, rollupTelemetryEvents } from "../api/client";
+import { useTransientValue } from "../utils/useTransientValue";
 
 interface LogPanelProps {
   events: PipelineEvent[];
@@ -14,20 +15,13 @@ interface LogPanelProps {
 
 export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = useState<boolean>(false);
+  const [copied, flashCopied] = useTransientValue<true>(2500);
 
   const activeProgress = useMemo(() => {
     if (events.length === 0) return null;
     const lastEv = events[events.length - 1];
-    // If the latest event is a final error, warning milestone, or completed event, do not show stale progress
-    const isTerminal =
-      lastEv.status === "error" ||
-      (lastEv.status === "success" && !lastEv.is_progress) ||
-      (lastEv.status === "warning" && !lastEv.is_progress) ||
-      (typeof lastEv.message === "string" &&
-        (lastEv.message.toLowerCase().includes("completed") ||
-         lastEv.message.toLowerCase().includes("pipeline execution completed") ||
-         lastEv.message.toLowerCase().includes("ecosystem healthy status")));
+    // A step or run that has ended shows no stale progress bar
+    const isTerminal = isTerminalEvent(lastEv);
 
     if (isTerminal) {
       return null;
@@ -49,6 +43,8 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
     return rollupTelemetryEvents(events);
   }, [events]);
 
+  const milestone = useMemo(() => latestMilestone(events), [events]);
+
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -67,10 +63,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
       .join("\n");
 
     const copiedOk = await copyTextToClipboard(formattedLog);
-    if (copiedOk) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
+    if (copiedOk) flashCopied(true);
   };
 
   return (
@@ -78,7 +71,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
       <div className="card-title">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <h3 id="telemetry-stream-heading" style={{ fontSize: "16px", fontWeight: 600 }}>Real-time Telemetry &amp; Pipeline Stream</h3>
-          <HelpTooltip content="Monospace live telemetry terminal. Receives real-time logs and progress updates over local WebSocket (ws://127.0.0.1:8000/ws/log)." />
+          <HelpTooltip content="Monospace live telemetry terminal. Receives real-time logs and progress updates over the sidecar WebSockets (Environment Manager, Dataset Compiler, Training Suite)." />
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span
               className={`badge ${isConnected ? "badge-success" : "badge-error"}`}
@@ -117,13 +110,16 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
 
       <TelemetryProgressTracker progress={activeProgress} />
 
+      {/* Screen readers hear milestones only; the log itself has live announcements turned off. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {milestone}
+      </div>
+
       <div
         ref={containerRef}
         className="log-container"
         role="log"
-        aria-live="polite"
-        aria-atomic="false"
-        aria-relevant="additions text"
+        aria-live="off"
         aria-label="Real-time telemetry and pipeline stream log"
         style={{ userSelect: "text", WebkitUserSelect: "text" }}
       >

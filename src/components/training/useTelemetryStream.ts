@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { isLocalTrainingEvent, isRemoteTrainingEvent } from "../../api/client";
 import { PipelineEvent } from "../../api/types";
 import { copyTextToClipboard } from "../../utils/clipboard";
+import { useTransientValue } from "../../utils/useTransientValue";
 
 export type TrainingStreamKind = "local" | "remote";
 
@@ -24,7 +25,7 @@ export function useTelemetryStream(
   remoteJobId: string | null,
   kind: TrainingStreamKind
 ): TelemetryStream {
-  const [copied, setCopied] = useState<boolean>(false);
+  const [copied, flashCopied] = useTransientValue<true>(2000);
   const [clearedTimestamp, setClearedTimestamp] = useState<number>(0);
 
   const events = useMemo(() => {
@@ -44,15 +45,12 @@ export function useTelemetryStream(
       .join("\n");
 
     const copiedOk = await copyTextToClipboard(text);
-    if (copiedOk) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    if (copiedOk) flashCopied(true);
   };
 
   const clear = () => {
     setClearedTimestamp(Date.now());
   };
 
-  return { events, copied, copy, clear };
+  return { events, copied: copied === true, copy, clear };
 }
