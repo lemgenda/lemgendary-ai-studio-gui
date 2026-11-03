@@ -152,6 +152,15 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.24 - App Shell Hooks and Model Card Sub-Components
+
+- **App Shell (src/App.tsx, src/app/)**: `App.tsx` (621 lines) is now 236 lines of layout. `useMeshSync.ts` owns mesh status, dashboard refresh, the log WebSocket fan-in, pipeline completion detection, safety polling and sidecar auto-start; `useServiceControls.ts` starts and stops sidecars; `usePipelineControls.ts` runs the pipeline, one step or a project reconcile; `waitForMesh.ts` is the one mesh readiness poll the four former copies now share; `fallbackProjects.ts` holds the offline project cards.
+- **Banners (src/components/MeshBanners.tsx)**: `MeshOfflineBanner` and `RefreshErrorBanner` moved out of `App.tsx` unchanged.
+- **Header Titles (src/navigation/workspaceTabs.ts)**: each workspace tab now carries its header `title`; `workspaceTabTitle(id)` replaces the `switch` in `App.tsx`.
+- **Model Card (src/components/training/)**: `ModelManifoldCard.tsx` (728 lines) is now 115 lines composing `TrainingStatusBadge`, `VariationBadges`, `ModelMetricsSection` (metric rows, SOTA popover, ladder, data fraction), `BatchSizeSelector` and `ModelCardActions` (one `CardActionButton` and `CardIcon` for the ten action buttons). Rendered markup is unchanged (checked by diffing server-rendered HTML of every tab and every fallback model card before and after).
+- **Entry (src/main.tsx)**: a failed dynamic import of `@axe-core/react` in dev is now logged instead of an unhandled rejection.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.24`.
+
 ### v2.10.23 - Stylesheet Split per UI Area
 
 - **Styles (src/index.css, src/styles/)**: `index.css` (1576 lines) is now an entry point that imports 13 per-area sheets in cascade order: `base.css` (tokens, reset), `accessibility.css`, `layout.css` (shell, sidebar, main area), `badges.css`, `buttons.css`, `console.css` (log panel, status bar), `tooltip.css`, `modal.css`, `bug-report.css`, `config-editor.css` (manifest editor, diff view, panels), `secrets-vault.css` (vault tabs, segmented controls, governed inputs), `popover.css`, `telemetry.css`. Vite inlines the imports; the built CSS is byte-identical (same content hash).
