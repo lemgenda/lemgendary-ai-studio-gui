@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Modal } from "../common/Modal";
 import { CAPTURE_EXCLUDE_PROPS, ScreenCapturer, encodeScreenshot } from "../../bugReport/screenshotCapture";
+import { logger } from "../../utils/logger";
 
 /** Highlight rectangle in screenshot pixels. */
 interface Rect {
@@ -73,7 +74,7 @@ export const ScreenshotAnnotator: React.FC<ScreenshotAnnotatorProps> = ({ isOpen
       setStatus("ready");
     } catch (err: unknown) {
       if (captureRunRef.current !== run) return;
-      console.error("Screenshot capture failed:", err);
+      logger.error("Screenshot capture failed", err);
       setError(`The screenshot could not be captured: ${err instanceof Error ? err.message : String(err)}`);
       setStatus("error");
     }
@@ -133,7 +134,7 @@ export const ScreenshotAnnotator: React.FC<ScreenshotAnnotatorProps> = ({ isOpen
       paint(output, source, rect);
       onSave(await encodeScreenshot(output));
     } catch (err: unknown) {
-      console.error("Screenshot encoding failed:", err);
+      logger.error("Screenshot encoding failed", err);
       setError(`The screenshot could not be saved: ${err instanceof Error ? err.message : String(err)}`);
       setStatus("error");
     }

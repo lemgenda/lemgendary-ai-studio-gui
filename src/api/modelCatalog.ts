@@ -105,7 +105,8 @@ export async function fetchModels(): Promise<ModelItem[]> {
 
       // Data fraction is only passed if current rung >= 99% AND ladder is passed (or SOTA reached with checkpoint)
       const dataFractionPassed = item.data_fraction_passed ?? ((dataFractionCompleted >= 0.99 && ladderPassed) || (sotaReached && ckptExists));
-      const isFullyTrained = item.is_fully_trained ?? (completedEpochs >= 20 && sotaReached && ladderPassed && dataFractionPassed);
+      // The Training Suite owns this verdict; without it, only the governance criteria count (no epoch-count rule).
+      const isFullyTrained = item.is_fully_trained ?? (sotaReached && ladderPassed && dataFractionPassed);
 
       const status = item.training_status || (
         isFullyTrained

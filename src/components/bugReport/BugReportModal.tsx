@@ -19,6 +19,7 @@ import { BugReportSubmitError } from "../../bugReport/serverErrors";
 import { RecordedClip, RecorderBackend, isRecordingAvailable, tauriRecorderBackend } from "../../bugReport/recording";
 import { useRecorder } from "../../bugReport/useRecorder";
 import { CAPTURE_EXCLUDE_PROPS, ScreenCapturer, captureAppScreen } from "../../bugReport/screenshotCapture";
+import { logger } from "../../utils/logger";
 
 interface BugReportModalProps {
   isOpen: boolean;
@@ -140,7 +141,7 @@ export const BugReportModal: React.FC<BugReportModalProps> = ({
         setFieldErrors(err.fieldErrors);
         setFormError(err.message);
       } else {
-        console.error("Bug report submission failed:", err);
+        logger.error("Bug report submission failed", err);
         setFormError(`The bug report could not be sent: ${err instanceof Error ? err.message : String(err)}`);
       }
     } finally {

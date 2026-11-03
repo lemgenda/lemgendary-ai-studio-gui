@@ -152,6 +152,15 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.29 - Logger Everywhere, Status Fallback Without Epoch Rule, Remediation Status
+
+- **Logging (src/bugReport/recordingController.ts, serverErrors.ts, src/components/bugReport/BugReportModal.tsx, ScreenshotAnnotator.tsx, src/components/Header.tsx)**: the last direct `console.warn`/`console.error` calls go through `logger` (review finding D13).
+- **Training Status Fallback (src/api/modelCatalog.ts)**: when the Training Suite omits `is_fully_trained`, only the governance criteria (SOTA reached, ladder passed, data fraction passed) count; the `epochs_completed >= 20` rule is gone (D39).
+- **Type Declarations (src/vite-env.d.ts)**: removed the unused Tauri v1 `window` globals; the code uses `isTauri()` (D36).
+- **Review Report (REVIEW_REPORT.md)**: new "Remediation Status" section maps every Medium and Low finding to its fix, or says why it is not applicable or deferred.
+- **Tests**: `modelCatalog.test.ts` (2): status from the governance criteria and the sidecar's own verdict.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.29`.
+
 ### v2.10.28 - Accessible Tabs and Dialogs, Confirmations, Kaggle Owner from Credentials
 
 - **Tabs (src/components/common/Tabs.tsx)**: new `TabList`/`TabPanel` primitive: the tablist holds only tabs, `aria-controls` points at the rendered panel (`<prefix>-panel`, labelled by the active tab), roving tab index, arrow/Home/End keys. Used by the Test & Diagnostic, Cloud Training and Config & Secrets dialogs; their help buttons moved out of the tablists (review finding D23).

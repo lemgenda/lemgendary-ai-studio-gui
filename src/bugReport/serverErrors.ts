@@ -1,5 +1,6 @@
 import { BugReportFieldErrors, isBugReportField } from "./fields";
 import { BUG_REPORT_LIMITS, formatMegabytes } from "./limits";
+import { logger } from "../utils/logger";
 
 export type BugReportErrorKind = "offline" | "validation" | "too_large" | "server";
 
@@ -20,7 +21,7 @@ export class BugReportSubmitError extends Error {
 
   /** The request never reached the Environment Manager (connection refused, CORS, DNS). */
   static offline(cause: unknown): BugReportSubmitError {
-    console.warn("Bug report request failed before reaching the Environment Manager:", cause);
+    logger.warn("Bug report request failed before reaching the Environment Manager", cause);
     return new BugReportSubmitError("offline", ENV_MANAGER_OFFLINE_MESSAGE);
   }
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { fetchDocsStatus, openExternalUrl } from "../api/client";
+import { logger } from "../utils/logger";
 
 interface HeaderProps {
   title: string;
@@ -48,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
       .catch((err: unknown) => {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn("Documentation hub status check failed:", err);
+        logger.warn("Documentation hub status check failed", err);
         setDocsUrl(null);
         setDocsUnavailableReason(`Unavailable: ${msg}`);
       });
@@ -62,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
     setDocsOpenError(null);
     openExternalUrl(docsUrl).catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("Opening the documentation hub failed:", err);
+      logger.error("Opening the documentation hub failed", err);
       setDocsOpenError(`Could not open the documentation hub: ${msg}`);
     });
   };

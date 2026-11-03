@@ -737,3 +737,58 @@ decided after the version drift is resolved.
 12. Resolve version drift (`package.json` 2.0.0 versus README v2.10.7) and
     reorder the changelog.
 13. Only then implement the Report Issue feature per the integration notes.
+
+## Remediation Status (Medium and Low Findings)
+
+Step L10-GUI on branch `fix/review-remediation`. Critical and High findings
+were fixed in earlier steps. Commits: `d91e35a` (v2.10.26), `0f288cb`
+(v2.10.27), `470b196` (v2.10.28), and the v2.10.29 commit that adds this
+section.
+
+| # | Severity | Status | Where / why |
+| :--- | :--- | :--- | :--- |
+| D3 | Medium | Fixed earlier | v2.10.14: mesh URLs, guarded arrays, `QUEUED` status |
+| D6 | Medium | Fixed earlier | v2.10.16: one `with-stats` request, 5 s poll |
+| D9 | Medium | Fixed earlier | v2.10.15: job status poll clears the local job |
+| D11 | Low | Fixed | `0f288cb`: load once on mount |
+| D12 | Medium | Fixed | `0f288cb`: event-bound views; App and TrainingPanel do not subscribe to `events` |
+| D13 | Medium | Fixed | v2.10.21 logs every catch; v2.10.29 routes the last `console.*` calls through `logger`. List readers still return `[]` with a logged warning (by design: offline fallback) |
+| D14 | Medium | Fixed | `d91e35a`: `Promise.allSettled`, banner names failed sources |
+| D15 | Medium | Fixed earlier | v2.10.16: no dev-spawner fallback; HTTP errors surface |
+| D16 | Medium | Fixed | `d91e35a`: start timeout error; native spawn logs output to the app log folder |
+| D17 | Medium | Fixed | `d91e35a`: direct probes, Environment Manager started first |
+| D18 | Low | Fixed | `d91e35a`: REST events normalized, de-duplicated by timestamp, step, message |
+| D19 | Low | Fixed earlier | v2.10.24: dynamic import rejection logged |
+| D20 | Low | Fixed | `470b196`: registry loads once per opening |
+| D21 | Low | Fixed | `470b196`: confirm before discarding unsaved manifest edits |
+| D22 | Medium | Fixed earlier | v2.10.17: classes defined; coverage test |
+| D23 | Medium | Fixed | `470b196`: `Tabs` primitive; sidebar is a `nav` |
+| D24 | Medium | Fixed | `470b196`: Test, Cloud and Config dialogs use `Modal` |
+| D25 | Medium | Fixed | `470b196`: labels on search, filters, clear buttons, Kaggle inputs |
+| D26 | Low | Fixed | `470b196`: help buttons outside checkbox labels |
+| D27 | Low | Fixed | `470b196`: tabs via `Tabs`; other toggles expose `aria-pressed` |
+| D28 | Low | Fixed | `470b196`: progressbar separate from the step list |
+| D29 | Low | Fixed | `0f288cb`: logs `aria-live="off"`; milestones in a status region |
+| D30 | Low | Fixed | `0f288cb`: `isTerminalEvent` replaces the "completed" substring test |
+| D31 | Low | Fixed | `470b196`: pre-flight rows say what is not checked; Colab tab says no launch |
+| D32 | Medium | Fixed | `470b196`: owner from Kaggle credentials or `kaggle_ref`. Offline placeholders in `fallbackDatasets.ts` still carry `kaggle_ref` strings (data, deferred to L7 with the inventory SSOT) |
+| D33 | Low | Not applicable | v2.10.16 removed the docs middleware; no path handling left in `vite.config.ts` |
+| D34 | Low | Fixed | `470b196`: `ConfirmDialog` for upgrade, purge, stop service, delete credential |
+| D35 | Low | Fixed | `0f288cb`: `useTransientValue` clears its timer |
+| D36 | Low | Fixed | v2.10.29: stale Tauri v1 globals removed (code already uses `isTauri()`) |
+| D37 | Low | Not applicable | The shell plugin is now used for `open` (v2.10.16, `shell:allow-open`) |
+| D38 | Low | Fixed | `470b196`: `ExternalLink` opens through `openExternalUrl` |
+| D39 | Low | Fixed | v2.10.15 removed the fallback ladder; v2.10.29 drops the `completedEpochs >= 20` rule |
+| D40 | Medium | Fixed earlier | v2.10.18 |
+| D41 | Low | Partly fixed, rest deferred | Downgrade removed in v2.10.21. ESLint 9 flat-config migration deferred: it needs a coordinated plugin upgrade (`eslint-plugin-react-hooks` 5, `typescript-eslint` flat configs) and is a toolchain step of its own |
+
+Deferred to step L7 (cross-repo SSOT): service ids, folders, modules and
+ports are still duplicated in `src/api/config.ts` and
+`src-tauri/src/commands.rs`; fallback model, dataset, project and manifest
+inventories remain.
+
+Backend items (not changed here): the Training Suite should always send
+`training_status` and `is_fully_trained` in `GET /api/gui/models/with-stats`
+so the GUI needs no status fallback; the Environment Manager's
+`recent_events` should always carry `timestamp` so REST and WebSocket
+de-duplication is exact.

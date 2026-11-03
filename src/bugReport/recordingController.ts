@@ -1,4 +1,5 @@
 import { NativeRecordingStatus, RecordedClip, RecorderBackend, unpackRecording } from "./recording";
+import { logger } from "../utils/logger";
 
 /** What the recording UI shows. */
 export type RecorderPhase = "idle" | "starting" | "recording" | "paused" | "stopping";
@@ -121,7 +122,7 @@ export class RecordingController {
     try {
       await this.backend.stop();
     } catch (err: unknown) {
-      console.error("Discarding the unfinished recording failed:", err);
+      logger.error("Discarding the unfinished recording failed", err);
     }
   }
 
@@ -130,7 +131,7 @@ export class RecordingController {
       this.applyStatus(await call());
     } catch (err: unknown) {
       // The native recorder may have hit its limit or failed meanwhile; poll decides.
-      console.error(`${action}:`, err);
+      logger.error(action, err);
       this.setView({ error: `${action}: ${recorderErrorMessage(err)}` });
       await this.poll();
     }
@@ -183,7 +184,7 @@ export class RecordingController {
   }
 
   private fail(action: string, err: unknown): void {
-    console.error(`${action}:`, err);
+    logger.error(action, err);
     this.stopPolling();
     this.setView({ phase: "idle", error: `${action}: ${recorderErrorMessage(err)}` });
   }
