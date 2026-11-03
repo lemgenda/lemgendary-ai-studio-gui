@@ -5,7 +5,8 @@ modified. All paths are relative to `./lemgendary-ai-studio-gui/` unless they
 start with `../` (sibling repositories in the workspace).
 
 Governance baseline: `../ROBOTS.md` (supreme) and `../Instructions.md`.
-Required reading consulted: `../lemgendary-docs/MD-Papers/PAPER_AI_STUDIO_GUI.md`,
+Required reading consulted:
+`../lemgendary-docs/MD-Papers/PAPER_AI_STUDIO_GUI.md`,
 `../lemgendary-docs/MD-Papers/MANUAL_AI_STUDIO_GUI.md`,
 `../lemgendary-docs/MD-Papers/GUI_CONTROL_REGISTRY.md`, and
 `../bug_report_implementation_plan.md`.
@@ -16,14 +17,27 @@ running a tool; **[high]** = strong static evidence, not executed;
 
 ## Tool Results
 
-| Gate | Command | Result |
-| :--- | :--- | :--- |
-| Install | `npm install --no-audit --no-fund` | Exit 0, 368 packages. Warnings: deprecated `eslint@8.57.1`, `glob@7`, `rimraf@3`, `inflight`; `esbuild` postinstall not covered by `allowScripts`. |
-| Typecheck | `npm run typecheck` | Exit 0 (covers `src/` only). |
-| Lint | `npm run lint` | Exit 0, zero warnings (`--max-warnings 0`). |
-| Test | `npm test` | Exit 0, 8 files, 42/42 tests passed. |
-| Extra | `npx tsc -p tsconfig.node.json --noEmit` | **30 type errors** in `vite.config.ts` (no `@types/node`, no `lib`/`target`). This file is never typechecked by any script. |
-| Rust | `cargo` | Not installed; `src-tauri/` reviewed statically only. |
+- Install
+  - **Command**: `npm install --no-audit --no-fund`
+  - **Result**: Exit 0, 368 packages. Warnings: deprecated `eslint@8.57.1`,
+    `glob@7`, `rimraf@3`, `inflight`; `esbuild` postinstall not covered by
+    `allowScripts`.
+- Typecheck
+  - **Command**: `npm run typecheck`
+  - **Result**: Exit 0 (covers `src/` only).
+- Lint
+  - **Command**: `npm run lint`
+  - **Result**: Exit 0, zero warnings (`--max-warnings 0`).
+- Test
+  - **Command**: `npm test`
+  - **Result**: Exit 0, 8 files, 42/42 tests passed.
+- Extra
+  - **Command**: `npx tsc -p tsconfig.node.json --noEmit`
+  - **Result**: **30 type errors** in `vite.config.ts` (no `@types/node`, no
+    `lib`/`target`). This file is never typechecked by any script.
+- Rust
+  - **Command**: `cargo`
+  - **Result**: Not installed; `src-tauri/` reviewed statically only.
 
 Repository side effects: `node_modules/` and `package-lock.json` are both
 listed in `.gitignore` and `package-lock.json` was absent before install, so
@@ -167,146 +181,486 @@ Columns: component, control (DOM `id` or `none`), handler, endpoint.
 
 ### Shell (all views)
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `App.tsx:386` | Skip link (none) | anchor `#main-content` | none |
-| `Sidebar.tsx:81` | Tab buttons (`tab-dashboard`, `tab-datasets`, `tab-training`, `tab-pipeline`, `tab-health`) | `onSelectTab` -> `setCurrentTab` | none |
-| `Sidebar.tsx:109` | Brand footer link (none) | anchor `_blank` | external site |
-| `Header.tsx:34` | Config and Secrets (none) | `onOpenConfigEditor` | opens ConfigEditorModal |
-| `Header.tsx:47` | Documentation Hub (none) | `handleOpenDocs` -> `window.open` | `/documentation-hub/index.html` (Vite dev only) |
-| `Header.tsx:59` | Refresh Audit (`dash-btn-refresh-audit`) | `loadData` | `GET /api/hardware`, `GET /api/health`, `GET /api/pipeline/status`, `GET /api/gui/ecosystem` (8000) |
-| `App.tsx:430` | Start All Services (none) | `handleStartAllServices` | Tauri `spawn_all_services`, else `POST /api/services/start-all` (8000), else `POST /api/dev/services/start-all` (Vite) |
-| `App.tsx:461` | Dismiss error (none) | `setRefreshError(null)` | none |
-| `StatusBar.tsx:27` | Mesh status (none) | display | none |
-| `HelpTooltip.tsx:18` | Help glyph, about 120 instances (none) | hover/focus | none |
+- `App.tsx:386`
+  - **Control (id)**: Skip link (none)
+  - **Handler**: anchor `#main-content`
+  - **Endpoint**: none
+- `Sidebar.tsx:81`
+  - **Control (id)**: Tab buttons (`tab-dashboard`, `tab-datasets`,
+    `tab-training`, `tab-pipeline`, `tab-health`)
+  - **Handler**: `onSelectTab` -> `setCurrentTab`
+  - **Endpoint**: none
+- `Sidebar.tsx:109`
+  - **Control (id)**: Brand footer link (none)
+  - **Handler**: anchor `_blank`
+  - **Endpoint**: external site
+- `Header.tsx:34`
+  - **Control (id)**: Config and Secrets (none)
+  - **Handler**: `onOpenConfigEditor`
+  - **Endpoint**: opens ConfigEditorModal
+- `Header.tsx:47`
+  - **Control (id)**: Documentation Hub (none)
+  - **Handler**: `handleOpenDocs` -> `window.open`
+  - **Endpoint**: `/documentation-hub/index.html` (Vite dev only)
+- `Header.tsx:59`
+  - **Control (id)**: Refresh Audit (`dash-btn-refresh-audit`)
+  - **Handler**: `loadData`
+  - **Endpoint**: `GET /api/hardware`, `GET /api/health`, `GET
+    /api/pipeline/status`, `GET /api/gui/ecosystem` (8000)
+- `App.tsx:430`
+  - **Control (id)**: Start All Services (none)
+  - **Handler**: `handleStartAllServices`
+  - **Endpoint**: Tauri `spawn_all_services`, else `POST
+    /api/services/start-all` (8000), else `POST /api/dev/services/start-all`
+    (Vite)
+- `App.tsx:461`
+  - **Control (id)**: Dismiss error (none)
+  - **Handler**: `setRefreshError(null)`
+  - **Endpoint**: none
+- `StatusBar.tsx:27`
+  - **Control (id)**: Mesh status (none)
+  - **Handler**: display
+  - **Endpoint**: none
+- `HelpTooltip.tsx:18`
+  - **Control (id)**: Help glyph, about 120 instances (none)
+  - **Handler**: hover/focus
+  - **Endpoint**: none
 
 ### Dashboard
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `ServiceTiles.tsx:102` | Quick action per service (none) | `onRunAudit` or `onNavigate` | `POST /api/pipeline/run` (8000) for env card |
-| `ServiceTiles.tsx:115` | Start Service (none) | `handleStartService(id)` | Tauri `spawn_service` or `POST /api/services/{id}/start` (8000) |
-| `ServiceTiles.tsx:126` | Stop Service (none) | `handleStopService(id)` | `POST /api/services/{id}/stop` (8000) |
-| `HardwareCard.tsx:25` | Start Environment Manager (none) | `handleStartService("env-manager")` | as above |
-| `PipelinePanel.tsx:92` | Execute Full Clean Install Pipeline (`dash-btn-run-pipeline`) | `handleRunPipeline` | `POST /api/pipeline/run` (8000) |
-| `ProjectCard.tsx:75` | Reconcile Environment (none) | `handleReconcileProject(name)` | `POST /api/pipeline/run` with `target_project` (8000) |
-| `LogPanel.tsx:93` | Copy Stream (none) | `handleCopy` | clipboard |
-| `LogPanel.tsx:105` | Clear Stream (none) | `onClear` | none |
-| `LogPanel.tsx:120` | Log region (none) | display | WS `/ws/log` (8000), `/api/ws/events` (8100), `/api/ws/logs` (8200) |
+- `ServiceTiles.tsx:102`
+  - **Control (id)**: Quick action per service (none)
+  - **Handler**: `onRunAudit` or `onNavigate`
+  - **Endpoint**: `POST /api/pipeline/run` (8000) for env card
+- `ServiceTiles.tsx:115`
+  - **Control (id)**: Start Service (none)
+  - **Handler**: `handleStartService(id)`
+  - **Endpoint**: Tauri `spawn_service` or `POST /api/services/{id}/start`
+    (8000)
+- `ServiceTiles.tsx:126`
+  - **Control (id)**: Stop Service (none)
+  - **Handler**: `handleStopService(id)`
+  - **Endpoint**: `POST /api/services/{id}/stop` (8000)
+- `HardwareCard.tsx:25`
+  - **Control (id)**: Start Environment Manager (none)
+  - **Handler**: `handleStartService("env-manager")`
+  - **Endpoint**: as above
+- `PipelinePanel.tsx:92`
+  - **Control (id)**: Execute Full Clean Install Pipeline
+    (`dash-btn-run-pipeline`)
+  - **Handler**: `handleRunPipeline`
+  - **Endpoint**: `POST /api/pipeline/run` (8000)
+- `ProjectCard.tsx:75`
+  - **Control (id)**: Reconcile Environment (none)
+  - **Handler**: `handleReconcileProject(name)`
+  - **Endpoint**: `POST /api/pipeline/run` with `target_project` (8000)
+- `LogPanel.tsx:93`
+  - **Control (id)**: Copy Stream (none)
+  - **Handler**: `handleCopy`
+  - **Endpoint**: clipboard
+- `LogPanel.tsx:105`
+  - **Control (id)**: Clear Stream (none)
+  - **Handler**: `onClear`
+  - **Endpoint**: none
+- `LogPanel.tsx:120`
+  - **Control (id)**: Log region (none)
+  - **Handler**: display
+  - **Endpoint**: WS `/ws/log` (8000), `/api/ws/events` (8100), `/api/ws/logs`
+    (8200)
 
 ### Dataset Compiler
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `DatasetCompilationForm.tsx:119` | Kaggle ref input (none, unlabelled) | `setCustomKaggleRef` | none |
-| `DatasetCompilationForm.tsx:129` | Target folder input (none, unlabelled) | `setDownloadTargetFolder` | none |
-| `DatasetCompilationForm.tsx:150` | Force Re-download checkbox (none) | `setDownloadForce` | none |
-| `DatasetCompilationForm.tsx:159` | Ingest from Kaggle (none) | `handleCustomKaggleDownload` | `POST /api/kaggle/download` (8100) |
-| `DatasetCompilationForm.tsx:189` | Standard mode (none) | `setCompileMode("standard")` | none |
-| `DatasetCompilationForm.tsx:197` | Custom mode (none) | `setCompileMode("custom")` | none |
-| `DatasetCompilationForm.tsx:234` | Manifold select (`comp-select-manifold`) | `setSelectedManifold` | data from `GET /api/gui/datasets/with-stats` |
-| `DatasetCompilationForm.tsx:264` | Preset select (`preset-select`) | `setSelectedPreset` | data from `GET /api/gui/presets` |
-| `DatasetCompilationForm.tsx:294` | Shard size (`shard-size-input`) | `setShardSize` | none |
-| `DatasetCompilationForm.tsx:311` | Purge loose images (`purge-loose-check`) | `setPurgeLooseImages` | none |
-| `DatasetCompilationForm.tsx:329` | Compile Manifold (`comp-btn-compile`) | `handleCompile` | `POST /api/gui/quick-compile` (8100) |
-| `DatasetCompilationForm.tsx:382` | Custom name (`custom-name-input`) | `setCustomName` | none |
-| `DatasetCompilationForm.tsx:408` | Custom task (`custom-task-select`) | `setCustomTask` | none |
-| `DatasetCompilationForm.tsx:438` | Container format (`custom-format-select`) | `setCustomCanonicalFormat` | none |
-| `DatasetCompilationForm.tsx:471` | Custom preset (`custom-preset-select`) | `setCustomPreset` | none |
-| `DatasetCompilationForm.tsx:501` | Custom shard size (`custom-shard-size`) | `setCustomShardSize` | none |
-| `DatasetCompilationForm.tsx:518` | Custom purge (`custom-purge-check`) | `setCustomPurgeLoose` | none |
-| `DatasetCompilationForm.tsx:558` | Sources textarea (`custom-sources-area`) | `setCustomSourcesText` | none |
-| `DatasetCompilationForm.tsx:573` | Compile Custom Dataset (none) | `handleCustomCompile` | `POST /api/gui/custom-compile` (8100) |
-| `CompilerToolbar.tsx:88` | Catalog / Modernization / Scale Reduction segments (none) | `setActiveSectionTab` | none |
-| `CompilerToolbar.tsx:117` | Update All Kaggle Metadata (`comp-btn-update-all-kaggle`) | `handleUpdateAllMetadata` | `POST /api/kaggle/update-metadata` (8100) |
-| `CompilerToolbar.tsx:129` | Regen Index (`comp-btn-regen-manifolds`) | `handleRegenerateManifolds` | `POST /api/modernize/regenerate-manifolds` (8100) |
-| `CompilerToolbar.tsx:141` | Refresh Catalog (`comp-btn-refresh-catalog`) | `loadCompilerData` | `GET /api/gui/datasets/with-stats`, `GET /api/gui/presets` (8100) |
-| `CompilerToolbar.tsx:172` | Search input (none, unlabelled) | `setSearchQuery` | none |
-| `CompilerToolbar.tsx:181` | Clear search "X" (none, no accessible name) | `onSearchChange("")` | none |
-| `CompilerToolbar.tsx:206` | Status, format, task filters (none, unlabelled) | filter setters | none |
-| `CompilerToolbar.tsx:259` | Reset filters (none) | `onResetFilters` | none |
-| `DatasetManifoldCard.tsx:115` | Upstream sources popover (none) | `toggleSourcesPin` | none |
-| `DatasetManifoldCard.tsx:200` | Update Metadata (`comp-btn-meta-{key}`) | `handleUpdateMetadataSingle` | `POST /api/kaggle/update-metadata` (8100) |
-| `DatasetManifoldCard.tsx:227` | Audit Notebooks link (none) | anchor `_blank` | hardcoded Kaggle URL |
-| `DatasetManifoldCard.tsx:264` | Download (`comp-btn-pull-{key}`) | `handleDownloadManifold` | `POST /api/kaggle/download` (8100) |
-| `DatasetManifoldCard.tsx:292` | Upload (`comp-btn-push-{key}`) | `handleUploadManifold` | `POST /api/kaggle/upload` (8100) |
-| `ModernizationQueueTable.tsx:55` | Workers, Push Kaggle, Force, Dry Run (none) | state setters | none |
-| `ModernizationQueueTable.tsx:93` | Scan Queue (none) | `loadModernizationQueue` | `GET /api/modernize/queue` (8100) |
-| `ModernizationQueueTable.tsx:103` | Batch Modernize All (none) | `handleRunModernize()` | `POST /api/modernize/run` (8100) |
-| `ModernizationQueueTable.tsx:173` | Per-row modernize (none) | `handleRunModernize(key)` | `POST /api/modernize/run` (8100) |
-| `ScaleReductionView.tsx:42` | Manifold (`reduce-manifold-select`) | `setReduceManifold` | none |
-| `ScaleReductionView.tsx:63` | Scale (`reduce-scale-select`) | `setReduceScale` | none |
-| `ScaleReductionView.tsx:79` | Launch Scale Reduction (none) | `handleRunReduce` | `POST /api/modernize/reduce` (8100) |
+- `DatasetCompilationForm.tsx:119`
+  - **Control (id)**: Kaggle ref input (none, unlabelled)
+  - **Handler**: `setCustomKaggleRef`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:129`
+  - **Control (id)**: Target folder input (none, unlabelled)
+  - **Handler**: `setDownloadTargetFolder`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:150`
+  - **Control (id)**: Force Re-download checkbox (none)
+  - **Handler**: `setDownloadForce`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:159`
+  - **Control (id)**: Ingest from Kaggle (none)
+  - **Handler**: `handleCustomKaggleDownload`
+  - **Endpoint**: `POST /api/kaggle/download` (8100)
+- `DatasetCompilationForm.tsx:189`
+  - **Control (id)**: Standard mode (none)
+  - **Handler**: `setCompileMode("standard")`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:197`
+  - **Control (id)**: Custom mode (none)
+  - **Handler**: `setCompileMode("custom")`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:234`
+  - **Control (id)**: Manifold select (`comp-select-manifold`)
+  - **Handler**: `setSelectedManifold`
+  - **Endpoint**: data from `GET /api/gui/datasets/with-stats`
+- `DatasetCompilationForm.tsx:264`
+  - **Control (id)**: Preset select (`preset-select`)
+  - **Handler**: `setSelectedPreset`
+  - **Endpoint**: data from `GET /api/gui/presets`
+- `DatasetCompilationForm.tsx:294`
+  - **Control (id)**: Shard size (`shard-size-input`)
+  - **Handler**: `setShardSize`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:311`
+  - **Control (id)**: Purge loose images (`purge-loose-check`)
+  - **Handler**: `setPurgeLooseImages`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:329`
+  - **Control (id)**: Compile Manifold (`comp-btn-compile`)
+  - **Handler**: `handleCompile`
+  - **Endpoint**: `POST /api/gui/quick-compile` (8100)
+- `DatasetCompilationForm.tsx:382`
+  - **Control (id)**: Custom name (`custom-name-input`)
+  - **Handler**: `setCustomName`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:408`
+  - **Control (id)**: Custom task (`custom-task-select`)
+  - **Handler**: `setCustomTask`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:438`
+  - **Control (id)**: Container format (`custom-format-select`)
+  - **Handler**: `setCustomCanonicalFormat`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:471`
+  - **Control (id)**: Custom preset (`custom-preset-select`)
+  - **Handler**: `setCustomPreset`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:501`
+  - **Control (id)**: Custom shard size (`custom-shard-size`)
+  - **Handler**: `setCustomShardSize`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:518`
+  - **Control (id)**: Custom purge (`custom-purge-check`)
+  - **Handler**: `setCustomPurgeLoose`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:558`
+  - **Control (id)**: Sources textarea (`custom-sources-area`)
+  - **Handler**: `setCustomSourcesText`
+  - **Endpoint**: none
+- `DatasetCompilationForm.tsx:573`
+  - **Control (id)**: Compile Custom Dataset (none)
+  - **Handler**: `handleCustomCompile`
+  - **Endpoint**: `POST /api/gui/custom-compile` (8100)
+- `CompilerToolbar.tsx:88`
+  - **Control (id)**: Catalog / Modernization / Scale Reduction segments (none)
+  - **Handler**: `setActiveSectionTab`
+  - **Endpoint**: none
+- `CompilerToolbar.tsx:117`
+  - **Control (id)**: Update All Kaggle Metadata (`comp-btn-update-all-kaggle`)
+  - **Handler**: `handleUpdateAllMetadata`
+  - **Endpoint**: `POST /api/kaggle/update-metadata` (8100)
+- `CompilerToolbar.tsx:129`
+  - **Control (id)**: Regen Index (`comp-btn-regen-manifolds`)
+  - **Handler**: `handleRegenerateManifolds`
+  - **Endpoint**: `POST /api/modernize/regenerate-manifolds` (8100)
+- `CompilerToolbar.tsx:141`
+  - **Control (id)**: Refresh Catalog (`comp-btn-refresh-catalog`)
+  - **Handler**: `loadCompilerData`
+  - **Endpoint**: `GET /api/gui/datasets/with-stats`, `GET /api/gui/presets`
+    (8100)
+- `CompilerToolbar.tsx:172`
+  - **Control (id)**: Search input (none, unlabelled)
+  - **Handler**: `setSearchQuery`
+  - **Endpoint**: none
+- `CompilerToolbar.tsx:181`
+  - **Control (id)**: Clear search "X" (none, no accessible name)
+  - **Handler**: `onSearchChange("")`
+  - **Endpoint**: none
+- `CompilerToolbar.tsx:206`
+  - **Control (id)**: Status, format, task filters (none, unlabelled)
+  - **Handler**: filter setters
+  - **Endpoint**: none
+- `CompilerToolbar.tsx:259`
+  - **Control (id)**: Reset filters (none)
+  - **Handler**: `onResetFilters`
+  - **Endpoint**: none
+- `DatasetManifoldCard.tsx:115`
+  - **Control (id)**: Upstream sources popover (none)
+  - **Handler**: `toggleSourcesPin`
+  - **Endpoint**: none
+- `DatasetManifoldCard.tsx:200`
+  - **Control (id)**: Update Metadata (`comp-btn-meta-{key}`)
+  - **Handler**: `handleUpdateMetadataSingle`
+  - **Endpoint**: `POST /api/kaggle/update-metadata` (8100)
+- `DatasetManifoldCard.tsx:227`
+  - **Control (id)**: Audit Notebooks link (none)
+  - **Handler**: anchor `_blank`
+  - **Endpoint**: hardcoded Kaggle URL
+- `DatasetManifoldCard.tsx:264`
+  - **Control (id)**: Download (`comp-btn-pull-{key}`)
+  - **Handler**: `handleDownloadManifold`
+  - **Endpoint**: `POST /api/kaggle/download` (8100)
+- `DatasetManifoldCard.tsx:292`
+  - **Control (id)**: Upload (`comp-btn-push-{key}`)
+  - **Handler**: `handleUploadManifold`
+  - **Endpoint**: `POST /api/kaggle/upload` (8100)
+- `ModernizationQueueTable.tsx:55`
+  - **Control (id)**: Workers, Push Kaggle, Force, Dry Run (none)
+  - **Handler**: state setters
+  - **Endpoint**: none
+- `ModernizationQueueTable.tsx:93`
+  - **Control (id)**: Scan Queue (none)
+  - **Handler**: `loadModernizationQueue`
+  - **Endpoint**: `GET /api/modernize/queue` (8100)
+- `ModernizationQueueTable.tsx:103`
+  - **Control (id)**: Batch Modernize All (none)
+  - **Handler**: `handleRunModernize()`
+  - **Endpoint**: `POST /api/modernize/run` (8100)
+- `ModernizationQueueTable.tsx:173`
+  - **Control (id)**: Per-row modernize (none)
+  - **Handler**: `handleRunModernize(key)`
+  - **Endpoint**: `POST /api/modernize/run` (8100)
+- `ScaleReductionView.tsx:42`
+  - **Control (id)**: Manifold (`reduce-manifold-select`)
+  - **Handler**: `setReduceManifold`
+  - **Endpoint**: none
+- `ScaleReductionView.tsx:63`
+  - **Control (id)**: Scale (`reduce-scale-select`)
+  - **Handler**: `setReduceScale`
+  - **Endpoint**: none
+- `ScaleReductionView.tsx:79`
+  - **Control (id)**: Launch Scale Reduction (none)
+  - **Handler**: `handleRunReduce`
+  - **Endpoint**: `POST /api/modernize/reduce` (8100)
 
 ### Model Training Suite
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `TrainingToolbar.tsx:75` | Generate All Notebooks (`train-btn-generate-all-notebooks`) | `handleGenerateAllNotebooks` | `POST /api/notebooks/generate-all` (8200) |
-| `TrainingToolbar.tsx:87` | Push All Models (`training-toolbar-push-all-models-btn`) | `handlePushAllKaggle` | `POST /api/training/kaggle/push-all` (8200) |
-| `TrainingToolbar.tsx:99` | Refresh Models (`train-btn-refresh-models`) | `loadTrainingData` | `GET /api/gui/models/with-stats` (8200) plus N x `/api/model-telemetry/{key}` (Vite) |
-| `TrainingToolbar.tsx:129` | Search, clear, status, category, architecture filters, reset (none) | filter setters | none |
-| `ModelManifoldCard.tsx:216` | SOTA target popover (none) | `onToggleTargetPin` | none |
-| `ModelManifoldCard.tsx:367` | Batch size select (none, aria-label) | `setSelectedBatchSize` | none |
-| `ModelManifoldCard.tsx:406` | Stop Training (`train-btn-stop-{key}`) | `handleStopLocalTrain` | `POST /api/jobs/{id}/cancel` (8200) |
-| `ModelManifoldCard.tsx:420` | Local Training (`train-btn-start-{key}`) | `handleStartLocalTrain` | `POST /api/gui/quick-train` (8200) |
-| `ModelManifoldCard.tsx:437` | Cloud (`train-btn-cloud-{key}`) | `handleOpenCloudModal` | opens CloudTrainModal |
-| `ModelManifoldCard.tsx:464` | Push (`train-btn-pub-model-{key}`) | `handlePushArtifacts` | `POST /api/training/kaggle/push` (8200) |
-| `ModelManifoldCard.tsx:493` | Pull (`train-btn-pull-model-{key}`) | `handlePullArtifacts` | `POST /api/training/kaggle/pull` (8200) |
-| `ModelManifoldCard.tsx:522` | Training notebook (`train-btn-gen-nb-{key}`) | `handleGenerateTrainingNotebook` | `POST /api/notebooks/generate` (8200) |
-| `ModelManifoldCard.tsx:552` | Usage notebook (`train-btn-usage-nb-{key}`) | `handleGenerateUsageNotebook` | `POST /api/notebooks/generate` (8200) |
-| `ModelManifoldCard.tsx:582` | Evaluate (`train-btn-eval-{key}`) | `handleEvaluateModel` | `POST /api/training/evaluate` (8200) |
-| `ModelManifoldCard.tsx:611` | Export (`train-btn-export-{key}`) | `handleExportModel` | `POST /api/training/export` (8200) |
-| `ModelManifoldCard.tsx:640` | Generate Docs (none) | `handleGenerateDocs` | `POST /api/models/{key}/docs/generate` (8200) |
-| `ModelManifoldCard.tsx:670` | Stage Variations (none) | `handleStageVariations` | `POST /api/models/{key}/export/stage` (8200) |
-| `TelemetryConsole.tsx:119` | Local / Remote Cloud / Ecosystem Mesh segments (none) | `setActiveTelemetryTab` | none |
-| `TelemetryConsole.tsx:174` | Copy, Clear, Stop (local) (none) | copy/clear/`handleStopLocalTrain` | clipboard, `POST /api/jobs/{id}/cancel` |
-| `TelemetryConsole.tsx:213` | Copy, Clear (remote) (none) | copy/clear | none (stream never populated) |
-| `TrainingPanel.tsx:566` | Start Training Suite (none) | `handleStartService("training-suite")` | lifecycle as Dashboard |
-| `TrainingPanel.tsx:623` | Clear All Filters (none) | filter reset | none |
+- `TrainingToolbar.tsx:75`
+  - **Control (id)**: Generate All Notebooks
+    (`train-btn-generate-all-notebooks`)
+  - **Handler**: `handleGenerateAllNotebooks`
+  - **Endpoint**: `POST /api/notebooks/generate-all` (8200)
+- `TrainingToolbar.tsx:87`
+  - **Control (id)**: Push All Models (`training-toolbar-push-all-models-btn`)
+  - **Handler**: `handlePushAllKaggle`
+  - **Endpoint**: `POST /api/training/kaggle/push-all` (8200)
+- `TrainingToolbar.tsx:99`
+  - **Control (id)**: Refresh Models (`train-btn-refresh-models`)
+  - **Handler**: `loadTrainingData`
+  - **Endpoint**: `GET /api/gui/models/with-stats` (8200) plus N x
+    `/api/model-telemetry/{key}` (Vite)
+- `TrainingToolbar.tsx:129`
+  - **Control (id)**: Search, clear, status, category, architecture filters,
+    reset (none)
+  - **Handler**: filter setters
+  - **Endpoint**: none
+- `ModelManifoldCard.tsx:216`
+  - **Control (id)**: SOTA target popover (none)
+  - **Handler**: `onToggleTargetPin`
+  - **Endpoint**: none
+- `ModelManifoldCard.tsx:367`
+  - **Control (id)**: Batch size select (none, aria-label)
+  - **Handler**: `setSelectedBatchSize`
+  - **Endpoint**: none
+- `ModelManifoldCard.tsx:406`
+  - **Control (id)**: Stop Training (`train-btn-stop-{key}`)
+  - **Handler**: `handleStopLocalTrain`
+  - **Endpoint**: `POST /api/jobs/{id}/cancel` (8200)
+- `ModelManifoldCard.tsx:420`
+  - **Control (id)**: Local Training (`train-btn-start-{key}`)
+  - **Handler**: `handleStartLocalTrain`
+  - **Endpoint**: `POST /api/gui/quick-train` (8200)
+- `ModelManifoldCard.tsx:437`
+  - **Control (id)**: Cloud (`train-btn-cloud-{key}`)
+  - **Handler**: `handleOpenCloudModal`
+  - **Endpoint**: opens CloudTrainModal
+- `ModelManifoldCard.tsx:464`
+  - **Control (id)**: Push (`train-btn-pub-model-{key}`)
+  - **Handler**: `handlePushArtifacts`
+  - **Endpoint**: `POST /api/training/kaggle/push` (8200)
+- `ModelManifoldCard.tsx:493`
+  - **Control (id)**: Pull (`train-btn-pull-model-{key}`)
+  - **Handler**: `handlePullArtifacts`
+  - **Endpoint**: `POST /api/training/kaggle/pull` (8200)
+- `ModelManifoldCard.tsx:522`
+  - **Control (id)**: Training notebook (`train-btn-gen-nb-{key}`)
+  - **Handler**: `handleGenerateTrainingNotebook`
+  - **Endpoint**: `POST /api/notebooks/generate` (8200)
+- `ModelManifoldCard.tsx:552`
+  - **Control (id)**: Usage notebook (`train-btn-usage-nb-{key}`)
+  - **Handler**: `handleGenerateUsageNotebook`
+  - **Endpoint**: `POST /api/notebooks/generate` (8200)
+- `ModelManifoldCard.tsx:582`
+  - **Control (id)**: Evaluate (`train-btn-eval-{key}`)
+  - **Handler**: `handleEvaluateModel`
+  - **Endpoint**: `POST /api/training/evaluate` (8200)
+- `ModelManifoldCard.tsx:611`
+  - **Control (id)**: Export (`train-btn-export-{key}`)
+  - **Handler**: `handleExportModel`
+  - **Endpoint**: `POST /api/training/export` (8200)
+- `ModelManifoldCard.tsx:640`
+  - **Control (id)**: Generate Docs (none)
+  - **Handler**: `handleGenerateDocs`
+  - **Endpoint**: `POST /api/models/{key}/docs/generate` (8200)
+- `ModelManifoldCard.tsx:670`
+  - **Control (id)**: Stage Variations (none)
+  - **Handler**: `handleStageVariations`
+  - **Endpoint**: `POST /api/models/{key}/export/stage` (8200)
+- `TelemetryConsole.tsx:119`
+  - **Control (id)**: Local / Remote Cloud / Ecosystem Mesh segments (none)
+  - **Handler**: `setActiveTelemetryTab`
+  - **Endpoint**: none
+- `TelemetryConsole.tsx:174`
+  - **Control (id)**: Copy, Clear, Stop (local) (none)
+  - **Handler**: copy/clear/`handleStopLocalTrain`
+  - **Endpoint**: clipboard, `POST /api/jobs/{id}/cancel`
+- `TelemetryConsole.tsx:213`
+  - **Control (id)**: Copy, Clear (remote) (none)
+  - **Handler**: copy/clear
+  - **Endpoint**: none (stream never populated)
+- `TrainingPanel.tsx:566`
+  - **Control (id)**: Start Training Suite (none)
+  - **Handler**: `handleStartService("training-suite")`
+  - **Endpoint**: lifecycle as Dashboard
+- `TrainingPanel.tsx:623`
+  - **Control (id)**: Clear All Filters (none)
+  - **Handler**: filter reset
+  - **Endpoint**: none
 
 ### Clean Install Pipeline and Health
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `PipelineStepCards.tsx:258` | Run Step N Only, 7 buttons (none) | `handleRunPipelineStep(n)` | `POST /api/pipeline/run-step` (8000) |
-| `HealthPanel.tsx:38` | Start Environment Manager (none) | `onStartEnvManager` | lifecycle |
-| `HealthPanel.tsx:311` | Safe Package Upgrade (`health-btn-safe-upgrade`) | `handleSafeUpdate(false)` | `POST /api/update` (8000) |
-| `HealthPanel.tsx:322` | Upgrade Dry Run (`health-btn-upgrade-dry-run`) | `handleSafeUpdate(true)` | `POST /api/update` (8000) |
-| `HealthPanel.tsx:333` | Deep Cache Purge (`health-btn-deep-clean`) | `handleDeepClean` | `POST /api/clean` (8000) |
-| `HealthPanel.tsx:344` | Install Git Hooks (`health-btn-install-hooks`) | `handleInstallHooks` | `POST /api/hooks/install` (8000) |
-| `HealthPanel.tsx:355` | Run Ecosystem Validation (`health-btn-validate-ecosystem`) | `handleValidateEcosystem` | `POST /api/validate` (8000) |
+- `PipelineStepCards.tsx:258`
+  - **Control (id)**: Run Step N Only, 7 buttons (none)
+  - **Handler**: `handleRunPipelineStep(n)`
+  - **Endpoint**: `POST /api/pipeline/run-step` (8000)
+- `HealthPanel.tsx:38`
+  - **Control (id)**: Start Environment Manager (none)
+  - **Handler**: `onStartEnvManager`
+  - **Endpoint**: lifecycle
+- `HealthPanel.tsx:311`
+  - **Control (id)**: Safe Package Upgrade (`health-btn-safe-upgrade`)
+  - **Handler**: `handleSafeUpdate(false)`
+  - **Endpoint**: `POST /api/update` (8000)
+- `HealthPanel.tsx:322`
+  - **Control (id)**: Upgrade Dry Run (`health-btn-upgrade-dry-run`)
+  - **Handler**: `handleSafeUpdate(true)`
+  - **Endpoint**: `POST /api/update` (8000)
+- `HealthPanel.tsx:333`
+  - **Control (id)**: Deep Cache Purge (`health-btn-deep-clean`)
+  - **Handler**: `handleDeepClean`
+  - **Endpoint**: `POST /api/clean` (8000)
+- `HealthPanel.tsx:344`
+  - **Control (id)**: Install Git Hooks (`health-btn-install-hooks`)
+  - **Handler**: `handleInstallHooks`
+  - **Endpoint**: `POST /api/hooks/install` (8000)
+- `HealthPanel.tsx:355`
+  - **Control (id)**: Run Ecosystem Validation (`health-btn-validate-ecosystem`)
+  - **Handler**: `handleValidateEcosystem`
+  - **Endpoint**: `POST /api/validate` (8000)
 
 ### Dialogs
 
-| Component | Control (id) | Handler | Endpoint |
-| :--- | :--- | :--- | :--- |
-| `ConfigEditorModal.tsx:79` | Registry Manifests / Secrets tabs (none) | `setActiveTab` | none |
-| `ConfigEditorModal.tsx:106` | Close (none) | `onClose` | none |
-| `ManifestEditorTab.tsx:128` | Manifest select (`manifest-select`) | `onSelectName` | `GET /api/manifests/read` (8000) |
-| `ManifestEditorTab.tsx:146` | Validate (none) | `handleValidate` | `POST /api/manifests/validate` (8000) |
-| `ManifestEditorTab.tsx:164` | Diff toggle (none) | `setShowDiff` | none |
-| `ManifestEditorTab.tsx:175` | Revert (none) | `handleRevert` | none |
-| `ManifestEditorTab.tsx:186` | Save (none) | `handleSaveManifest` | `POST /api/manifests/save` (8000) |
-| `ManifestEditorTab.tsx:236` | Content textarea (none, aria-label) | `setCurrentContent` | none |
-| `SecretsEditorTab.tsx:215` | Add secret toggle (none) | `setIsAddingSecret` | none |
-| `SecretsEditorTab.tsx:225` | Save Secrets (none) | `handleSaveSecretsToDisk` | `POST /api/secrets` (8000) |
-| `SecretsEditorTab.tsx:257` | Add form (`new-service-select`, `new-label-input`, `new-username-input`, `new-server-input`, `new-secret-input`) | `handleAddSecretSubmit` | none until save |
-| `SecretsEditorTab.tsx:375` | Add per service (none) | inline | none |
-| `SecretsEditorTab.tsx:424` | Reveal / Set default / Delete (none) | toggles | none until save |
-| `CloudTrainModal.tsx:153` | Close "X" (none) | `onClose` | none |
-| `CloudTrainModal.tsx:167` | Kaggle / Colab / Models Hub segments (none) | `setTargetPlatform` | none |
-| `CloudTrainModal.tsx:262` | GPU (`gpu-select`), Auto-pull checkbox (none) | setters | none |
-| `VariationIsolationChecker.tsx:45` | Generate Docs, Stage Variations (none) | handlers | `POST /api/models/{key}/docs/generate`, `POST /api/models/{key}/export/stage` |
-| `VariationIsolationChecker.tsx:136` | Variation (`variation-select`), Dry-run (none) | setters | none |
-| `CloudTrainModal.tsx:332` | Kaggle Notebook, Kaggle Model Hub links (none) | anchors | hardcoded owner URLs |
-| `CloudTrainModal.tsx:364` | Launch Cloud Training (none) | `handleLaunch` | `POST /api/training/kaggle/train` (8200) |
-| `CloudTrainModal.tsx:376` | Push to Kaggle Models (none) | `handlePushModel` | `POST /api/training/kaggle/push-model` (8200) |
-| `TestModal.tsx:116` | Close (`test-modal-btn-close`) | `onClose` | unreachable modal |
-| `TestModal.tsx:130` | Tabs (`test-modal-tab-fleet`, `-training`, `-dataset`) | `setActiveTab` | unreachable modal |
-| `TestModal.tsx:166` | Run fleet (`test-modal-btn-run-fleet`) | `handleRunFleetDiagnostic` | `POST /api/training/unit-test-all` (8200) |
-| `TestModal.tsx:184` | Run training unit (`test-modal-btn-run-training-unit`) | `handleRunTrainingUnitTests` | hardcoded `127.0.0.1:8200/api/training/unit-test-run` |
-| `TestModal.tsx:202` | Run dataset unit (`test-modal-btn-run-dataset-unit`) | `handleRunDatasetUnitTests` | hardcoded `127.0.0.1:8100/api/llm/test-suite` |
+- `ConfigEditorModal.tsx:79`
+  - **Control (id)**: Registry Manifests / Secrets tabs (none)
+  - **Handler**: `setActiveTab`
+  - **Endpoint**: none
+- `ConfigEditorModal.tsx:106`
+  - **Control (id)**: Close (none)
+  - **Handler**: `onClose`
+  - **Endpoint**: none
+- `ManifestEditorTab.tsx:128`
+  - **Control (id)**: Manifest select (`manifest-select`)
+  - **Handler**: `onSelectName`
+  - **Endpoint**: `GET /api/manifests/read` (8000)
+- `ManifestEditorTab.tsx:146`
+  - **Control (id)**: Validate (none)
+  - **Handler**: `handleValidate`
+  - **Endpoint**: `POST /api/manifests/validate` (8000)
+- `ManifestEditorTab.tsx:164`
+  - **Control (id)**: Diff toggle (none)
+  - **Handler**: `setShowDiff`
+  - **Endpoint**: none
+- `ManifestEditorTab.tsx:175`
+  - **Control (id)**: Revert (none)
+  - **Handler**: `handleRevert`
+  - **Endpoint**: none
+- `ManifestEditorTab.tsx:186`
+  - **Control (id)**: Save (none)
+  - **Handler**: `handleSaveManifest`
+  - **Endpoint**: `POST /api/manifests/save` (8000)
+- `ManifestEditorTab.tsx:236`
+  - **Control (id)**: Content textarea (none, aria-label)
+  - **Handler**: `setCurrentContent`
+  - **Endpoint**: none
+- `SecretsEditorTab.tsx:215`
+  - **Control (id)**: Add secret toggle (none)
+  - **Handler**: `setIsAddingSecret`
+  - **Endpoint**: none
+- `SecretsEditorTab.tsx:225`
+  - **Control (id)**: Save Secrets (none)
+  - **Handler**: `handleSaveSecretsToDisk`
+  - **Endpoint**: `POST /api/secrets` (8000)
+- `SecretsEditorTab.tsx:257`
+  - **Control (id)**: Add form (`new-service-select`, `new-label-input`,
+    `new-username-input`, `new-server-input`, `new-secret-input`)
+  - **Handler**: `handleAddSecretSubmit`
+  - **Endpoint**: none until save
+- `SecretsEditorTab.tsx:375`
+  - **Control (id)**: Add per service (none)
+  - **Handler**: inline
+  - **Endpoint**: none
+- `SecretsEditorTab.tsx:424`
+  - **Control (id)**: Reveal / Set default / Delete (none)
+  - **Handler**: toggles
+  - **Endpoint**: none until save
+- `CloudTrainModal.tsx:153`
+  - **Control (id)**: Close "X" (none)
+  - **Handler**: `onClose`
+  - **Endpoint**: none
+- `CloudTrainModal.tsx:167`
+  - **Control (id)**: Kaggle / Colab / Models Hub segments (none)
+  - **Handler**: `setTargetPlatform`
+  - **Endpoint**: none
+- `CloudTrainModal.tsx:262`
+  - **Control (id)**: GPU (`gpu-select`), Auto-pull checkbox (none)
+  - **Handler**: setters
+  - **Endpoint**: none
+- `VariationIsolationChecker.tsx:45`
+  - **Control (id)**: Generate Docs, Stage Variations (none)
+  - **Handler**: handlers
+  - **Endpoint**: `POST /api/models/{key}/docs/generate`, `POST
+    /api/models/{key}/export/stage`
+- `VariationIsolationChecker.tsx:136`
+  - **Control (id)**: Variation (`variation-select`), Dry-run (none)
+  - **Handler**: setters
+  - **Endpoint**: none
+- `CloudTrainModal.tsx:332`
+  - **Control (id)**: Kaggle Notebook, Kaggle Model Hub links (none)
+  - **Handler**: anchors
+  - **Endpoint**: hardcoded owner URLs
+- `CloudTrainModal.tsx:364`
+  - **Control (id)**: Launch Cloud Training (none)
+  - **Handler**: `handleLaunch`
+  - **Endpoint**: `POST /api/training/kaggle/train` (8200)
+- `CloudTrainModal.tsx:376`
+  - **Control (id)**: Push to Kaggle Models (none)
+  - **Handler**: `handlePushModel`
+  - **Endpoint**: `POST /api/training/kaggle/push-model` (8200)
+- `TestModal.tsx:116`
+  - **Control (id)**: Close (`test-modal-btn-close`)
+  - **Handler**: `onClose`
+  - **Endpoint**: unreachable modal
+- `TestModal.tsx:130`
+  - **Control (id)**: Tabs (`test-modal-tab-fleet`, `-training`, `-dataset`)
+  - **Handler**: `setActiveTab`
+  - **Endpoint**: unreachable modal
+- `TestModal.tsx:166`
+  - **Control (id)**: Run fleet (`test-modal-btn-run-fleet`)
+  - **Handler**: `handleRunFleetDiagnostic`
+  - **Endpoint**: `POST /api/training/unit-test-all` (8200)
+- `TestModal.tsx:184`
+  - **Control (id)**: Run training unit (`test-modal-btn-run-training-unit`)
+  - **Handler**: `handleRunTrainingUnitTests`
+  - **Endpoint**: hardcoded `127.0.0.1:8200/api/training/unit-test-run`
+- `TestModal.tsx:202`
+  - **Control (id)**: Run dataset unit (`test-modal-btn-run-dataset-unit`)
+  - **Handler**: `handleRunDatasetUnitTests`
+  - **Endpoint**: hardcoded `127.0.0.1:8100/api/llm/test-suite`
 
 Totals: 101 `button` elements and 41 form fields in source; 30 interactive
 controls carry a stable static `id`, 12 more carry per-key dynamic IDs.
@@ -370,49 +724,306 @@ Ordered so each step keeps the three gates green.
 
 ## Debug Report
 
-| # | Issue | Severity | Root cause | Fix |
-| :--- | :--- | :--- | :--- | :--- |
-| D1 | Plaintext secrets readable by any web origin | Critical | `GET /api/secrets` returns raw `secret_value` with no auth (`../lemgendary-env-manager/env_manager/server.py:674-692`) under CORS `*` (`server.py:108`); GUI reads and re-uses values (`src/api/client.ts:365-374`, `client.ts:814-828`); CSP disabled (`src-tauri/tauri.conf.json:24`) | Mask values server-side (return `has_value`, last 4 chars); write-only update endpoint; restrict CORS to Tauri and dev origins; require a local token; set a CSP [verified for code paths] |
-| D2 | Test & Diagnostic modal unreachable | High | `setIsTestModalOpen(true)` is never called (`src/App.tsx:66`, `App.tsx:603-609`); entry button removed in README v2.10.7 | Either delete `TestModal.tsx` and its docs, or restore a header entry with id `header-btn-test-modal` [verified] |
-| D3 | TestModal bypasses mesh SSOT | Medium | Literal `http://127.0.0.1:8200` and `:8100` (`src/components/TestModal.tsx:49`, `TestModal.tsx:79`); `data.failures.join` crashes if field missing (`TestModal.tsx:62`, `:92`); fleet enqueue shown as PASSED (`TestModal.tsx:33`) | Add client functions using `TRAINING_BASE`/`DATASETS_BASE`; guard arrays; status `QUEUED` [verified] |
-| D4 | Remote Cloud telemetry tab always empty | High | `remoteEvents` only ever reset (`src/components/TrainingPanel.tsx:73`, `TrainingPanel.tsx:497`); Kaggle job lines arrive with origin `training-suite` and are routed to Local (`client.ts:1155-1163`) | Route events by `data.job_id === remoteJob.jobId` or `job_type` into the remote stream [verified] |
-| D5 | Packaged build calls dev-only endpoints | High | Relative URLs served only by Vite middleware: `/api/dev/services/*` (`client.ts:188`, `client.ts:201`), `/api/model-telemetry/*` (`client.ts:652`), `/documentation-hub/` (`src/components/Header.tsx:21`) | Move to sidecar endpoints (Training Suite already has `/api/models/{key}` and telemetry) or Tauri commands; use `fetchDocsStatus().local_url` for docs [high] |
-| D6 | N+1 requests and 2 s poll against dev middleware | Medium | `fetchModels` issues one telemetry fetch per model (`client.ts:667-673`); poll every 2 s while `localJob.modelKey` set (`TrainingPanel.tsx:172-202`); middleware reads CSV from disk synchronously (`vite.config.ts:249-300`) | Include live telemetry in `/api/gui/models/with-stats`; poll one endpoint [verified] |
-| D7 | Tauri bundle icons missing | High | `src-tauri/icons/` does not exist but `tauri.conf.json:29-35` references five icons; `tauri-build` needs `icons/icon.ico` for the Windows resource | Generate with `npx tauri icon` [high, cargo unavailable] |
-| D8 | Stop Training reports success on failure | High | `cancelTrainingJob` returns `false` on failure (`client.ts:792-803`) and the result is ignored (`TrainingPanel.tsx:263-270`) | Throw on `!cancelled`; keep job state until the sidecar confirms [verified against `../lemgendary-training-suite/training/server/routes/jobs.py:35-44`] |
-| D9 | Local job never cleared on natural completion | Medium | `setLocalJob` only on start, stop, or mount (`TrainingPanel.tsx:158`, `:252`, `:269`); no terminal-event handling | Clear on terminal WS event for the job id or poll `GET /api/jobs/{id}` [verified] |
-| D10 | Fallback inventories poison the cache | High | Fallbacks written to the store (`TrainingPanel.tsx:101-102`, `CompilerPanel.tsx:121-122`); effect skips refetch when cache non-empty (`TrainingPanel.tsx:124-131`), so a sidecar started later is not reflected until manual refresh; fallback models show fabricated statuses (`fallbackModels.ts:10-11`) | Never cache fallbacks; refetch on `trainingSuiteOnline` false-to-true transition; remove fabricated data [verified] |
-| D11 | Effect re-entry on cache update | Low | `cachedModels` in deps (`TrainingPanel.tsx:131`) re-runs `loadKaggleData()` after every refresh | Split effects; depend on online flag [verified] |
-| D12 | Full-tree re-render per telemetry event | Medium | `App` subscribes to `events` (`App.tsx:50`) and passes them to every view; `TrainingPanel` also uses selector-less `useStudioStore()` (`TrainingPanel.tsx:46-53`); cards not memoized | Select narrow slices; pass derived props; `React.memo` cards [high] |
-| D13 | Swallowed errors (36 bare catches) | Medium | e.g. `client.ts:371`, `:444`, `:455`, `:488`, `:498`, `:767`, `:787`, `:800`, `:841` return empty values; `App.tsx:205`, `TrainingPanel.tsx:119`, `:161`, `:196`, `ConfigEditorModal.tsx:52`, `CloudTrainModal.tsx:50`, `vite.config.ts:292` | Typed `ApiError`, log via a logger, surface state to UI; ROBOTS forbids silent swallowing [verified] |
-| D14 | "Refresh failed" banner can never show | Medium | Every awaited call inside `loadData` already catches (`App.tsx:100-104`, `refreshMeshStatus` catches at `App.tsx:82`), so `App.tsx:126-130` is dead; error cleared even when all calls failed (`App.tsx:125`) | Use `Promise.allSettled` and report rejected sources [verified] |
-| D15 | `startService` hides HTTP errors and double-spawns | Medium | Outer `catch` (`client.ts:237-240`) also catches the thrown non-OK response and falls back to the dev spawner | Only fall back on network errors (`TypeError`) [verified] |
-| D16 | Start failures are silent | Medium | Rust returns `Ok` once `spawn()` succeeds with stdio null (`src-tauri/src/commands.rs:68-81`); UI polls 15 s then reports nothing (`App.tsx:300-308`) | Return a timeout error from `waitForReachable`; log child output [verified] |
-| D17 | Auto-start does nothing when Environment Manager is down | Medium | `needsStart` only evaluated after a successful `fetchEcosystemMesh` (`App.tsx:221-245`); env-manager itself never considered; contradicts Paper section 6.5 | Probe each service directly and start missing ones [verified] |
-| D18 | Duplicate log lines after refresh | Low | REST `recent_events` (raw, no `origin`/`port`) merged with WS-normalized events and de-duplicated by `JSON.stringify` (`App.tsx:114-119`) | Normalize REST events through the same normalizer and de-duplicate by `timestamp + step + message` [high] |
-| D19 | Unhandled promise rejection | Low | `import("@axe-core/react").then(...)` without `catch` (`src/main.tsx:6-10`) | Add rejection handling with logging [verified] |
-| D20 | Config modal refetches on every manifest selection | Low | `loadManifestList` depends on `selectedName` (`ConfigEditorModal.tsx:45`), effect depends on it (`:59-64`); `!selectedName` never true | Remove dependency; select first item only when list loads [verified] |
-| D21 | Edits lost silently | Low | Modal returns `null` when closed (`ConfigEditorModal.tsx:66`), unmounting tabs, but tooltip claims "Unsaved edits remain in memory" (`:114`); switching manifests discards edits without prompt | Lift draft state or confirm on discard [verified] |
-| D22 | Undefined CSS classes | Medium | `badge-danger`, `badge-secondary`, `badge-neutral`, `log-timestamp`, `log-step`, `log-message`, `log-error`, `log-empty` are not in `src/index.css`; FAILED badges render uncoloured (`PipelineStepCards.tsx:135`, `TestModal.tsx:112`, `TelemetryConsole.tsx`) | Define or map to existing `badge-error`, `log-time` [verified] |
-| D23 | Broken ARIA tab relationships | Medium | `aria-controls="panel-{id}"` targets non-existent IDs (`Sidebar.tsx:87`); tablists contain non-tab buttons (`Sidebar.tsx:100`, `ConfigEditorModal.tsx:89`, `:101`); modal tabs lack `id`/`aria-controls` | `Tabs` primitive; move help buttons outside tablists [verified] |
-| D24 | Modals not keyboard-safe | Medium | No focus trap, Escape, or focus return in `ConfigEditorModal.tsx:69`, `CloudTrainModal.tsx:143`, `TestModal.tsx:105` | `Modal` primitive [verified] |
-| D25 | Unlabelled form fields | Medium | `DatasetCompilationForm.tsx:119`, `:129`; `CompilerToolbar.tsx:172`, filters at `:206`, `:223`, `:243`; `TrainingToolbar.tsx:129`, `:163`, `:182`, `:202`; clear buttons with text "X" and no name (`CompilerToolbar.tsx:181`, `TrainingToolbar.tsx:138`) | Add `label`/`aria-label` [verified] |
-| D26 | Help button inside checkbox label | Low | `HelpTooltip` button nested in `label` toggles the checkbox (`CloudTrainModal.tsx:275-284`, `VariationIsolationChecker.tsx:151-160`) | Move tooltip outside label [high] |
-| D27 | Segmented controls convey state by colour only | Low | No `aria-pressed`/`aria-selected` (`CompilerToolbar.tsx:88-112`, `TelemetryConsole.tsx:119-166`, `CloudTrainModal.tsx:167-190`, `TestModal.tsx:130-156`, `DatasetCompilationForm.tsx:189-200`) | `Tabs` primitive [verified] |
-| D28 | Progressbar wraps interactive content | Low | `role="progressbar"` contains seven `HelpTooltip` buttons (`PipelinePanel.tsx:47-89`) | Use a list with a separate progressbar [verified] |
-| D29 | Live region flooding | Low | `aria-live="polite"` on a high-frequency log (`LogPanel.tsx:120-127`) | Announce milestones only via a separate status region [high] |
-| D30 | Progress hidden for any "completed" text | Low | Substring `"completed"` treated as terminal (`LogPanel.tsx:28`, `PipelineStepCards.tsx:117`), e.g. "epoch 3 completed" | Use status and `is_progress` only [high] |
-| D31 | Fake pre-flight checks | Low | Notebook template always READY, dataset always AUTO-DISCOVERED (`CloudTrainModal.tsx:209`, `:220`); Colab tab has no action | Back by real checks or remove [verified] |
-| D32 | Hardcoded Kaggle owner | Medium | `lemtreursi` in `CloudTrainModal.tsx:69-71`, `DatasetManifoldCard.tsx:228` | Derive from Kaggle secret username or `kaggle_ref` [verified] |
-| D33 | Dev middleware path traversal | Low (dev only) | `path.resolve(__dirname, "../lemgendary-docs", relativePath)` with raw `req.url` (`vite.config.ts:226-229`) | Normalize and verify prefix, or use `sirv` [high] |
-| D34 | Destructive actions without confirmation | Low | Deep Cache Purge, Safe Upgrade, Stop Service, Delete Secret fire immediately (`HealthPanel.tsx:333`, `:311`, `ServiceTiles.tsx:126`, `SecretsEditorTab.tsx:447`) | Confirmation dialog via `Modal` [verified] |
-| D35 | Fixed timers not cleared | Low | `setTimeout` without cleanup (`TrainingPanel.tsx:111`, `CompilerPanel.tsx:138`, `LogPanel.tsx:72`) | Track and clear on unmount [verified] |
-| D36 | Stale Tauri globals | Low | `vite-env.d.ts:3-7` declares Tauri v1 globals; code sniffs `__TAURI_INTERNALS__` via casts | Use `isTauri()` from `@tauri-apps/api/core` [high] |
-| D37 | Unused shell plugin | Low | `tauri-plugin-shell` initialized (`src-tauri/src/main.rs:8`) and npm package declared, no JS usage and no capability | Remove, or replace with `plugin-opener` for external links [verified] |
-| D38 | External links in packaged app | Low | `target="_blank"` anchors and `window.open` rely on WebView new-window behaviour | Use opener plugin [uncertain] |
-| D39 | Default ladder conflicts with governance | Low | Fallback spatial ladder `[256, 384, 512]` (`client.ts:680`) vs ROBOTS ladder `256 -> 384 -> 512 -> 640`; `completedEpochs >= 20` magic rule (`client.ts:712`) | Training Suite owns ladder and status [verified] |
-| D40 | `vite.config.ts` never typechecked | Medium | `tsconfig.node.json` lacks `types`, `lib`, `target`; 30 errors | Add `@types/node`, fix config, add to `typecheck` [verified] |
-| D41 | ESLint config downgrade | Low | `jsx-a11y/no-autofocus` set to `warn` (`.eslintrc.json:42`) while `plugin:jsx-a11y/strict` sets error; ESLint 8 is end-of-life | Remove override; migrate to ESLint 9 flat config [verified] |
+- D1
+  - **Issue**: Plaintext secrets readable by any web origin
+  - **Severity**: Critical
+  - **Root cause**: `GET /api/secrets` returns raw `secret_value` with no auth
+    (`../lemgendary-env-manager/env_manager/server.py:674-692`) under CORS `*`
+    (`server.py:108`); GUI reads and re-uses values
+    (`src/api/client.ts:365-374`, `client.ts:814-828`); CSP disabled
+    (`src-tauri/tauri.conf.json:24`)
+  - **Fix**: Mask values server-side (return `has_value`, last 4 chars);
+    write-only update endpoint; restrict CORS to Tauri and dev origins; require
+    a local token; set a CSP [verified for code paths]
+- D2
+  - **Issue**: Test & Diagnostic modal unreachable
+  - **Severity**: High
+  - **Root cause**: `setIsTestModalOpen(true)` is never called
+    (`src/App.tsx:66`, `App.tsx:603-609`); entry button removed in README
+    v2.10.7
+  - **Fix**: Either delete `TestModal.tsx` and its docs, or restore a header
+    entry with id `header-btn-test-modal` [verified]
+- D3
+  - **Issue**: TestModal bypasses mesh SSOT
+  - **Severity**: Medium
+  - **Root cause**: Literal `http://127.0.0.1:8200` and `:8100`
+    (`src/components/TestModal.tsx:49`, `TestModal.tsx:79`);
+    `data.failures.join` crashes if field missing (`TestModal.tsx:62`, `:92`);
+    fleet enqueue shown as PASSED (`TestModal.tsx:33`)
+  - **Fix**: Add client functions using `TRAINING_BASE`/`DATASETS_BASE`; guard
+    arrays; status `QUEUED` [verified]
+- D4
+  - **Issue**: Remote Cloud telemetry tab always empty
+  - **Severity**: High
+  - **Root cause**: `remoteEvents` only ever reset
+    (`src/components/TrainingPanel.tsx:73`, `TrainingPanel.tsx:497`); Kaggle job
+    lines arrive with origin `training-suite` and are routed to Local
+    (`client.ts:1155-1163`)
+  - **Fix**: Route events by `data.job_id === remoteJob.jobId` or `job_type`
+    into the remote stream [verified]
+- D5
+  - **Issue**: Packaged build calls dev-only endpoints
+  - **Severity**: High
+  - **Root cause**: Relative URLs served only by Vite middleware:
+    `/api/dev/services/*` (`client.ts:188`, `client.ts:201`),
+    `/api/model-telemetry/*` (`client.ts:652`), `/documentation-hub/`
+    (`src/components/Header.tsx:21`)
+  - **Fix**: Move to sidecar endpoints (Training Suite already has
+    `/api/models/{key}` and telemetry) or Tauri commands; use
+    `fetchDocsStatus().local_url` for docs [high]
+- D6
+  - **Issue**: N+1 requests and 2 s poll against dev middleware
+  - **Severity**: Medium
+  - **Root cause**: `fetchModels` issues one telemetry fetch per model
+    (`client.ts:667-673`); poll every 2 s while `localJob.modelKey` set
+    (`TrainingPanel.tsx:172-202`); middleware reads CSV from disk synchronously
+    (`vite.config.ts:249-300`)
+  - **Fix**: Include live telemetry in `/api/gui/models/with-stats`; poll one
+    endpoint [verified]
+- D7
+  - **Issue**: Tauri bundle icons missing
+  - **Severity**: High
+  - **Root cause**: `src-tauri/icons/` does not exist but
+    `tauri.conf.json:29-35` references five icons; `tauri-build` needs
+    `icons/icon.ico` for the Windows resource
+  - **Fix**: Generate with `npx tauri icon` [high, cargo unavailable]
+- D8
+  - **Issue**: Stop Training reports success on failure
+  - **Severity**: High
+  - **Root cause**: `cancelTrainingJob` returns `false` on failure
+    (`client.ts:792-803`) and the result is ignored
+    (`TrainingPanel.tsx:263-270`)
+  - **Fix**: Throw on `!cancelled`; keep job state until the sidecar confirms
+    [verified against
+    `../lemgendary-training-suite/training/server/routes/jobs.py:35-44`]
+- D9
+  - **Issue**: Local job never cleared on natural completion
+  - **Severity**: Medium
+  - **Root cause**: `setLocalJob` only on start, stop, or mount
+    (`TrainingPanel.tsx:158`, `:252`, `:269`); no terminal-event handling
+  - **Fix**: Clear on terminal WS event for the job id or poll `GET
+    /api/jobs/{id}` [verified]
+- D10
+  - **Issue**: Fallback inventories poison the cache
+  - **Severity**: High
+  - **Root cause**: Fallbacks written to the store (`TrainingPanel.tsx:101-102`,
+    `CompilerPanel.tsx:121-122`); effect skips refetch when cache non-empty
+    (`TrainingPanel.tsx:124-131`), so a sidecar started later is not reflected
+    until manual refresh; fallback models show fabricated statuses
+    (`fallbackModels.ts:10-11`)
+  - **Fix**: Never cache fallbacks; refetch on `trainingSuiteOnline`
+    false-to-true transition; remove fabricated data [verified]
+- D11
+  - **Issue**: Effect re-entry on cache update
+  - **Severity**: Low
+  - **Root cause**: `cachedModels` in deps (`TrainingPanel.tsx:131`) re-runs
+    `loadKaggleData()` after every refresh
+  - **Fix**: Split effects; depend on online flag [verified]
+- D12
+  - **Issue**: Full-tree re-render per telemetry event
+  - **Severity**: Medium
+  - **Root cause**: `App` subscribes to `events` (`App.tsx:50`) and passes them
+    to every view; `TrainingPanel` also uses selector-less `useStudioStore()`
+    (`TrainingPanel.tsx:46-53`); cards not memoized
+  - **Fix**: Select narrow slices; pass derived props; `React.memo` cards [high]
+- D13
+  - **Issue**: Swallowed errors (36 bare catches)
+  - **Severity**: Medium
+  - **Root cause**: e.g. `client.ts:371`, `:444`, `:455`, `:488`, `:498`,
+    `:767`, `:787`, `:800`, `:841` return empty values; `App.tsx:205`,
+    `TrainingPanel.tsx:119`, `:161`, `:196`, `ConfigEditorModal.tsx:52`,
+    `CloudTrainModal.tsx:50`, `vite.config.ts:292`
+  - **Fix**: Typed `ApiError`, log via a logger, surface state to UI; ROBOTS
+    forbids silent swallowing [verified]
+- D14
+  - **Issue**: "Refresh failed" banner can never show
+  - **Severity**: Medium
+  - **Root cause**: Every awaited call inside `loadData` already catches
+    (`App.tsx:100-104`, `refreshMeshStatus` catches at `App.tsx:82`), so
+    `App.tsx:126-130` is dead; error cleared even when all calls failed
+    (`App.tsx:125`)
+  - **Fix**: Use `Promise.allSettled` and report rejected sources [verified]
+- D15
+  - **Issue**: `startService` hides HTTP errors and double-spawns
+  - **Severity**: Medium
+  - **Root cause**: Outer `catch` (`client.ts:237-240`) also catches the thrown
+    non-OK response and falls back to the dev spawner
+  - **Fix**: Only fall back on network errors (`TypeError`) [verified]
+- D16
+  - **Issue**: Start failures are silent
+  - **Severity**: Medium
+  - **Root cause**: Rust returns `Ok` once `spawn()` succeeds with stdio null
+    (`src-tauri/src/commands.rs:68-81`); UI polls 15 s then reports nothing
+    (`App.tsx:300-308`)
+  - **Fix**: Return a timeout error from `waitForReachable`; log child output
+    [verified]
+- D17
+  - **Issue**: Auto-start does nothing when Environment Manager is down
+  - **Severity**: Medium
+  - **Root cause**: `needsStart` only evaluated after a successful
+    `fetchEcosystemMesh` (`App.tsx:221-245`); env-manager itself never
+    considered; contradicts Paper section 6.5
+  - **Fix**: Probe each service directly and start missing ones [verified]
+- D18
+  - **Issue**: Duplicate log lines after refresh
+  - **Severity**: Low
+  - **Root cause**: REST `recent_events` (raw, no `origin`/`port`) merged with
+    WS-normalized events and de-duplicated by `JSON.stringify`
+    (`App.tsx:114-119`)
+  - **Fix**: Normalize REST events through the same normalizer and de-duplicate
+    by `timestamp + step + message` [high]
+- D19
+  - **Issue**: Unhandled promise rejection
+  - **Severity**: Low
+  - **Root cause**: `import("@axe-core/react").then(...)` without `catch`
+    (`src/main.tsx:6-10`)
+  - **Fix**: Add rejection handling with logging [verified]
+- D20
+  - **Issue**: Config modal refetches on every manifest selection
+  - **Severity**: Low
+  - **Root cause**: `loadManifestList` depends on `selectedName`
+    (`ConfigEditorModal.tsx:45`), effect depends on it (`:59-64`);
+    `!selectedName` never true
+  - **Fix**: Remove dependency; select first item only when list loads
+    [verified]
+- D21
+  - **Issue**: Edits lost silently
+  - **Severity**: Low
+  - **Root cause**: Modal returns `null` when closed
+    (`ConfigEditorModal.tsx:66`), unmounting tabs, but tooltip claims "Unsaved
+    edits remain in memory" (`:114`); switching manifests discards edits without
+    prompt
+  - **Fix**: Lift draft state or confirm on discard [verified]
+- D22
+  - **Issue**: Undefined CSS classes
+  - **Severity**: Medium
+  - **Root cause**: `badge-danger`, `badge-secondary`, `badge-neutral`,
+    `log-timestamp`, `log-step`, `log-message`, `log-error`, `log-empty` are not
+    in `src/index.css`; FAILED badges render uncoloured
+    (`PipelineStepCards.tsx:135`, `TestModal.tsx:112`, `TelemetryConsole.tsx`)
+  - **Fix**: Define or map to existing `badge-error`, `log-time` [verified]
+- D23
+  - **Issue**: Broken ARIA tab relationships
+  - **Severity**: Medium
+  - **Root cause**: `aria-controls="panel-{id}"` targets non-existent IDs
+    (`Sidebar.tsx:87`); tablists contain non-tab buttons (`Sidebar.tsx:100`,
+    `ConfigEditorModal.tsx:89`, `:101`); modal tabs lack `id`/`aria-controls`
+  - **Fix**: `Tabs` primitive; move help buttons outside tablists [verified]
+- D24
+  - **Issue**: Modals not keyboard-safe
+  - **Severity**: Medium
+  - **Root cause**: No focus trap, Escape, or focus return in
+    `ConfigEditorModal.tsx:69`, `CloudTrainModal.tsx:143`, `TestModal.tsx:105`
+  - **Fix**: `Modal` primitive [verified]
+- D25
+  - **Issue**: Unlabelled form fields
+  - **Severity**: Medium
+  - **Root cause**: `DatasetCompilationForm.tsx:119`, `:129`;
+    `CompilerToolbar.tsx:172`, filters at `:206`, `:223`, `:243`;
+    `TrainingToolbar.tsx:129`, `:163`, `:182`, `:202`; clear buttons with text
+    "X" and no name (`CompilerToolbar.tsx:181`, `TrainingToolbar.tsx:138`)
+  - **Fix**: Add `label`/`aria-label` [verified]
+- D26
+  - **Issue**: Help button inside checkbox label
+  - **Severity**: Low
+  - **Root cause**: `HelpTooltip` button nested in `label` toggles the checkbox
+    (`CloudTrainModal.tsx:275-284`, `VariationIsolationChecker.tsx:151-160`)
+  - **Fix**: Move tooltip outside label [high]
+- D27
+  - **Issue**: Segmented controls convey state by colour only
+  - **Severity**: Low
+  - **Root cause**: No `aria-pressed`/`aria-selected`
+    (`CompilerToolbar.tsx:88-112`, `TelemetryConsole.tsx:119-166`,
+    `CloudTrainModal.tsx:167-190`, `TestModal.tsx:130-156`,
+    `DatasetCompilationForm.tsx:189-200`)
+  - **Fix**: `Tabs` primitive [verified]
+- D28
+  - **Issue**: Progressbar wraps interactive content
+  - **Severity**: Low
+  - **Root cause**: `role="progressbar"` contains seven `HelpTooltip` buttons
+    (`PipelinePanel.tsx:47-89`)
+  - **Fix**: Use a list with a separate progressbar [verified]
+- D29
+  - **Issue**: Live region flooding
+  - **Severity**: Low
+  - **Root cause**: `aria-live="polite"` on a high-frequency log
+    (`LogPanel.tsx:120-127`)
+  - **Fix**: Announce milestones only via a separate status region [high]
+- D30
+  - **Issue**: Progress hidden for any "completed" text
+  - **Severity**: Low
+  - **Root cause**: Substring `"completed"` treated as terminal
+    (`LogPanel.tsx:28`, `PipelineStepCards.tsx:117`), e.g. "epoch 3 completed"
+  - **Fix**: Use status and `is_progress` only [high]
+- D31
+  - **Issue**: Fake pre-flight checks
+  - **Severity**: Low
+  - **Root cause**: Notebook template always READY, dataset always
+    AUTO-DISCOVERED (`CloudTrainModal.tsx:209`, `:220`); Colab tab has no action
+  - **Fix**: Back by real checks or remove [verified]
+- D32
+  - **Issue**: Hardcoded Kaggle owner
+  - **Severity**: Medium
+  - **Root cause**: `lemtreursi` in `CloudTrainModal.tsx:69-71`,
+    `DatasetManifoldCard.tsx:228`
+  - **Fix**: Derive from Kaggle secret username or `kaggle_ref` [verified]
+- D33
+  - **Issue**: Dev middleware path traversal
+  - **Severity**: Low (dev only)
+  - **Root cause**: `path.resolve(__dirname, "../lemgendary-docs",
+    relativePath)` with raw `req.url` (`vite.config.ts:226-229`)
+  - **Fix**: Normalize and verify prefix, or use `sirv` [high]
+- D34
+  - **Issue**: Destructive actions without confirmation
+  - **Severity**: Low
+  - **Root cause**: Deep Cache Purge, Safe Upgrade, Stop Service, Delete Secret
+    fire immediately (`HealthPanel.tsx:333`, `:311`, `ServiceTiles.tsx:126`,
+    `SecretsEditorTab.tsx:447`)
+  - **Fix**: Confirmation dialog via `Modal` [verified]
+- D35
+  - **Issue**: Fixed timers not cleared
+  - **Severity**: Low
+  - **Root cause**: `setTimeout` without cleanup (`TrainingPanel.tsx:111`,
+    `CompilerPanel.tsx:138`, `LogPanel.tsx:72`)
+  - **Fix**: Track and clear on unmount [verified]
+- D36
+  - **Issue**: Stale Tauri globals
+  - **Severity**: Low
+  - **Root cause**: `vite-env.d.ts:3-7` declares Tauri v1 globals; code sniffs
+    `__TAURI_INTERNALS__` via casts
+  - **Fix**: Use `isTauri()` from `@tauri-apps/api/core` [high]
+- D37
+  - **Issue**: Unused shell plugin
+  - **Severity**: Low
+  - **Root cause**: `tauri-plugin-shell` initialized (`src-tauri/src/main.rs:8`)
+    and npm package declared, no JS usage and no capability
+  - **Fix**: Remove, or replace with `plugin-opener` for external links
+    [verified]
+- D38
+  - **Issue**: External links in packaged app
+  - **Severity**: Low
+  - **Root cause**: `target="_blank"` anchors and `window.open` rely on WebView
+    new-window behaviour
+  - **Fix**: Use opener plugin [uncertain]
+- D39
+  - **Issue**: Default ladder conflicts with governance
+  - **Severity**: Low
+  - **Root cause**: Fallback spatial ladder `[256, 384, 512]` (`client.ts:680`)
+    vs ROBOTS ladder `256 -> 384 -> 512 -> 640`; `completedEpochs >= 20` magic
+    rule (`client.ts:712`)
+  - **Fix**: Training Suite owns ladder and status [verified]
+- D40
+  - **Issue**: `vite.config.ts` never typechecked
+  - **Severity**: Medium
+  - **Root cause**: `tsconfig.node.json` lacks `types`, `lib`, `target`; 30
+    errors
+  - **Fix**: Add `@types/node`, fix config, add to `typecheck` [verified]
+- D41
+  - **Issue**: ESLint config downgrade
+  - **Severity**: Low
+  - **Root cause**: `jsx-a11y/no-autofocus` set to `warn` (`.eslintrc.json:42`)
+    while `plugin:jsx-a11y/strict` sets error; ESLint 8 is end-of-life
+  - **Fix**: Remove override; migrate to ESLint 9 flat config [verified]
 
 ## Documentation Findings
 
@@ -421,13 +1032,16 @@ Ordered so each step keeps the three gates green.
 Source: `../lemgendary-docs/MD-Papers/GUI_CONTROL_REGISTRY.md` versus all
 `id=` attributes in `src/**/*.tsx`.
 
-| Metric | Count |
-| :--- | :--- |
-| Control IDs in registry table | 78 |
-| Registry IDs present in code exactly | 23 |
-| Registry IDs missing from code | 55 |
-| Distinct `id` attributes in code not in registry | 53 (36 interactive, 17 headings/landmarks) |
-| Interactive controls with no `id` at all | majority of 101 buttons and 41 fields |
+- Control IDs in registry table
+  - **Count**: 78
+- Registry IDs present in code exactly
+  - **Count**: 23
+- Registry IDs missing from code
+  - **Count**: 55
+- Distinct `id` attributes in code not in registry
+  - **Count**: 53 (36 interactive, 17 headings/landmarks)
+- Interactive controls with no `id` at all
+  - **Count**: majority of 101 buttons and 41 fields
 
 Missing groups, with the nearest code equivalent where one exists:
 
@@ -499,7 +1113,8 @@ Wrong endpoints in the registry:
 
 ### Paper Drift (`PAPER_AI_STUDIO_GUI.md`)
 
-- Section 6.9 cites `src/data/fallbackModels.ts`, `src/data/fallbackDatasets.ts`,
+- Section 6.9 cites `src/data/fallbackModels.ts`,
+  `src/data/fallbackDatasets.ts`,
   and `src/data/guiControlRegistry.ts`; none exist (fallbacks live under
   `src/components/`, no control registry module exists). Counts "19 model
   specifications", "20 manifolds", "32 interactive UI elements" do not match
@@ -546,7 +1161,8 @@ Wrong endpoints in the registry:
 - Payload and response shapes spot-checked and consistent: `QuickTrainRequest`
   (`training/server/routes/gui.py:22-32`), job cancel
   (`routes/jobs.py:35-44`), unit-test and LLM test-suite responses
-  (`routes/training.py:316-333`, `../lemgendary-datasets/api/routes/llm.py:114-130`).
+  (`routes/training.py:316-333`,
+  `../lemgendary-datasets/api/routes/llm.py:114-130`).
 - **Stale `openapi.json` in all three sidecars**: 27 GUI-consumed endpoints
   are absent, including `/api/pipeline/run-step`, `/api/hooks/install`,
   every `/api/kaggle/*` and `/api/modernize/*` route on 8100, and every
@@ -564,18 +1180,38 @@ Wrong endpoints in the registry:
 
 ### SSOT Violations
 
-| Inventory | Copies | Authoritative owner |
-| :--- | :--- | :--- |
-| Service id, folder, module, port | `src/api/config.ts:42-67`, `vite.config.ts:46-65`, `src-tauri/src/commands.rs:31-36`, env-manager service registry | One shared registry (env-manager) |
-| Models | `src/components/training/fallbackModels.ts` (23) | Training Suite `unified_models_v2.yaml` |
-| Datasets and presets | `src/components/compiler/fallbackDatasets.ts` | Dataset Compiler `unified_data.yaml` |
-| Projects | `App.tsx:35-41`, `types.ts:55-63` | `../ROBOTS.md` inventory via env-manager |
-| Manifests | `ConfigEditorModal.tsx:36-43` | env-manager `/api/manifests/registry` |
-| Pipeline steps | `PipelineStepCards.tsx:12-55` | `env_manager/orchestrator.py` |
-| Tabs and titles | `Sidebar.tsx:27-33`, `App.tsx:367-382`, `useStudioStore.ts:69`, `Sidebar.tsx:19-25` | `viewRegistry.ts` |
-| Port numbers in UI text | about 35 literal "8000/8100/8200" strings outside `config.ts` | `MESH_SERVICES[...].defaultPort` |
-| Model status heuristics | `client.ts:675-765` | Training Suite |
-| Kaggle owner slug | `CloudTrainModal.tsx:69-71`, `DatasetManifoldCard.tsx:228` | Secrets vault username |
+- Service id, folder, module, port
+  - **Copies**: `src/api/config.ts:42-67`, `vite.config.ts:46-65`,
+    `src-tauri/src/commands.rs:31-36`, env-manager service registry
+  - **Authoritative owner**: One shared registry (env-manager)
+- Models
+  - **Copies**: `src/components/training/fallbackModels.ts` (23)
+  - **Authoritative owner**: Training Suite `unified_models_v2.yaml`
+- Datasets and presets
+  - **Copies**: `src/components/compiler/fallbackDatasets.ts`
+  - **Authoritative owner**: Dataset Compiler `unified_data.yaml`
+- Projects
+  - **Copies**: `App.tsx:35-41`, `types.ts:55-63`
+  - **Authoritative owner**: `../ROBOTS.md` inventory via env-manager
+- Manifests
+  - **Copies**: `ConfigEditorModal.tsx:36-43`
+  - **Authoritative owner**: env-manager `/api/manifests/registry`
+- Pipeline steps
+  - **Copies**: `PipelineStepCards.tsx:12-55`
+  - **Authoritative owner**: `env_manager/orchestrator.py`
+- Tabs and titles
+  - **Copies**: `Sidebar.tsx:27-33`, `App.tsx:367-382`, `useStudioStore.ts:69`,
+    `Sidebar.tsx:19-25`
+  - **Authoritative owner**: `viewRegistry.ts`
+- Port numbers in UI text
+  - **Copies**: about 35 literal "8000/8100/8200" strings outside `config.ts`
+  - **Authoritative owner**: `MESH_SERVICES[...].defaultPort`
+- Model status heuristics
+  - **Copies**: `client.ts:675-765`
+  - **Authoritative owner**: Training Suite
+- Kaggle owner slug
+  - **Copies**: `CloudTrainModal.tsx:69-71`, `DatasetManifoldCard.tsx:228`
+  - **Authoritative owner**: Secrets vault username
 
 ### Security (ecosystem)
 
@@ -745,42 +1381,163 @@ were fixed in earlier steps. Commits: `d91e35a` (v2.10.26), `0f288cb`
 (v2.10.27), `470b196` (v2.10.28), and the v2.10.29 commit that adds this
 section.
 
-| # | Severity | Status | Where / why |
-| :--- | :--- | :--- | :--- |
-| D3 | Medium | Fixed earlier | v2.10.14: mesh URLs, guarded arrays, `QUEUED` status |
-| D6 | Medium | Fixed earlier | v2.10.16: one `with-stats` request, 5 s poll |
-| D9 | Medium | Fixed earlier | v2.10.15: job status poll clears the local job |
-| D11 | Low | Fixed | `0f288cb`: load once on mount |
-| D12 | Medium | Fixed | `0f288cb`: event-bound views; App and TrainingPanel do not subscribe to `events` |
-| D13 | Medium | Fixed | v2.10.21 logs every catch; v2.10.29 routes the last `console.*` calls through `logger`. List readers still return `[]` with a logged warning (by design: offline fallback) |
-| D14 | Medium | Fixed | `d91e35a`: `Promise.allSettled`, banner names failed sources |
-| D15 | Medium | Fixed earlier | v2.10.16: no dev-spawner fallback; HTTP errors surface |
-| D16 | Medium | Fixed | `d91e35a`: start timeout error; native spawn logs output to the app log folder |
-| D17 | Medium | Fixed | `d91e35a`: direct probes, Environment Manager started first |
-| D18 | Low | Fixed | `d91e35a`: REST events normalized, de-duplicated by timestamp, step, message |
-| D19 | Low | Fixed earlier | v2.10.24: dynamic import rejection logged |
-| D20 | Low | Fixed | `470b196`: registry loads once per opening |
-| D21 | Low | Fixed | `470b196`: confirm before discarding unsaved manifest edits |
-| D22 | Medium | Fixed earlier | v2.10.17: classes defined; coverage test |
-| D23 | Medium | Fixed | `470b196`: `Tabs` primitive; sidebar is a `nav` |
-| D24 | Medium | Fixed | `470b196`: Test, Cloud and Config dialogs use `Modal` |
-| D25 | Medium | Fixed | `470b196`: labels on search, filters, clear buttons, Kaggle inputs |
-| D26 | Low | Fixed | `470b196`: help buttons outside checkbox labels |
-| D27 | Low | Fixed | `470b196`: tabs via `Tabs`; other toggles expose `aria-pressed` |
-| D28 | Low | Fixed | `470b196`: progressbar separate from the step list |
-| D29 | Low | Fixed | `0f288cb`: logs `aria-live="off"`; milestones in a status region |
-| D30 | Low | Fixed | `0f288cb`: `isTerminalEvent` replaces the "completed" substring test |
-| D31 | Low | Fixed | `470b196`: pre-flight rows say what is not checked; Colab tab says no launch |
-| D32 | Medium | Fixed | `470b196`: owner from Kaggle credentials or `kaggle_ref`. Offline placeholders in `fallbackDatasets.ts` still carry `kaggle_ref` strings (data, deferred to L7 with the inventory SSOT) |
-| D33 | Low | Not applicable | v2.10.16 removed the docs middleware; no path handling left in `vite.config.ts` |
-| D34 | Low | Fixed | `470b196`: `ConfirmDialog` for upgrade, purge, stop service, delete credential |
-| D35 | Low | Fixed | `0f288cb`: `useTransientValue` clears its timer |
-| D36 | Low | Fixed | v2.10.29: stale Tauri v1 globals removed (code already uses `isTauri()`) |
-| D37 | Low | Not applicable | The shell plugin is now used for `open` (v2.10.16, `shell:allow-open`) |
-| D38 | Low | Fixed | `470b196`: `ExternalLink` opens through `openExternalUrl` |
-| D39 | Low | Fixed | v2.10.15 removed the fallback ladder; v2.10.29 drops the `completedEpochs >= 20` rule |
-| D40 | Medium | Fixed earlier | v2.10.18 |
-| D41 | Low | Partly fixed, rest deferred | Downgrade removed in v2.10.21. ESLint 9 flat-config migration deferred: it needs a coordinated plugin upgrade (`eslint-plugin-react-hooks` 5, `typescript-eslint` flat configs) and is a toolchain step of its own |
+- D3
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.14: mesh URLs, guarded arrays, `QUEUED` status
+- D6
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.16: one `with-stats` request, 5 s poll
+- D9
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.15: job status poll clears the local job
+- D11
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `0f288cb`: load once on mount
+- D12
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `0f288cb`: event-bound views; App and TrainingPanel do not
+    subscribe to `events`
+- D13
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: v2.10.21 logs every catch; v2.10.29 routes the last
+    `console.*` calls through `logger`. List readers still return `[]` with a
+    logged warning (by design: offline fallback)
+- D14
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `d91e35a`: `Promise.allSettled`, banner names failed
+    sources
+- D15
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.16: no dev-spawner fallback; HTTP errors surface
+- D16
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `d91e35a`: start timeout error; native spawn logs output to
+    the app log folder
+- D17
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `d91e35a`: direct probes, Environment Manager started first
+- D18
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `d91e35a`: REST events normalized, de-duplicated by
+    timestamp, step, message
+- D19
+  - **Severity**: Low
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.24: dynamic import rejection logged
+- D20
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: registry loads once per opening
+- D21
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: confirm before discarding unsaved manifest edits
+- D22
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.17: classes defined; coverage test
+- D23
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: `Tabs` primitive; sidebar is a `nav`
+- D24
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: Test, Cloud and Config dialogs use `Modal`
+- D25
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: labels on search, filters, clear buttons, Kaggle
+    inputs
+- D26
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: help buttons outside checkbox labels
+- D27
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: tabs via `Tabs`; other toggles expose
+    `aria-pressed`
+- D28
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: progressbar separate from the step list
+- D29
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `0f288cb`: logs `aria-live="off"`; milestones in a status
+    region
+- D30
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `0f288cb`: `isTerminalEvent` replaces the "completed"
+    substring test
+- D31
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: pre-flight rows say what is not checked; Colab
+    tab says no launch
+- D32
+  - **Severity**: Medium
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: owner from Kaggle credentials or `kaggle_ref`.
+    Offline placeholders in `fallbackDatasets.ts` still carry `kaggle_ref`
+    strings (data, deferred to L7 with the inventory SSOT)
+- D33
+  - **Severity**: Low
+  - **Status**: Not applicable
+  - **Where / why**: v2.10.16 removed the docs middleware; no path handling left
+    in `vite.config.ts`
+- D34
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: `ConfirmDialog` for upgrade, purge, stop
+    service, delete credential
+- D35
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `0f288cb`: `useTransientValue` clears its timer
+- D36
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: v2.10.29: stale Tauri v1 globals removed (code already uses
+    `isTauri()`)
+- D37
+  - **Severity**: Low
+  - **Status**: Not applicable
+  - **Where / why**: The shell plugin is now used for `open` (v2.10.16,
+    `shell:allow-open`)
+- D38
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: `470b196`: `ExternalLink` opens through `openExternalUrl`
+- D39
+  - **Severity**: Low
+  - **Status**: Fixed
+  - **Where / why**: v2.10.15 removed the fallback ladder; v2.10.29 drops the
+    `completedEpochs >= 20` rule
+- D40
+  - **Severity**: Medium
+  - **Status**: Fixed earlier
+  - **Where / why**: v2.10.18
+- D41
+  - **Severity**: Low
+  - **Status**: Partly fixed, rest deferred
+  - **Where / why**: Downgrade removed in v2.10.21. ESLint 9 flat-config
+    migration deferred: it needs a coordinated plugin upgrade
+    (`eslint-plugin-react-hooks` 5, `typescript-eslint` flat configs) and is a
+    toolchain step of its own
 
 Deferred to step L7 (cross-repo SSOT): service ids, folders, modules and
 ports are still duplicated in `src/api/config.ts` and
