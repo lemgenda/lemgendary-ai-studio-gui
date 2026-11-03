@@ -274,6 +274,29 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.32 - Ecosystem Snapshot (SSOT)
+
+- **Sync Script (scripts/sync-ecosystem.mjs, package.json)**: copies
+  `lemgendary-env-manager/ecosystem/ecosystem.json` to the committed
+  `src/generated/ecosystem.json` on `predev`/`prebuild` (Tauri's
+  `beforeDevCommand`/`beforeBuildCommand` run those npm scripts). Source path:
+  `LEMGENDARY_ECOSYSTEM_FILE`, else `LEMGENDARY_WORKSPACE_ROOT` or the repo
+  parent. Sibling missing: keeps the snapshot with a warning.
+  `npm run check:ecosystem` fails when the snapshot differs from the source.
+- **Derived Values (src/api/ecosystem.ts)**: `MESH_SERVICES` ports, URLs,
+  WebSocket and liveness paths and names (`VITE_*` overrides kept),
+  `CANONICAL_PROJECT_NAMES`, `FALLBACK_PROJECTS` (managed projects),
+  `PIPELINE_STEPS` (names and descriptions from `pipeline_steps[]`), the final
+  pipeline step and the step count in tooltips.
+- **Native Side (src-tauri/src/commands.rs)**: service folders, uvicorn apps,
+  ports, bind host and the spawn-all list come from the snapshot via
+  `include_str!` and typed serde structs; a parse failure is a descriptive
+  error.
+- **Tests**: vitest snapshot shape, sibling parity and derived-value checks;
+  Rust tests for the embedded snapshot. The CSP in `tauri.conf.json` still
+  lists ports literally (checked by the env-manager gate).
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.32`.
+
 ### v2.10.31 - ESLint 9 Flat Config
 
 Also: Remediation Status.

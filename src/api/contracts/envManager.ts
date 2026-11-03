@@ -1,9 +1,10 @@
 /**
- * LemGendary AI Studio - Environment Manager (Port 8000) contracts: hardware, health,
+ * LemGendary AI Studio - Environment Manager contracts: hardware, health,
  * pipeline, manifests, secrets, maintenance and bug reports.
  */
 
 import { PipelineEvent } from "./mesh";
+import { ECOSYSTEM } from "../ecosystem";
 
 export interface AcceleratorDevice {
   index: number;
@@ -55,15 +56,10 @@ export interface ProjectHealth {
   is_healthy: boolean;
 }
 
-export const CANONICAL_PROJECT_NAMES: Record<string, string> = {
-  "lemgendary-env-manager": "LemGendary Environment Manager",
-  "lemgendary-datasets": "LemGendary Dataset Compiler Suite",
-  "lemgendary-training-suite": "LemGendary Model Training Suite",
-  "lemgendary-ai-studio-gui": "LemGendary AI Studio GUI",
-  "lemgendary-docs": "LemGendary AI Documentation Hub",
-  "LemGendaryDatasets": "LemGendary Compiled Manifolds Repo",
-  "LemGendaryModels": "LemGendary Trained Models Repo",
-};
+/** Project folder to display name, derived from the ecosystem snapshot. */
+export const CANONICAL_PROJECT_NAMES: Record<string, string> = Object.fromEntries(
+  ECOSYSTEM.projects.map((p) => [p.folder, p.display_name]),
+);
 
 export function getProjectDisplayName(name: string): string {
   return CANONICAL_PROJECT_NAMES[name] || name;

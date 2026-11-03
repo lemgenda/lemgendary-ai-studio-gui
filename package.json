@@ -1,12 +1,16 @@
 {
   "name": "lemgendary-ai-studio-gui",
   "private": true,
-  "version": "2.10.31",
+  "version": "2.10.32",
   "type": "module",
   "scripts": {
+    "sync:ecosystem": "node scripts/sync-ecosystem.mjs",
+    "check:ecosystem": "node scripts/sync-ecosystem.mjs --check",
+    "predev": "npm run sync:ecosystem",
     "dev": "vite",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "eslint src --max-warnings 0",
+    "prebuild": "npm run sync:ecosystem",
     "build": "tsc && vite build",
     "test": "vitest run",
     "preview": "vite preview",

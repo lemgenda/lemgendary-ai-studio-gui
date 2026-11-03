@@ -4,27 +4,78 @@ use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::OnceLock;
+
+use serde::Deserialize;
 
 use tauri::Manager;
 
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 
-/// Folder, uvicorn app module and port of a mesh service.
+/// Ecosystem SSOT snapshot, synced from the Environment Manager by
+/// `scripts/sync-ecosystem.mjs` and embedded at compile time.
+const ECOSYSTEM_JSON: &str = include_str!("../../src/generated/ecosystem.json");
+
+#[derive(Debug, Deserialize)]
+struct EcosystemIdentity {
+    bind_host: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct EcosystemService {
+    id: String,
+    project: String,
+    port: u16,
+    app_import: String,
+}
+
+/// The subset of `ecosystem.json` the native side needs (unknown keys are ignored).
+#[derive(Debug, Deserialize)]
+struct Ecosystem {
+    identity: EcosystemIdentity,
+    services: Vec<EcosystemService>,
+}
+
+fn parse_ecosystem(json: &str) -> Result<Ecosystem, String> {
+    serde_json::from_str(json)
+        .map_err(|e| format!("Embedded src/generated/ecosystem.json is invalid: {}", e))
+}
+
+fn ecosystem() -> Result<&'static Ecosystem, String> {
+    static ECOSYSTEM: OnceLock<Result<Ecosystem, String>> = OnceLock::new();
+    ECOSYSTEM
+        .get_or_init(|| parse_ecosystem(ECOSYSTEM_JSON))
+        .as_ref()
+        .map_err(Clone::clone)
+}
+
+/// Folder, uvicorn app module, bind host and port of a mesh service.
 struct ServiceSpec {
     folder: &'static str,
     app_module: &'static str,
+    host: &'static str,
     port: u16,
 }
 
 fn service_spec(service_id: &str) -> Result<ServiceSpec, String> {
-    let (folder, app_module, port) = match service_id {
-        "env-manager" => ("lemgendary-env-manager", "env_manager.server:app", 8000),
-        "dataset-compiler" => ("lemgendary-datasets", "api.server:app", 8100),
-        "training-suite" => ("lemgendary-training-suite", "training.server.app:app", 8200),
-        other => return Err(format!("Unknown service '{}'", other)),
-    };
-    Ok(ServiceSpec { folder, app_module, port })
+    let eco = ecosystem()?;
+    let service = eco
+        .services
+        .iter()
+        .find(|s| s.id == service_id)
+        .ok_or_else(|| format!("Unknown service '{}'", service_id))?;
+    Ok(ServiceSpec {
+        folder: &service.project,
+        app_module: &service.app_import,
+        host: &eco.identity.bind_host,
+        port: service.port,
+    })
+}
+
+/// Every service id in the ecosystem file, in file order (Environment Manager first).
+fn service_ids() -> Result<Vec<&'static str>, String> {
+    Ok(ecosystem()?.services.iter().map(|s| s.id.as_str()).collect())
 }
 
 fn find_project_dir(folder_name: &str) -> Option<PathBuf> {
@@ -83,7 +134,7 @@ fn spawn_service_logged(service_id: &str, log_dir: &Path) -> Result<String, Stri
         .map_err(|e| format!("Cannot share the log file {} for stderr: {}", log_path.display(), e))?;
 
     let mut cmd = Command::new(python_for(&proj_dir));
-    cmd.args(["-m", "uvicorn", spec.app_module, "--host", "127.0.0.1", "--port", &spec.port.to_string()]);
+    cmd.args(["-m", "uvicorn", spec.app_module, "--host", spec.host, "--port", &spec.port.to_string()]);
 
     if proj_dir.is_dir() {
         cmd.current_dir(&proj_dir);
@@ -127,7 +178,7 @@ pub fn spawn_service(app: tauri::AppHandle, service_id: String) -> Result<String
 pub fn spawn_all_services(app: tauri::AppHandle) -> Result<String, String> {
     let log_dir = service_log_dir(&app)?;
     let mut messages = Vec::new();
-    for service_id in ["env-manager", "dataset-compiler", "training-suite"] {
+    for service_id in service_ids()? {
         messages.push(spawn_service_logged(service_id, &log_dir)?);
     }
     Ok(messages.join("\n"))
@@ -147,6 +198,26 @@ mod tests {
         assert_eq!(service_spec("env-manager").map(|s| s.port), Ok(8000));
         assert_eq!(service_spec("dataset-compiler").map(|s| s.port), Ok(8100));
         assert_eq!(service_spec("training-suite").map(|s| s.port), Ok(8200));
+    }
+
+    #[test]
+    fn embedded_ecosystem_matches_the_snapshot_shape() -> Result<(), String> {
+        let eco = parse_ecosystem(ECOSYSTEM_JSON)?;
+        assert_eq!(eco.identity.bind_host, "127.0.0.1");
+        assert_eq!(service_ids()?, vec!["env-manager", "dataset-compiler", "training-suite"]);
+        for service in &eco.services {
+            let spec = service_spec(&service.id)?;
+            assert_eq!(spec.port, service.port);
+            assert_eq!(spec.folder, service.project);
+            assert_eq!(spec.app_module, service.app_import);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_ecosystem_json_is_a_descriptive_error() {
+        let err = parse_ecosystem("{}").err().unwrap_or_default();
+        assert!(err.starts_with("Embedded src/generated/ecosystem.json is invalid"), "{}", err);
     }
 
     #[test]

@@ -13,6 +13,7 @@ import {
   fetchPipelineStatus,
   probeSidecarPort,
 } from "../api/client";
+import { ECOSYSTEM } from "../api/ecosystem";
 import { MeshStatus, PipelineEvent } from "../api/types";
 import { useStudioStore } from "../store/useStudioStore";
 import { errorMessage, logger } from "../utils/logger";
@@ -54,13 +55,17 @@ export interface MeshSync {
   runningSingleStepRef: MutableRefObject<number | null>;
 }
 
+/** Last step in the ecosystem snapshot; its terminal event ends a full pipeline run. */
+const FINAL_PIPELINE_STEP = ECOSYSTEM.pipeline_steps[ECOSYSTEM.pipeline_steps.length - 1];
+
 function isPipelineTerminalEvent(ev: PipelineEvent, targetStep: number | null): boolean {
   const msg = typeof ev.message === "string" ? ev.message.toLowerCase() : "";
   const isTerminalStatus = ev.status === "success" || ev.status === "warning" || ev.status === "error";
-  const isStep7Terminal = (ev.step_name === "Health Matrix" || ev.step_number === 7) && isTerminalStatus;
+  const isFinalStepTerminal =
+    (ev.step_name === FINAL_PIPELINE_STEP.name || ev.step_number === FINAL_PIPELINE_STEP.number) && isTerminalStatus;
   const isPipelineTerminal =
     ev.step_name === "Pipeline Error" ||
-    isStep7Terminal ||
+    isFinalStepTerminal ||
     msg.includes("pipeline execution completed") ||
     msg.includes("ecosystem healthy status");
   const isSingleStepTerminal =

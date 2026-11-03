@@ -3,6 +3,7 @@ import { ConfirmDialog } from "./common/ConfirmDialog";
 import { HelpTooltip } from "./HelpTooltip";
 import { MeshStatus } from "../api/types";
 import { ENV_BASE, DATASETS_BASE, TRAINING_BASE, MESH_SERVICES } from "../api/client";
+import { ECOSYSTEM } from "../api/ecosystem";
 
 interface ServiceTilesProps {
   meshStatus: MeshStatus;
@@ -158,7 +159,7 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       port: MESH_SERVICES["env-manager"].defaultPort,
       url: ENV_BASE,
       description:
-        "Orchestrates virtual environments, system hardware audits, toolchain validation, and the 7-step clean install pipeline across all workspace projects.",
+        `Orchestrates virtual environments, system hardware audits, toolchain validation, and the ${ECOSYSTEM.pipeline_steps.length}-step clean install pipeline across all workspace projects.`,
       online: meshStatus.envManager,
       quickActionLabel: "Run Full System Audit",
       quickActionAriaLabel: "Trigger a full system audit via the Environment Manager pipeline",

@@ -35,7 +35,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
       <div className="card-title">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <h3 id="pipeline-panel-title" style={{ fontSize: "16px", fontWeight: 600 }}>Smart Clean Install Pipeline Orchestrator</h3>
-          <HelpTooltip content="Deterministic 7-step environment installation and verification pipeline. Synchronizes dependencies, creates virtual environments, audits toolchains, and eliminates version drift." />
+          <HelpTooltip content={`Deterministic ${PIPELINE_STEPS.length}-step environment installation and verification pipeline. Synchronizes dependencies, creates virtual environments, audits toolchains, and eliminates version drift.`} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span
@@ -116,7 +116,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         >
           {isRunning ? "Executing Pipeline..." : "Run Pipeline"}
         </button>
-        <HelpTooltip content="Runs the 7-step pipeline across all workspace projects. Non-destructive: valid virtual environments and node_modules are kept; only missing or broken ones are created." />
+        <HelpTooltip content={`Runs the ${PIPELINE_STEPS.length}-step pipeline across all workspace projects. Non-destructive: valid virtual environments and node_modules are kept; only missing or broken ones are created.`} />
         <button
           id="pipeline-btn-clean-install"
           type="button"
