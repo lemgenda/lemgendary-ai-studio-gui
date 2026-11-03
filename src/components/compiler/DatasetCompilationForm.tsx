@@ -5,6 +5,8 @@ import { StandardCompileForm } from "./StandardCompileForm";
 import { CustomCompileForm } from "./CustomCompileForm";
 import { ValidationBanner } from "../common/ValidationBanner";
 import { CompilerPreset, DatasetItem } from "../../api/types";
+import { servicePort } from "../../api/config";
+import { ecosystemService } from "../../api/ecosystem";
 
 export interface DatasetCompilationFormProps {
   datasets: DatasetItem[];
@@ -193,7 +195,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
         {!datasetCompilerOnline && (
           <ValidationBanner
             type="error"
-            message="Dataset Compiler Sidecar (Port 8100) is offline. Launch lemgendary-datasets to enable compilation."
+            message={`Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. Launch ${ecosystemService("dataset-compiler").project} to enable compilation.`}
             style={{ marginTop: "12px", fontSize: "12px" }}
           />
         )}

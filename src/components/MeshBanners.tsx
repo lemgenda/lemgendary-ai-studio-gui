@@ -1,4 +1,5 @@
 import React from "react";
+import { servicePortList } from "../api/config";
 
 interface MeshOfflineBannerProps {
   startingServiceId: string | null;
@@ -21,7 +22,7 @@ export const MeshOfflineBanner: React.FC<MeshOfflineBannerProps> = ({ startingSe
     }}
   >
     <span style={{ fontSize: "13px", color: "var(--accent-rose)", fontWeight: 600 }}>
-      Ecosystem mesh offline. All three sidecars (Ports 8000, 8100, 8200) are unreachable.
+      Ecosystem mesh offline. All three sidecars (Ports {servicePortList()}) are unreachable.
     </span>
     <button
       type="button"

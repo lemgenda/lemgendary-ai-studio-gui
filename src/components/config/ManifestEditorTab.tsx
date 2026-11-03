@@ -4,6 +4,7 @@ import { ValidationBanner } from "../common/ValidationBanner";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { readManifest, validateManifest, saveManifest } from "../../api/client";
 import { ManifestItem } from "../../api/types";
+import { servicePort } from "../../api/config";
 
 interface ManifestEditorTabProps {
   manifests: ManifestItem[];
@@ -147,7 +148,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
       {manifests.length === 0 && (
         <ValidationBanner
           type="error"
-          message="Manifest registry is unavailable (Port 8000 offline). Manifests can be edited directly in the workspace filesystem when the sidecar is running."
+          message={`Manifest registry is unavailable (Port ${servicePort("env-manager")} offline). Manifests can be edited directly in the workspace filesystem when the sidecar is running.`}
           style={{ marginBottom: "12px" }}
         />
       )}
@@ -188,7 +189,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           <HelpTooltip
             content={
               manifests.length === 0
-                ? "Validation requires Environment Manager (Port 8000) to be online."
+                ? `Validation requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
                 : "Check syntax in real-time. Parses YAML indentation or JSON structure and alerts if errors exist."
             }
           />
@@ -228,7 +229,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           <HelpTooltip
             content={
               manifests.length === 0
-                ? "Save requires Environment Manager (Port 8000) to be online."
+                ? `Save requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
                 : "Commit changes to disk. Creates an automatic .bak snapshot before atomically writing the file."
             }
           />

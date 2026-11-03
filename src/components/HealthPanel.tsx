@@ -9,6 +9,8 @@ import {
   installGitHooks,
   runEcosystemValidation,
 } from "../api/client";
+import { servicePort } from "../api/config";
+import { guiProjectFolder } from "../api/ecosystem";
 
 interface HealthPanelProps {
   report: HealthAuditReport | null;
@@ -34,7 +36,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
         </div>
         <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
-          Health audit requires Environment Manager (Port 8000).
+          Health audit requires Environment Manager (Port {servicePort("env-manager")}).
           Launch it to populate the toolchain prerequisite matrix and cross-project version drift table.
         </p>
         {onStartEnvManager && (
@@ -42,7 +44,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             type="button"
             className="btn btn-primary"
             onClick={onStartEnvManager}
-            aria-label="Launch the Environment Manager sidecar on Port 8000"
+            aria-label={`Launch the Environment Manager sidecar on Port ${servicePort("env-manager")}`}
           >
             Start Environment Manager
           </button>
@@ -119,10 +121,10 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
   };
 
   const pythonProjects = report.projects.filter(
-    (p) => p.name !== "lemgendary-ai-studio-gui"
+    (p) => p.name !== guiProjectFolder()
   );
   const projNames = pythonProjects.map((p) => p.name);
-  const guiProject = report.projects.find((p) => p.name === "lemgendary-ai-studio-gui");
+  const guiProject = report.projects.find((p) => p.name === guiProjectFolder());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -303,7 +305,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             <h3 id="maintenance-actions-title" style={{ fontSize: "16px", fontWeight: 600 }}>
               Ecosystem Maintenance &amp; Governance
             </h3>
-            <HelpTooltip content="Operational maintenance routines executed by Environment Manager (Port 8000): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation." />
+            <HelpTooltip content={`Operational maintenance routines executed by Environment Manager (Port ${servicePort("env-manager")}): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation.`} />
           </div>
           <span className="badge badge-info">MAINTENANCE</span>
         </div>

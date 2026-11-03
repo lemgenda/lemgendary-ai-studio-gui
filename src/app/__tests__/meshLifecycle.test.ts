@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PipelineEvent } from "../../api/types";
+import { servicePort } from "../../api/config";
 
 const probe = vi.hoisted(() => vi.fn<(id: string) => Promise<boolean>>());
 const startService = vi.hoisted(() => vi.fn());
@@ -107,7 +108,7 @@ describe("event log merge (D18)", () => {
     message: "Creating venv",
     is_progress: false,
     origin: "env-manager",
-    port: 8000,
+    port: servicePort("env-manager"),
   };
 
   it("drops REST events already received over the WebSocket and tags new ones like WebSocket events", () => {

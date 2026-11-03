@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Training Suite (Port 8200) Kaggle cloud engine orchestration.
+ * LemGendary AI Studio - Training Suite Kaggle cloud engine orchestration.
  */
 
 import { logger } from "../utils/logger";

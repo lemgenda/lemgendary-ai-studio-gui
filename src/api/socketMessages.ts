@@ -21,7 +21,7 @@ export function normalizeSocketMessage(
 
   const raw = data as Record<string, unknown>;
 
-  // 1. Native PipelineEvent from env-manager (Port 8000)
+  // 1. Native PipelineEvent from env-manager
   if (typeof raw.step_name === "string" && typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
     if (!cleanMsg) return null;
@@ -49,7 +49,7 @@ export function normalizeSocketMessage(
     };
   }
 
-  // 2. Training Suite daemon broadcast (Port 8200)
+  // 2. Training Suite daemon broadcast
   if (typeof raw.message === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
     if (!cleanMsg) return null;
@@ -78,7 +78,7 @@ export function normalizeSocketMessage(
     };
   }
 
-  // 3. Dataset Compiler chunk broadcast (Port 8100)
+  // 3. Dataset Compiler chunk broadcast
   if (typeof raw.chunk === "string") {
     const cleanMsg = cleanAnsiAndControlChars(raw.chunk);
     if (!cleanMsg) return null;

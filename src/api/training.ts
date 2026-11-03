@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Training Suite (Port 8200): training dispatch, jobs, evaluation and export.
+ * LemGendary AI Studio - Training Suite: training dispatch, jobs, evaluation and export.
  */
 
 import { logger } from "../utils/logger";

@@ -1,6 +1,7 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ProjectHealth, getProjectDisplayName } from "../api/types";
+import { servicePort } from "../api/config";
 
 interface ProjectCardProps {
   project: ProjectHealth;
@@ -32,7 +33,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           >
             {isOffline ? "UNKNOWN" : project.is_healthy ? "HEALTHY" : "ATTENTION"}
           </span>
-          <HelpTooltip content={isOffline ? "Status unavailable — Environment Manager (Port 8000) is offline." : project.is_healthy ? "All required packages installed without missing dependencies." : "One or more required packages are missing or mismatched."} />
+          <HelpTooltip content={isOffline ? `Status unavailable — Environment Manager (Port ${servicePort("env-manager")}) is offline.` : project.is_healthy ? "All required packages installed without missing dependencies." : "One or more required packages are missing or mismatched."} />
         </div>
       </div>
 
@@ -84,7 +85,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         >
           {isProcessing ? "Processing..." : isOffline ? "Reconcile Environment (Sidecar Required)" : "Reconcile Environment"}
         </button>
-        <HelpTooltip content={isOffline ? "Reconcile requires Environment Manager (Port 8000) to be running." : `Reconciles virtual environment for ${project.name}. Synchronizes pip wheels to match the SSOT manifest.`} />
+        <HelpTooltip content={isOffline ? `Reconcile requires Environment Manager (Port ${servicePort("env-manager")}) to be running.` : `Reconciles virtual environment for ${project.name}. Synchronizes pip wheels to match the SSOT manifest.`} />
       </div>
     </article>
   );

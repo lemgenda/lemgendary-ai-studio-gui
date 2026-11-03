@@ -274,6 +274,26 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.33 - Ecosystem Literals and Contract Parity
+
+- **Ports from the Snapshot (src/api/config.ts)**: new `servicePort(id)` and
+  `servicePortList()` read the default ports from `MESH_SERVICES`. Offline
+  notices, tooltips and aria labels (`CompilerPanel`, `HealthPanel`,
+  `HardwareCard`, `Header`, `MeshBanners`, `PipelinePanel`,
+  `ProjectCard`, compiler, config and training views, `workspaceTabs`,
+  `usePipelineControls`) use them; API header comments drop the number.
+- **Project Folders (src/api/ecosystem.ts)**: new `guiProjectFolder()` (the
+  one `kind: node` project). The offline manifest list in
+  `ConfigEditorModal`, the GUI row split in `HealthPanel` and the dataset
+  compiler offline notice take folders from the snapshot.
+- **Contracts**: `ProjectHealth.python_version` is required and nullable, as
+  in the env-manager `openapi.json`; `LLMTrainingConfig.max_seq_length` is
+  removed (the training API dropped it).
+- **Tests**: URLs, ports and the Kaggle owner come from the snapshot.
+  `ecosystem_ssot` GUI findings: 79 to 21 (only the fallback dataset list,
+  removed in GUI-2b).
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.33`.
+
 ### v2.10.32 - Ecosystem Snapshot (SSOT)
 
 - **Sync Script (scripts/sync-ecosystem.mjs, package.json)**: copies

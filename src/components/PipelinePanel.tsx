@@ -3,6 +3,7 @@ import { HelpTooltip } from "./HelpTooltip";
 import { CleanInstallConfirmDialog } from "./CleanInstallConfirmDialog";
 import { PipelineEvent } from "../api/types";
 import { PIPELINE_STEPS } from "./PipelineStepCards";
+import { servicePort } from "../api/config";
 
 interface PipelinePanelProps {
   isRunning: boolean;
@@ -141,7 +142,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           role="alert"
           style={{ fontSize: "12px", color: "var(--accent-rose)", marginTop: "8px" }}
         >
-          Environment Manager (Port 8000) is offline.
+          Environment Manager (Port {servicePort("env-manager")}) is offline.
           The pipeline cannot execute until the sidecar is launched.
         </p>
       )}

@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Environment Manager (Port 8000): hardware, health, pipeline,
+ * LemGendary AI Studio - Environment Manager: hardware, health, pipeline,
  * maintenance, documentation hub status and bug reports.
  */
 

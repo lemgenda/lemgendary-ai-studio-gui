@@ -12,6 +12,7 @@ export const FALLBACK_PROJECTS: ProjectHealth[] = ECOSYSTEM.projects
     name: p.folder,
     project_dir: `./${p.folder}`,
     venv_exists: false,
+    python_version: null,
     total_required: 0,
     total_installed: 0,
     missing_packages: [],

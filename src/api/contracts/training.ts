@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Training Suite (Port 8200) contracts: models, jobs,
+ * LemGendary AI Studio - Training Suite contracts: models, jobs,
  * Kaggle cloud training, unit tests, exports and model variations.
  */
 
@@ -241,7 +241,6 @@ export interface LLMTrainingConfig {
   epochs?: number;
   batch_size?: number;
   lr?: number;
-  max_seq_length?: number;
   env?: "local" | "kaggle" | "colab";
 }
 

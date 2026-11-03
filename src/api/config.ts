@@ -79,3 +79,9 @@ export const MESH_SERVICES: Record<ServiceId, MeshServiceConfig> = {
 
 /** Every mesh service id, Environment Manager first (it starts the others). */
 export const SERVICE_IDS: readonly ServiceId[] = Object.keys(MESH_SERVICES) as ServiceId[];
+
+/** Default port of a service from the ecosystem snapshot, for user-facing text. */
+export const servicePort = (id: ServiceId): number => MESH_SERVICES[id].defaultPort;
+
+/** Every service's default port, comma separated, for user-facing text. */
+export const servicePortList = (): string => SERVICE_IDS.map(servicePort).join(", ");

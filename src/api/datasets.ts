@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Dataset Compiler (Port 8100): catalog, presets, compilation and modernization.
+ * LemGendary AI Studio - Dataset Compiler: catalog, presets, compilation and modernization.
  */
 
 import { logger } from "../utils/logger";

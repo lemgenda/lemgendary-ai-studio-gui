@@ -48,7 +48,7 @@ export interface ProjectHealth {
   name: string;
   project_dir: string;
   venv_exists: boolean;
-  python_version?: string;
+  python_version: string | null;
   total_required: number;
   total_installed: number;
   missing_packages: string[];

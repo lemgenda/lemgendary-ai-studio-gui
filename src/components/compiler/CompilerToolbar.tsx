@@ -1,5 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
+import { servicePort } from "../../api/config";
 
 export interface CompilerToolbarProps {
   activeSectionTab: "catalog" | "modernize" | "reduction";
@@ -152,7 +153,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           >
             <span>{isRefreshing ? "Refreshing..." : "Refresh Catalog"}</span>
           </button>
-          <HelpTooltip content="Poll port 8100 sidecar to detect local disk changes and Kaggle Cloud sync status." />
+          <HelpTooltip content={`Poll port ${servicePort("dataset-compiler")} sidecar to detect local disk changes and Kaggle Cloud sync status.`} />
         </div>
       </div>
 

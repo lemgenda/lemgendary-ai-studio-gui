@@ -21,6 +21,7 @@ import {
   startService,
   stopService,
 } from "../client";
+import { MESH_SERVICES } from "../config";
 
 const invokeMock = vi.mocked(invoke);
 const isTauriMock = vi.mocked(isTauri);
@@ -62,7 +63,7 @@ describe("service control routing", () => {
   it("starts a service through the Environment Manager when it is online", async () => {
     const startUrl = `${ENV_BASE}/api/services/training-suite/start`;
     const fetchMock = stubFetch(true, {
-      [startUrl]: () => new Response(JSON.stringify({ status: "started", message: "ok", port: 8200 })),
+      [startUrl]: () => new Response(JSON.stringify({ status: "started", message: "ok", port: MESH_SERVICES["training-suite"].defaultPort })),
     });
 
     const res = await startService("training-suite");
@@ -178,14 +179,14 @@ describe("documentation hub", () => {
 
   it("opens the hub with the Tauri shell in the desktop app and window.open in a browser", async () => {
     isTauriMock.mockReturnValue(true);
-    await openExternalUrl("http://127.0.0.1:8000/documentation-hub/index.html");
-    expect(shellOpenMock).toHaveBeenCalledWith("http://127.0.0.1:8000/documentation-hub/index.html");
+    await openExternalUrl(`${ENV_BASE}/documentation-hub/index.html`);
+    expect(shellOpenMock).toHaveBeenCalledWith(`${ENV_BASE}/documentation-hub/index.html`);
 
     isTauriMock.mockReturnValue(false);
     const fakeWindow = { opener: {} } as unknown as Window;
     const openSpy = vi.spyOn(window, "open").mockReturnValue(fakeWindow);
-    await openExternalUrl("http://127.0.0.1:8000/documentation-hub/index.html");
-    expect(openSpy).toHaveBeenCalledWith("http://127.0.0.1:8000/documentation-hub/index.html", "_blank");
+    await openExternalUrl(`${ENV_BASE}/documentation-hub/index.html`);
+    expect(openSpy).toHaveBeenCalledWith(`${ENV_BASE}/documentation-hub/index.html`, "_blank");
     expect(fakeWindow.opener).toBeNull();
     openSpy.mockRestore();
   });

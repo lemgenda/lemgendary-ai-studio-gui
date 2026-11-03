@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Dataset Compiler (Port 8100) contracts: catalog, presets,
+ * LemGendary AI Studio - Dataset Compiler contracts: catalog, presets,
  * compilation jobs, Kaggle datasets and modernization.
  */
 

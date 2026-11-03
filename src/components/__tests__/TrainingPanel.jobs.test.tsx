@@ -6,6 +6,7 @@ import { TrainingPanel } from "../TrainingPanel";
 import { useStudioStore } from "../../store/useStudioStore";
 import { FALLBACK_MODELS } from "../training/fallbackModels";
 import { ModelItem, PipelineEvent, TrainingJobInfo } from "../../api/types";
+import { servicePort } from "../../api/config";
 import * as client from "../../api/client";
 
 vi.mock("../../api/client", async (importOriginal) => {
@@ -49,7 +50,7 @@ function trainingEvent(jobId: string, jobType: string, message: string): Pipelin
     message,
     data: { job_id: jobId, job_type: jobType },
     origin: "training-suite",
-    port: 8200,
+    port: servicePort("training-suite"),
   };
 }
 

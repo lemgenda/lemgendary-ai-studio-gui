@@ -8,6 +8,7 @@ import { SecretsEditorTab } from "./config/SecretsEditorTab";
 import { fetchManifestRegistry, fetchSecrets } from "../api/client";
 import { ManifestItem, SecretDraft } from "../api/types";
 import { logger } from "../utils/logger";
+import { ecosystemService, guiProjectFolder } from "../api/ecosystem";
 
 type ConfigTab = "manifests" | "secrets";
 
@@ -48,12 +49,12 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
     } catch (err: unknown) {
       logger.warn("Manifest registry is unreachable; showing the offline manifest list", err);
       setManifests([
-        { name: "unified_data.yaml", project: "lemgendary-datasets", format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
-        { name: "unified_models_v2.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
-        { name: "config.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Global training execution and hardware governor configuration.", exists: true, size_bytes: 0, path: null },
-        { name: "presets.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Canonical training and evaluation preset profiles.", exists: true, size_bytes: 0, path: null },
-        { name: "runtime_env.yaml", project: "lemgendary-env-manager", format: "yaml", description: "Runtime platform specifications and dependency matrices.", exists: true, size_bytes: 0, path: null },
-        { name: "package.json", project: "lemgendary-ai-studio-gui", format: "json", description: "Desktop GUI Tauri v2 and React package manifest.", exists: true, size_bytes: 0, path: null },
+        { name: "unified_data.yaml", project: ecosystemService("dataset-compiler").project, format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
+        { name: "unified_models_v2.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
+        { name: "config.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Global training execution and hardware governor configuration.", exists: true, size_bytes: 0, path: null },
+        { name: "presets.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Canonical training and evaluation preset profiles.", exists: true, size_bytes: 0, path: null },
+        { name: "runtime_env.yaml", project: ecosystemService("env-manager").project, format: "yaml", description: "Runtime platform specifications and dependency matrices.", exists: true, size_bytes: 0, path: null },
+        { name: "package.json", project: guiProjectFolder(), format: "json", description: "Desktop GUI Tauri v2 and React package manifest.", exists: true, size_bytes: 0, path: null },
       ]);
       setSelectedName((prev) => prev || "unified_data.yaml");
     }

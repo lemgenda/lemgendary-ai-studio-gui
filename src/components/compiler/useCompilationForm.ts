@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { downloadKaggleDataset, triggerCustomCompile, triggerQuickCompile } from "../../api/client";
 import { CompilationFormControls } from "./DatasetCompilationForm";
+import { servicePort } from "../../api/config";
 
 export interface CompilationFormDeps {
   datasetCompilerOnline: boolean;
@@ -49,7 +50,7 @@ export function useCompilationForm({
   // Standard Compile Handler
   const handleCompile = async () => {
     if (!datasetCompilerOnline) {
-      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
+      setCompileStatus(`Compilation failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is not reachable.`);
       return;
     }
     setIsCompiling(true);
@@ -72,7 +73,7 @@ export function useCompilationForm({
   // Custom Multi-Source Compile Handler
   const handleCustomCompile = async () => {
     if (!datasetCompilerOnline) {
-      setCustomCompileStatus("Custom compile failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
+      setCustomCompileStatus(`Custom compile failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is not reachable.`);
       return;
     }
     const trimmedName = customName.trim();
@@ -117,7 +118,7 @@ export function useCompilationForm({
   // Custom Kaggle Slug Download Handler
   const handleCustomKaggleDownload = async () => {
     if (!datasetCompilerOnline) {
-      setDownloadStatus("Kaggle download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setDownloadStatus(`Kaggle download failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const targetRef = customKaggleRef.trim();

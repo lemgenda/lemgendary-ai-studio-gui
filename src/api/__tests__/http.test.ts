@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CLIENT_HEADER, CLIENT_HEADER_VALUE, sidecarFetch } from "../http";
+import { MESH_SERVICES } from "../config";
+
+const ENV_URL = MESH_SERVICES["env-manager"].httpUrl;
 
 describe("sidecarFetch", () => {
   afterEach(() => {
@@ -10,7 +13,7 @@ describe("sidecarFetch", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("{}"));
     vi.stubGlobal("fetch", fetchMock);
 
-    await sidecarFetch("http://127.0.0.1:8000/api/health");
+    await sidecarFetch(`${ENV_URL}/api/health`);
 
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(new Headers(init.headers).get(CLIENT_HEADER)).toBe(CLIENT_HEADER_VALUE);
@@ -20,7 +23,7 @@ describe("sidecarFetch", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("{}"));
     vi.stubGlobal("fetch", fetchMock);
 
-    await sidecarFetch("http://127.0.0.1:8000/api/clean", {
+    await sidecarFetch(`${ENV_URL}/api/clean`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
@@ -28,7 +31,7 @@ describe("sidecarFetch", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const headers = new Headers(init.headers);
-    expect(url).toBe("http://127.0.0.1:8000/api/clean");
+    expect(url).toBe(`${ENV_URL}/api/clean`);
     expect(init.method).toBe("POST");
     expect(init.body).toBe("{}");
     expect(headers.get("Content-Type")).toBe("application/json");

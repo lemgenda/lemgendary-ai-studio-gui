@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { fetchDocsStatus, openExternalUrl } from "../api/client";
 import { logger } from "../utils/logger";
+import { servicePortList } from "../api/config";
 
 interface HeaderProps {
   title: string;
@@ -152,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {isRefreshing ? "Refreshing..." : "Refresh Audit"}
           </button>
-          <HelpTooltip content={`Query all active sidecars (ports 8000, 8100, 8200) to refresh hardware metrics, virtual environments, and pipeline states. Environment Manager status: ${envManagerOnline ? "Online" : "Offline"}.`} />
+          <HelpTooltip content={`Query all active sidecars (ports ${servicePortList()}) to refresh hardware metrics, virtual environments, and pipeline states. Environment Manager status: ${envManagerOnline ? "Online" : "Offline"}.`} />
         </div>
       </div>
     </header>

@@ -4,6 +4,7 @@ import { ValidationBanner } from "../common/ValidationBanner";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { SecretDraft, SecretsSaveResponse } from "../../api/types";
 import { fetchSecrets, saveSecrets } from "../../api/client";
+import { servicePort } from "../../api/config";
 
 export interface ServiceDefinition {
   key: string;
@@ -224,7 +225,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
       const detail = err instanceof Error ? err.message : String(err);
       setSecretsErrorMsg(
         `Secrets could not be saved: ${detail}. ` +
-        "Check that the Environment Manager (port 8000) is running."
+        `Check that the Environment Manager (port ${servicePort("env-manager")}) is running.`
       );
     } finally {
       setIsSecretsSaving(false);

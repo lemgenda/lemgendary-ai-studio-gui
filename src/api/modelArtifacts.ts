@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Training Suite (Port 8200) notebooks, model docs and variations.
+ * LemGendary AI Studio - Training Suite notebooks, model docs and variations.
  */
 
 import { TRAINING_BASE } from "./endpoints";

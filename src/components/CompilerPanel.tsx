@@ -27,6 +27,7 @@ import { ValidationBanner } from "./common/ValidationBanner";
 import { useCompilationForm } from "./compiler/useCompilationForm";
 import { logger } from "../utils/logger";
 import { useTransientValue } from "../utils/useTransientValue";
+import { servicePort } from "../api/config";
 
 interface CompilerPanelProps {
   datasetCompilerOnline?: boolean;
@@ -103,7 +104,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         setDatasets(FALLBACK_DATASETS);
         setSelectedManifold((prev) => prev || "upn_v2");
         if (!datasetCompilerOnline) {
-          showRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying offline placeholder catalog (not live data).");
+          showRefreshFeedback(`Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. Displaying offline placeholder catalog (not live data).`);
         }
       }
 
@@ -115,7 +116,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       }
     } catch (err: unknown) {
       logger.error("Dataset Compiler refresh failed", err);
-      showRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
+      showRefreshFeedback(`Failed to query Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}).`);
     } finally {
       setIsRefreshing(false);
     }
@@ -135,7 +136,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Per-Dataset Card Actions
   const handleDownloadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Download failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const ref = dataset.kaggle_ref || dataset.key;
@@ -160,7 +161,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const handleUploadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Upload failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Upload failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const manifoldFolder = dataset.modernized_folder || dataset.key;
@@ -183,7 +184,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const handleUpdateMetadataSingle = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Metadata update failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Metadata update failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const manifoldFolder = dataset.modernized_folder || dataset.key;

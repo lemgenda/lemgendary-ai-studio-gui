@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Training Suite (Port 8200) model catalog normalization.
+ * LemGendary AI Studio - Training Suite model catalog normalization.
  */
 
 import { logger } from "../utils/logger";

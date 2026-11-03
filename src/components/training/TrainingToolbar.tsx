@@ -1,5 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
+import { servicePort } from "../../api/config";
 
 export interface TrainingToolbarProps {
   searchQuery: string;
@@ -107,7 +108,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
           >
             <span>{isRefreshing ? "Refreshing..." : "Refresh Models"}</span>
           </button>
-          <HelpTooltip content="Poll port 8200 sidecar to update model weights status, metrics.csv progress, and resolution ladder completion." />
+          <HelpTooltip content={`Poll port ${servicePort("training-suite")} sidecar to update model weights status, metrics.csv progress, and resolution ladder completion.`} />
         </div>
       </div>
 

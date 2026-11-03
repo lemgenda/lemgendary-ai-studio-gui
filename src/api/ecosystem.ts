@@ -75,3 +75,12 @@ export function ecosystemProject(folder: string): EcosystemProject {
   }
   return project;
 }
+
+/** Folder of the desktop GUI project: the snapshot's single `kind: node` project. */
+export function guiProjectFolder(): string {
+  const nodeProjects = ECOSYSTEM.projects.filter((p) => p.kind === "node");
+  if (nodeProjects.length !== 1) {
+    throw new Error(`Expected one "node" project in src/generated/ecosystem.json, found ${nodeProjects.length}.`);
+  }
+  return nodeProjects[0].folder;
+}

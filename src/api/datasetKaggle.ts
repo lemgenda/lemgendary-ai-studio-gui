@@ -1,5 +1,5 @@
 /**
- * LemGendary AI Studio - Dataset Compiler (Port 8100) Kaggle dataset sync.
+ * LemGendary AI Studio - Dataset Compiler Kaggle dataset sync.
  */
 
 import { logger } from "../utils/logger";

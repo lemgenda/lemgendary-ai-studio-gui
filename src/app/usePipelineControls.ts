@@ -7,6 +7,7 @@ import { MutableRefObject } from "react";
 import { triggerPipeline, triggerPipelineStep } from "../api/client";
 import { useStudioStore } from "../store/useStudioStore";
 import { logger } from "../utils/logger";
+import { servicePort } from "../api/config";
 
 export interface PipelineControlDeps {
   runningSingleStepRef: MutableRefObject<number | null>;
@@ -29,7 +30,7 @@ export function usePipelineControls({ runningSingleStepRef, setRefreshError }: P
       await triggerPipeline({ clean });
     } catch (err: unknown) {
       logger.error("Pipeline trigger failed", err);
-      setRefreshError("Pipeline trigger failed: Environment Manager (Port 8000) is not reachable.");
+      setRefreshError(`Pipeline trigger failed: Environment Manager (Port ${servicePort("env-manager")}) is not reachable.`);
       setIsRunningPipeline(false);
     }
   };
@@ -41,7 +42,7 @@ export function usePipelineControls({ runningSingleStepRef, setRefreshError }: P
       await triggerPipeline({ clean: false, targetProject: projectName });
     } catch (err: unknown) {
       logger.error(`Reconcile failed for ${projectName}`, err);
-      setRefreshError(`Reconcile failed for ${projectName}: Environment Manager (Port 8000) is not reachable.`);
+      setRefreshError(`Reconcile failed for ${projectName}: Environment Manager (Port ${servicePort("env-manager")}) is not reachable.`);
       setIsRunningPipeline(false);
     }
   };
@@ -53,7 +54,7 @@ export function usePipelineControls({ runningSingleStepRef, setRefreshError }: P
       await triggerPipelineStep(stepNumber, false);
     } catch (err: unknown) {
       logger.error(`Pipeline step ${stepNumber} trigger failed`, err);
-      setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port 8000) is not reachable.`);
+      setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port ${servicePort("env-manager")}) is not reachable.`);
       runningSingleStepRef.current = null;
       setIsRunningPipeline(false);
     }

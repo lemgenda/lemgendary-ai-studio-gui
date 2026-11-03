@@ -4,6 +4,9 @@ import { TelemetryProgressTracker } from "../TelemetryProgressTracker";
 import { parseProgressMessage } from "../../../utils/progressParser";
 import { rollupTelemetryEvents } from "../../../api/client";
 import { PipelineEvent } from "../../../api/types";
+import { ECOSYSTEM } from "../../../api/ecosystem";
+
+const MANIFOLD_REF = `${ECOSYSTEM.identity.kaggle_owner}/manifold_eurusd_1m`;
 
 describe("TelemetryProgressTracker & progressParser", () => {
   it("parses dataset archiving progress and renders accessible progressbar", () => {
@@ -120,12 +123,12 @@ describe("TelemetryProgressTracker & progressParser", () => {
   });
 
   it("parses Kaggle server-side extraction progress and renders compiler badge and percentage", () => {
-    const raw = "KAGGLE EXTRACTION: lemtreursi/manifold_eurusd_1m - 45% [18s, PROCESSING (45% files)]";
+    const raw = `KAGGLE EXTRACTION: ${MANIFOLD_REF} - 45% [18s, PROCESSING (45% files)]`;
     const parsed = parseProgressMessage(raw, "Compiler");
     expect(parsed).not.toBeNull();
     expect(parsed?.percentage).toBe(45);
     expect(parsed?.operation).toBe("KAGGLE EXTRACTION");
-    expect(parsed?.target).toBe("lemtreursi/manifold_eurusd_1m");
+    expect(parsed?.target).toBe(MANIFOLD_REF);
     expect(parsed?.numericStats).toBe("18s, PROCESSING (45% files)");
     expect(parsed?.source).toBe("compiler");
 
@@ -133,7 +136,7 @@ describe("TelemetryProgressTracker & progressParser", () => {
       <TelemetryProgressTracker progress={parsed} />
     );
     expect(html).toContain("KAGGLE EXTRACTION");
-    expect(html).toContain("lemtreursi/manifold_eurusd_1m");
+    expect(html).toContain(MANIFOLD_REF);
     expect(html).toContain("45.0%");
     expect(html).toContain("18s, PROCESSING (45% files)");
   });
@@ -157,7 +160,7 @@ describe("TelemetryProgressTracker & progressParser", () => {
   });
 
   it("parses 100% completion progress event cleanly and renders completion", () => {
-    const raw = "KAGGLE EXTRACTION: lemtreursi/manifold_eurusd_1m - 100% [42s, COMPLETE]";
+    const raw = `KAGGLE EXTRACTION: ${MANIFOLD_REF} - 100% [42s, COMPLETE]`;
     const parsed = parseProgressMessage(raw, "Compiler");
     expect(parsed).not.toBeNull();
     expect(parsed?.percentage).toBe(100);
