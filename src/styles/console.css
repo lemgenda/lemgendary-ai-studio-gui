@@ -1,0 +1,104 @@
+/* LemGendary AI Studio - Console, log panel and status bar. */
+
+/* Console & Log Panel */
+.log-container {
+  background-color: #06090e;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  height: 280px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-line {
+  display: flex;
+  gap: 10px;
+  word-break: break-all;
+}
+
+.log-time {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.log-tag-info {
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-tag-success {
+  color: var(--accent-emerald);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-tag-warning {
+  color: var(--accent-amber);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-tag-error {
+  color: var(--accent-rose);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-step {
+  color: var(--accent-purple);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-message {
+  color: var(--text-secondary);
+}
+
+.log-error {
+  color: var(--accent-rose);
+}
+
+.log-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 24px 8px;
+}
+
+/* Status Bar */
+.status-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-online {
+  background-color: var(--accent-emerald);
+  box-shadow: 0 0 6px var(--accent-emerald);
+}
+
+.status-offline {
+  background-color: var(--accent-rose);
+}

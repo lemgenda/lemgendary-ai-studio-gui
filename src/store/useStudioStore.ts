@@ -7,18 +7,27 @@ import {
   ModelItem,
   DatasetItem,
 } from "../api/types";
+import { DEFAULT_TAB_ID, isWorkspaceTabId } from "../navigation/workspaceTabs";
 
 export interface ActiveJobState {
   jobId: string | null;
   modelKey: string | null;
 }
 
+/** The app-level modals; at most one is open at a time. */
+export type StudioModalId = "config" | "tests" | "bug-report";
+
 export interface StudioState {
   // Navigation
   currentTab: string;
   setCurrentTab: (tab: string) => void;
 
-  // Tripartite Sidecar Mesh Status (8000, 8100, 8200)
+  // The open app-level modal (one field, so two modals can never be open at once)
+  activeModal: StudioModalId | null;
+  openModal: (modal: StudioModalId) => void;
+  closeModal: () => void;
+
+  // Tripartite Sidecar Mesh Status (ports from src/generated/ecosystem.json)
   meshStatus: MeshStatus;
   setMeshStatus: (status: MeshStatus | ((prev: MeshStatus) => MeshStatus)) => void;
 
@@ -66,16 +75,31 @@ const getInitialTab = (): string => {
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["dashboard", "datasets", "training", "pipeline", "health"].includes(tab)) {
+    if (isWorkspaceTabId(tab)) {
       return tab;
     }
   }
-  return "dashboard";
+  return DEFAULT_TAB_ID;
+};
+
+/** `?modal=config` or `?modal=secrets` opens the config editor on start. */
+const getInitialModal = (): StudioModalId | null => {
+  if (typeof window !== "undefined") {
+    const modal = new URLSearchParams(window.location.search).get("modal");
+    if (modal === "config" || modal === "secrets") {
+      return "config";
+    }
+  }
+  return null;
 };
 
 export const useStudioStore = create<StudioState>((set) => ({
   currentTab: getInitialTab(),
   setCurrentTab: (tab) => set({ currentTab: tab }),
+
+  activeModal: getInitialModal(),
+  openModal: (modal) => set({ activeModal: modal }),
+  closeModal: () => set({ activeModal: null }),
 
   meshStatus: {
     envManager: false,

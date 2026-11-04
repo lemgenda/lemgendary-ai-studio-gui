@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { ConfirmDialog } from "./common/ConfirmDialog";
 import { HealthAuditReport } from "../api/types";
 import {
   triggerSafeUpdate,
@@ -8,6 +9,8 @@ import {
   installGitHooks,
   runEcosystemValidation,
 } from "../api/client";
+import { servicePort } from "../api/config";
+import { guiProjectFolder } from "../api/ecosystem";
 
 interface HealthPanelProps {
   report: HealthAuditReport | null;
@@ -21,6 +24,8 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [maintenanceFeedback, setMaintenanceFeedback] = useState<string | null>(null);
   const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+  /** Destructive maintenance action waiting for confirmation. */
+  const [pendingAction, setPendingAction] = useState<"upgrade" | "purge" | null>(null);
   if (!report) {
     return (
       <section className="card" aria-labelledby="health-offline-title">
@@ -31,7 +36,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
         </div>
         <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
-          Health audit requires Environment Manager (Port 8000).
+          Health audit requires Environment Manager (Port {servicePort("env-manager")}).
           Launch it to populate the toolchain prerequisite matrix and cross-project version drift table.
         </p>
         {onStartEnvManager && (
@@ -39,7 +44,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             type="button"
             className="btn btn-primary"
             onClick={onStartEnvManager}
-            aria-label="Launch the Environment Manager sidecar on Port 8000"
+            aria-label={`Launch the Environment Manager sidecar on Port ${servicePort("env-manager")}`}
           >
             Start Environment Manager
           </button>
@@ -57,7 +62,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       setMaintenanceFeedback(
         dryRun
           ? "Safe upgrade dry run complete. See logs for package version diffs."
-          : `Safe package update initiated (Status: ${res.status}).`
+          : res.status === "accepted"
+            ? `Safe package update started in the background (job ${res.job_id ?? "unknown"}). Progress appears in the logs.`
+            : `Safe package update: ${res.status}.`
       );
     } catch (err: unknown) {
       setMaintenanceError(`Safe update failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -114,10 +121,10 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
   };
 
   const pythonProjects = report.projects.filter(
-    (p) => p.name !== "lemgendary-ai-studio-gui"
+    (p) => p.name !== guiProjectFolder()
   );
   const projNames = pythonProjects.map((p) => p.name);
-  const guiProject = report.projects.find((p) => p.name === "lemgendary-ai-studio-gui");
+  const guiProject = report.projects.find((p) => p.name === guiProjectFolder());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -298,7 +305,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             <h3 id="maintenance-actions-title" style={{ fontSize: "16px", fontWeight: 600 }}>
               Ecosystem Maintenance &amp; Governance
             </h3>
-            <HelpTooltip content="Operational maintenance routines executed by Environment Manager (Port 8000): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation." />
+            <HelpTooltip content={`Operational maintenance routines executed by Environment Manager (Port ${servicePort("env-manager")}): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation.`} />
           </div>
           <span className="badge badge-info">MAINTENANCE</span>
         </div>
@@ -312,7 +319,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             id="health-btn-safe-upgrade"
             type="button"
             className="btn btn-primary"
-            onClick={() => handleSafeUpdate(false)}
+            onClick={() => setPendingAction("upgrade")}
             disabled={isUpdating}
             style={{ fontSize: "12px", padding: "8px 14px", fontWeight: 600 }}
           >
@@ -334,7 +341,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             id="health-btn-deep-clean"
             type="button"
             className="btn btn-secondary"
-            onClick={handleDeepClean}
+            onClick={() => setPendingAction("purge")}
             disabled={isCleaning}
             style={{ fontSize: "12px", padding: "8px 14px" }}
           >
@@ -380,6 +387,25 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           />
         )}
       </section>
+
+      <ConfirmDialog
+        isOpen={pendingAction !== null}
+        id="health-dialog-confirm"
+        title={pendingAction === "purge" ? "Purge workspace caches?" : "Upgrade packages?"}
+        message={
+          pendingAction === "purge"
+            ? "Deep Cache Purge deletes __pycache__ folders, build caches and temporary artifacts across all workspace projects. They are rebuilt on the next run, which can be slow."
+            : "Safe Package Upgrade installs newer package versions into every project virtual environment. Run Upgrade Dry Run first to see what would change."
+        }
+        confirmLabel={pendingAction === "purge" ? "Purge caches" : "Upgrade packages"}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          if (action === "purge") void handleDeepClean();
+          else if (action === "upgrade") void handleSafeUpdate(false);
+        }}
+      />
     </div>
   );
 };

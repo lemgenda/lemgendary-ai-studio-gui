@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseProgressMessage } from "../progressParser";
+import { servicePort } from "../../api/config";
 
 describe("parseProgressMessage", () => {
   it("parses training batch ratios and percentage", () => {
@@ -37,7 +38,7 @@ describe("parseProgressMessage", () => {
   });
 
   it("returns null for non-progress messages", () => {
-    expect(parseProgressMessage("Server started on port 8200")).toBeNull();
+    expect(parseProgressMessage(`Server started on port ${servicePort("training-suite")}`)).toBeNull();
     expect(parseProgressMessage("")).toBeNull();
   });
 });

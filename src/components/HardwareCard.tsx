@@ -1,6 +1,7 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { HardwareProfile } from "../api/types";
+import { servicePort } from "../api/config";
 
 interface HardwareCardProps {
   hardware: HardwareProfile | null;
@@ -18,7 +19,7 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnv
           <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
         </div>
         <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
-          Environment Manager (Port 8000) is not reachable.
+          Environment Manager (Port {servicePort("env-manager")}) is not reachable.
           Hardware metrics, Python runtime, and accelerator data are unavailable.
         </p>
         {onStartEnvManager && (
@@ -26,7 +27,7 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnv
             type="button"
             className="btn btn-primary"
             onClick={onStartEnvManager}
-            aria-label="Launch the Environment Manager sidecar on Port 8000"
+            aria-label={`Launch the Environment Manager sidecar on Port ${servicePort("env-manager")}`}
           >
             Start Environment Manager
           </button>

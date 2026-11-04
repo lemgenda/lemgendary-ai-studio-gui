@@ -1,6 +1,8 @@
 import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { ExternalLink } from "./common/ExternalLink";
 import { MeshStatus } from "../api/types";
+import { WORKSPACE_TABS } from "../navigation/workspaceTabs";
 import lemgendaIcon from "../branding/lemgenda-icon.svg";
 import lemgendaLogo from "../branding/lemgenda-logo.svg";
 
@@ -24,13 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     health: meshStatus.envManager,
   };
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", tooltip: "Ecosystem overview: system hardware, quick clean install orchestrator, managed project environments, and live log stream." },
-    { id: "datasets", label: "LemGendary Dataset Compiler Suite", tooltip: "Port 8100 sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation." },
-    { id: "training", label: "LemGendary Model Training Suite", tooltip: "Port 8200 sidecar: neural architecture cards, Sawtooth Governor VRAM telemetry, spatial ladder progression, and training dispatch." },
-    { id: "pipeline", label: "Clean Install Pipeline", tooltip: "Deterministic 7-step environment recreation, toolchain audit, wheel cache purging, and bytecode verification." },
-    { id: "health", label: "Health & Version Drift", tooltip: "Host toolchain prerequisites audit and cross-project package version comparison matrix." },
-  ];
+  const navItems = WORKSPACE_TABS;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = -1;
@@ -72,19 +68,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="nav-menu" role="tablist" aria-orientation="vertical" aria-label="Workspace Sections">
+      {/* Navigation, not a tablist: each entry has a help button next to it, which a tablist may not contain. */}
+      <nav className="nav-menu" aria-label="Workspace Sections">
         {navItems.map((item, index) => {
           const isSelected = currentTab === item.id;
           const isOnline = tabSidecarOnline[item.id] ?? false;
           return (
-            <div key={item.id} className="nav-item-wrapper" style={{ display: "flex", alignItems: "center", position: "relative" }}>
+            <div key={item.id} className="nav-item-wrapper">
               <button
                 id={`tab-${item.id}`}
                 type="button"
-                role="tab"
-                tabIndex={isSelected ? 0 : -1}
-                aria-selected={isSelected}
-                aria-controls={`panel-${item.id}`}
+                aria-current={isSelected ? "page" : undefined}
+                aria-controls="main-content"
                 className={`nav-item ${isSelected ? "active" : ""}`}
                 style={{ flex: 1, paddingRight: "36px" }}
                 onClick={() => onSelectTab(item.id)}
@@ -103,23 +98,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           );
         })}
-      </div>
+      </nav>
 
-      <div className="sidebar-brand-footer" style={{ padding: "16px 8px 4px", borderTop: "1px solid var(--border-color)", marginTop: "auto", display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <a
+      <div className="sidebar-brand-footer">
+        <ExternalLink
           href="https://www.lemgenda.hr/"
-          target="_blank"
-          rel="noopener noreferrer"
           className="sidebar-brand-link"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            padding: "4px 0",
-            background: "transparent",
-            textDecoration: "none",
-          }}
           aria-label="Visit LemGenda Official Website (https://www.lemgenda.hr/)"
         >
           <img
@@ -134,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               transition: "transform 0.2s ease, opacity 0.2s ease",
             }}
           />
-        </a>
+        </ExternalLink>
       </div>
     </aside>
   );

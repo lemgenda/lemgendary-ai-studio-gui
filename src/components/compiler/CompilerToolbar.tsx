@@ -1,5 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
+import { servicePort } from "../../api/config";
 
 export interface CompilerToolbarProps {
   activeSectionTab: "catalog" | "modernize" | "reduction";
@@ -87,6 +88,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           >
             <button
               type="button"
+              aria-pressed={activeSectionTab === "catalog"}
               className={`btn ${activeSectionTab === "catalog" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("catalog")}
               style={{ fontSize: "11px", padding: "4px 10px" }}
@@ -95,6 +97,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
             </button>
             <button
               type="button"
+              aria-pressed={activeSectionTab === "modernize"}
               className={`btn ${activeSectionTab === "modernize" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("modernize")}
               style={{ fontSize: "11px", padding: "4px 10px" }}
@@ -103,6 +106,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
             </button>
             <button
               type="button"
+              aria-pressed={activeSectionTab === "reduction"}
               className={`btn ${activeSectionTab === "reduction" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("reduction")}
               style={{ fontSize: "11px", padding: "4px 10px" }}
@@ -149,7 +153,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           >
             <span>{isRefreshing ? "Refreshing..." : "Refresh Catalog"}</span>
           </button>
-          <HelpTooltip content="Poll port 8100 sidecar to detect local disk changes and Kaggle Cloud sync status." />
+          <HelpTooltip content={`Poll port ${servicePort("dataset-compiler")} sidecar to detect local disk changes and Kaggle Cloud sync status.`} />
         </div>
       </div>
 
@@ -171,6 +175,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <div style={{ flex: "1 1 220px", position: "relative" }}>
             <input
               type="text"
+              aria-label="Filter manifolds by name, format or task"
               placeholder="Filter by manifold name, format, task..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -181,6 +186,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
+                aria-label="Clear manifold filter"
                 style={{
                   position: "absolute",
                   right: "8px",
@@ -204,6 +210,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               Status:
             </span>
             <select
+              aria-label="Status filter"
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
               className="editor-select"
@@ -221,6 +228,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               Format:
             </span>
             <select
+              aria-label="Format filter"
               value={formatFilter}
               onChange={(e) => onFormatFilterChange(e.target.value)}
               className="editor-select"
@@ -241,6 +249,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               Task:
             </span>
             <select
+              aria-label="Task filter"
               value={taskFilter}
               onChange={(e) => onTaskFilterChange(e.target.value)}
               className="editor-select"

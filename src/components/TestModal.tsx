@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { triggerUnitTestAll } from "../api/client";
+import { Modal } from "./common/Modal";
+import { TabItem, TabList, TabPanel } from "./common/Tabs";
+import { runDatasetTestSuite, runTrainingUnitTests, triggerUnitTestAll, UnitTestSuiteResult } from "../api/client";
+
+type TestTab = "fleet" | "training_unit" | "dataset_unit";
+
+const TEST_TABS: readonly TabItem<TestTab>[] = [
+  { id: "fleet", label: "Fleet 1-Epoch Smoke Test", domId: "test-modal-tab-fleet" },
+  { id: "training_unit", label: "Training Suite Unit Tests", domId: "test-modal-tab-training" },
+  { id: "dataset_unit", label: "Dataset Compiler Tests", domId: "test-modal-tab-dataset" },
+];
 
 interface TestModalProps {
   isOpen: boolean;
@@ -16,12 +26,15 @@ export const TestModal: React.FC<TestModalProps> = ({
   datasetCompilerOnline,
   onLogMessage,
 }) => {
-  const [activeTab, setActiveTab] = useState<"fleet" | "training_unit" | "dataset_unit">("fleet");
+  const [activeTab, setActiveTab] = useState<TestTab>("fleet");
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [output, setOutput] = useState<string | null>(null);
-  const [statusState, setStatusState] = useState<"idle" | "running" | "passed" | "failed">("idle");
+  const [statusState, setStatusState] = useState<"idle" | "running" | "queued" | "passed" | "failed">("idle");
 
-  if (!isOpen) return null;
+  const describeFailures = (result: UnitTestSuiteResult): string => {
+    const names = [...result.failures, ...result.errors];
+    return names.length > 0 ? names.join(", ") : "none reported";
+  };
 
   const handleRunFleetDiagnostic = async () => {
     setIsRunning(true);
@@ -29,8 +42,8 @@ export const TestModal: React.FC<TestModalProps> = ({
     setOutput("Dispatching fleet diagnostic unit test pass across all 23 registered neural architectures (epochs=1)...");
     try {
       const res = await triggerUnitTestAll({ epochs: 1, env: "local", force: false });
-      setOutput(`Fleet diagnostic job enqueued successfully!\nJob ID: ${res.job_id}\nStatus: ${res.status}\nMessage: ${res.message}\nCheck live telemetry stream for per-architecture loss convergence.`);
-      setStatusState("passed");
+      setOutput(`Fleet diagnostic job enqueued.\nJob ID: ${res.job_id}\nStatus: ${res.status}\nMessage: ${res.message}\nCheck the live telemetry stream for per-architecture results.`);
+      setStatusState("queued");
       onLogMessage?.(`Fleet diagnostic pass dispatched (Job ID: ${res.job_id})`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -46,20 +59,12 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Training Suite unit tests (models, governance, export, LLM causal engine)...");
     try {
-      const resp = await fetch("http://127.0.0.1:8200/api/training/unit-test-run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pattern: "test_*.py" }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Server returned HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
+      const data = await runTrainingUnitTests({ pattern: "test_*.py" });
       if (data.status === "passed") {
         setOutput(`[PASS] All ${data.tests_run} unit tests passed cleanly with 0 failures and 0 errors!`);
         setStatusState("passed");
       } else {
-        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailures: ${data.failures.join(", ")}`);
+        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailing tests: ${describeFailures(data)}`);
         setStatusState("failed");
       }
     } catch (err: unknown) {
@@ -76,20 +81,12 @@ export const TestModal: React.FC<TestModalProps> = ({
     setStatusState("running");
     setOutput("Executing in-process Dataset Compiler unit tests (tools.llm_helper, quality validator, chunker)...");
     try {
-      const resp = await fetch("http://127.0.0.1:8100/api/llm/test-suite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pattern: "test_*.py" }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Server returned HTTP ${resp.status}`);
-      }
-      const data = await resp.json();
+      const data = await runDatasetTestSuite({ pattern: "test_*.py" });
       if (data.status === "passed") {
         setOutput(`[PASS] All ${data.tests_run} dataset compiler tests passed cleanly with 0 errors!`);
         setStatusState("passed");
       } else {
-        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nErrors: ${data.errors.join(", ")}`);
+        setOutput(`[FAIL] ${data.failures_count} failures, ${data.errors_count} errors across ${data.tests_run} tests.\nFailing tests: ${describeFailures(data)}`);
         setStatusState("failed");
       }
     } catch (err: unknown) {
@@ -102,60 +99,41 @@ export const TestModal: React.FC<TestModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="test-modal-title">
-      <div className="modal-content" style={{ maxWidth: "760px", maxHeight: "88vh", overflowY: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h3 id="test-modal-title" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-              Test &amp; Diagnostic Orchestrator
-            </h3>
-            <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-danger" : statusState === "running" ? "badge-warning" : "badge-secondary"}`}>
-              {statusState.toUpperCase()}
-            </span>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      id="test-modal"
+      className="modal-content-medium"
+      title="Test & Diagnostic Orchestrator"
+      headerActions={
+        <>
+          <span className={`badge ${statusState === "passed" ? "badge-success" : statusState === "failed" ? "badge-error" : statusState === "running" ? "badge-warning" : statusState === "queued" ? "badge-info" : "badge-secondary"}`}>
+            {statusState.toUpperCase()}
+          </span>
           <button
             type="button"
             id="test-modal-btn-close"
+            className="btn btn-secondary btn-sm"
             onClick={onClose}
             aria-label="Close test modal"
-            style={{ background: "none", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: "18px", padding: "4px" }}
           >
-            X
+            Close
           </button>
-        </div>
+        </>
+      }
+    >
+          <TabList
+            idPrefix="test-modal"
+            label="Test suites"
+            items={TEST_TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            tabClassName={(selected) => `btn ${selected ? "btn-primary" : "btn-secondary"}`}
+            style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}
+            tabStyle={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
+          />
 
-        <div style={{ padding: "20px 24px" }}>
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: "8px", marginBottom: "18px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
-            <button
-              type="button"
-              id="test-modal-tab-fleet"
-              className={`btn ${activeTab === "fleet" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("fleet")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Fleet 1-Epoch Smoke Test
-            </button>
-            <button
-              type="button"
-              id="test-modal-tab-training"
-              className={`btn ${activeTab === "training_unit" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("training_unit")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Training Suite Unit Tests
-            </button>
-            <button
-              type="button"
-              id="test-modal-tab-dataset"
-              className={`btn ${activeTab === "dataset_unit" ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => setActiveTab("dataset_unit")}
-              style={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
-            >
-              Dataset Compiler Tests
-            </button>
-          </div>
-
+          <TabPanel idPrefix="test-modal" items={TEST_TABS} value={activeTab}>
           {/* Description & Action */}
           <div style={{ marginBottom: "18px" }}>
             {activeTab === "fleet" && (
@@ -239,8 +217,7 @@ export const TestModal: React.FC<TestModalProps> = ({
               </pre>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+          </TabPanel>
+    </Modal>
   );
 };

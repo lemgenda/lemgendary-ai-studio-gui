@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
+import { isTerminalEvent } from "../api/client";
+import { ECOSYSTEM } from "../api/ecosystem";
 
 export interface PipelineStepDefinition {
   num: number;
@@ -9,50 +11,13 @@ export interface PipelineStepDefinition {
   detailedDesc: string;
 }
 
-export const PIPELINE_STEPS: PipelineStepDefinition[] = [
-  {
-    num: 1,
-    name: "Hardware Discovery",
-    shortDesc: "Detects CUDA devices, driver levels, CPU architecture, and recommended PyTorch wheel index.",
-    detailedDesc: "Performs low-level hardware probing to identify NVIDIA GPUs, CUDA capabilities, cuDNN and TensorRT libraries, and system topology to pick the optimal PyTorch distribution.",
-  },
-  {
-    num: 2,
-    name: "Toolchain Audit",
-    shortDesc: "Verifies Python 3.12, Git, Node.js LTS, and toolchain prerequisites.",
-    detailedDesc: "Checks foundational toolchains including active Python interpreter version, Git availability, and required build tools before running workspace transformations.",
-  },
-  {
-    num: 3,
-    name: "Virtual Environments",
-    shortDesc: "Discovers and reconciles isolated .venv environments and node_modules across all projects.",
-    detailedDesc: "Inspects each managed project in the workspace, validates virtual environment structures, checks interpreter binaries, and ensures node_modules directories exist.",
-  },
-  {
-    num: 4,
-    name: "Requirements Sync & Install",
-    shortDesc: "Propagates centralized SSOT manifests, installs package wheels, and normalizes OpenCV.",
-    detailedDesc: "Synchronizes shared dependency declarations from centralized manifests, runs deterministic pip wheel installations with accelerator indices, and pins unified OpenCV providers.",
-  },
-  {
-    num: 5,
-    name: "Dependency Audit & Upgrades",
-    shortDesc: "Audits outdated packages, detects version drift, and applies safe non-breaking upgrades.",
-    detailedDesc: "Scans installed packages against PyPI and npm registries, verifies reverse-dependency constraints, and applies verified safe semver upgrades.",
-  },
-  {
-    num: 6,
-    name: "Codebase Verification",
-    shortDesc: "Compiles Python bytecode, verifies syntax, and enforces zero-emoji compliance.",
-    detailedDesc: "Runs py_compile across all Python sources, validates YAML and JSON schemas, audits markdown compliance, and checks for zero emoji violations across every repository.",
-  },
-  {
-    num: 7,
-    name: "Health Matrix",
-    shortDesc: "Generates complete ecosystem health report and evaluates overall system integrity.",
-    detailedDesc: "Compiles complete cross-project audit matrix covering environment statuses, package counts, missing libraries, and operational health verdicts.",
-  },
-];
+/** Pipeline steps derived from `pipeline_steps[]` in the ecosystem snapshot. */
+export const PIPELINE_STEPS: PipelineStepDefinition[] = ECOSYSTEM.pipeline_steps.map((step) => ({
+  num: step.number,
+  name: step.name,
+  shortDesc: step.short_description,
+  detailedDesc: step.long_description,
+}));
 
 interface PipelineStepCardsProps {
   isRunning: boolean;
@@ -92,7 +57,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Individual Pipeline Step Execution</h3>
-          <HelpTooltip content="Run individual pipeline stages in isolation. Useful for diagnosing specific failures, auditing dependencies, or re-compiling bytecode without triggering the full 7-step pipeline." />
+          <HelpTooltip content={`Run individual pipeline stages in isolation. Useful for diagnosing specific failures, auditing dependencies, or re-compiling bytecode without triggering the full ${PIPELINE_STEPS.length}-step pipeline.`} />
         </div>
         <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
           7 Independent Diagnostic & Reconciliation Steps
@@ -108,15 +73,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
       >
         {PIPELINE_STEPS.map((step) => {
           const latestEvent = getStepLatestEvent(step.num);
-          const isLatestCompleted = Boolean(
-            latestEvent && (
-              latestEvent.status === "success" ||
-              latestEvent.status === "error" ||
-              (latestEvent.status === "warning" && !latestEvent.is_progress) ||
-              (typeof latestEvent.message === "string" &&
-                latestEvent.message.toLowerCase().includes("completed"))
-            )
-          );
+          const isLatestCompleted = Boolean(latestEvent && isTerminalEvent(latestEvent));
           const isStepRunning =
             !isLatestCompleted &&
             ((isRunning && activeStepNum === step.num) || runningStep === step.num);
@@ -132,7 +89,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
               statusBadgeClass = "badge-success";
               statusText = "PASSED";
             } else if (latestEvent.status === "error") {
-              statusBadgeClass = "badge-danger";
+              statusBadgeClass = "badge-error";
               statusText = "FAILED";
             } else if (latestEvent.status === "warning") {
               statusBadgeClass = "badge-warning";

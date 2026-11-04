@@ -1,7 +1,9 @@
 import React from "react";
+import { ConfirmDialog } from "./common/ConfirmDialog";
 import { HelpTooltip } from "./HelpTooltip";
 import { MeshStatus } from "../api/types";
 import { ENV_BASE, DATASETS_BASE, TRAINING_BASE, MESH_SERVICES } from "../api/client";
+import { ECOSYSTEM } from "../api/ecosystem";
 
 interface ServiceTilesProps {
   meshStatus: MeshStatus;
@@ -148,6 +150,8 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
   startingServiceId,
   stoppingServiceId,
 }) => {
+  /** Service whose Stop button was pressed, waiting for confirmation. */
+  const [pendingStopId, setPendingStopId] = React.useState<string | null>(null);
   const services: Omit<ServiceCardProps, "onStartService" | "onStopService" | "isStarting" | "isStopping">[] = [
     {
       id: "env-manager",
@@ -155,7 +159,7 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
       port: MESH_SERVICES["env-manager"].defaultPort,
       url: ENV_BASE,
       description:
-        "Orchestrates virtual environments, system hardware audits, toolchain validation, and the 7-step clean install pipeline across all workspace projects.",
+        `Orchestrates virtual environments, system hardware audits, toolchain validation, and the ${ECOSYSTEM.pipeline_steps.length}-step clean install pipeline across all workspace projects.`,
       online: meshStatus.envManager,
       quickActionLabel: "Run Full System Audit",
       quickActionAriaLabel: "Trigger a full system audit via the Environment Manager pipeline",
@@ -208,12 +212,26 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
             key={svc.id}
             {...svc}
             onStartService={onStartService}
-            onStopService={onStopService}
+            onStopService={setPendingStopId}
             isStarting={startingServiceId === svc.id || startingServiceId === "all"}
             isStopping={stoppingServiceId === svc.id || stoppingServiceId === "all"}
           />
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={pendingStopId !== null}
+        id="dash-dialog-stop-service"
+        title="Stop this service?"
+        message={`${services.find((svc) => svc.id === pendingStopId)?.name ?? pendingStopId} stops now. Running jobs on it (compilations, training, pipeline steps) are interrupted.`}
+        confirmLabel="Stop service"
+        onCancel={() => setPendingStopId(null)}
+        onConfirm={() => {
+          const id = pendingStopId;
+          setPendingStopId(null);
+          if (id) void onStopService(id);
+        }}
+      />
     </section>
   );
 };

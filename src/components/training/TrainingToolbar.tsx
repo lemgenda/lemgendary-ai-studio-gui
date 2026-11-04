@@ -1,5 +1,6 @@
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
+import { servicePort } from "../../api/config";
 
 export interface TrainingToolbarProps {
   searchQuery: string;
@@ -107,7 +108,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
           >
             <span>{isRefreshing ? "Refreshing..." : "Refresh Models"}</span>
           </button>
-          <HelpTooltip content="Poll port 8200 sidecar to update model weights status, metrics.csv progress, and resolution ladder completion." />
+          <HelpTooltip content={`Poll port ${servicePort("training-suite")} sidecar to update model weights status, metrics.csv progress, and resolution ladder completion.`} />
         </div>
       </div>
 
@@ -128,6 +129,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
         <div style={{ flex: "1 1 220px", position: "relative" }}>
           <input
             type="text"
+            aria-label="Filter models by name, architecture or category"
             placeholder="Filter by model name, architecture, category..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -138,6 +140,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             <button
               type="button"
               onClick={() => onSearchChange("")}
+              aria-label="Clear model filter"
               style={{
                 position: "absolute",
                 right: "8px",
@@ -161,6 +164,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Status:
           </span>
           <select
+            aria-label="Status filter"
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
             className="editor-select"
@@ -171,6 +175,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             <option value="PARTIALLY_TRAINED">Partially Trained</option>
             <option value="WEIGHTS_READY">Weights Ready</option>
             <option value="INITIALIZING">Initializing</option>
+            <option value="UNKNOWN">Unknown</option>
           </select>
         </div>
 
@@ -180,6 +185,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Category:
           </span>
           <select
+            aria-label="Category filter"
             value={categoryFilter}
             onChange={(e) => onCategoryFilterChange(e.target.value)}
             className="editor-select"
@@ -200,6 +206,7 @@ export const TrainingToolbar: React.FC<TrainingToolbarProps> = ({
             Architecture:
           </span>
           <select
+            aria-label="Architecture filter"
             value={archFilter}
             onChange={(e) => onArchFilterChange(e.target.value)}
             className="editor-select"

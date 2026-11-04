@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { HelpTooltip } from "./HelpTooltip";
+import { Modal } from "./common/Modal";
+import { ConfirmDialog } from "./common/ConfirmDialog";
+import { TabItem, TabList, TabPanel } from "./common/Tabs";
 import { ManifestEditorTab } from "./config/ManifestEditorTab";
 import { SecretsEditorTab } from "./config/SecretsEditorTab";
 import { fetchManifestRegistry, fetchSecrets } from "../api/client";
-import { ManifestItem, SecretItem } from "../api/types";
+import { ManifestItem, SecretDraft } from "../api/types";
+import { logger } from "../utils/logger";
+import { ecosystemService, guiProjectFolder } from "../api/ecosystem";
+
+type ConfigTab = "manifests" | "secrets";
+
+const CONFIG_TABS: readonly TabItem<ConfigTab>[] = [
+  { id: "manifests", label: "Registry Manifests", ariaLabel: "Switch to Registry Manifests editor" },
+  { id: "secrets", label: "Secrets & Tokens Vault", ariaLabel: "Switch to Ecosystem Secrets & Tokens Vault" },
+];
 
 interface ConfigEditorModalProps {
   isOpen: boolean;
@@ -15,42 +27,46 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
   onClose,
 }) => {
   const initialSubtab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("subtab") : null;
-  const [activeTab, setActiveTab] = useState<"manifests" | "secrets">(initialSubtab === "secrets" ? "secrets" : "manifests");
+  const [activeTab, setActiveTab] = useState<ConfigTab>(initialSubtab === "secrets" ? "secrets" : "manifests");
+  // Unsaved manifest edits live in the manifest tab; leaving the tab or closing asks first.
+  const [manifestDirty, setManifestDirty] = useState<boolean>(false);
+  const [pendingLeave, setPendingLeave] = useState<"close" | ConfigTab | null>(null);
 
   // Manifests state
   const [manifests, setManifests] = useState<ManifestItem[]>([]);
-  const [selectedName, setSelectedName] = useState<string>("unified_data.yaml");
+  const [selectedName, setSelectedName] = useState<string>("");
 
   // Secrets state
-  const [secrets, setSecrets] = useState<SecretItem[]>([]);
+  const [secrets, setSecrets] = useState<SecretDraft[]>([]);
   const [isSecretsLoading, setIsSecretsLoading] = useState<boolean>(false);
 
   const loadManifestList = useCallback(async () => {
     try {
       const items = await fetchManifestRegistry();
       setManifests(items);
-      if (items.length > 0 && !selectedName) {
-        setSelectedName(items[0].name);
-      }
-    } catch {
+      // Keep the current pick when it is still listed; otherwise select the first item.
+      setSelectedName((prev) => (items.some((m) => m.name === prev) ? prev : items[0]?.name ?? prev));
+    } catch (err: unknown) {
+      logger.warn("Manifest registry is unreachable; showing the offline manifest list", err);
       setManifests([
-        { name: "unified_data.yaml", project: "lemgendary-datasets", format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
-        { name: "unified_models_v2.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
-        { name: "config.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Global training execution and hardware governor configuration.", exists: true, size_bytes: 0, path: null },
-        { name: "presets.yaml", project: "lemgendary-training-suite", format: "yaml", description: "Canonical training and evaluation preset profiles.", exists: true, size_bytes: 0, path: null },
-        { name: "runtime_env.yaml", project: "lemgendary-env-manager", format: "yaml", description: "Runtime platform specifications and dependency matrices.", exists: true, size_bytes: 0, path: null },
-        { name: "package.json", project: "lemgendary-ai-studio-gui", format: "json", description: "Desktop GUI Tauri v2 and React package manifest.", exists: true, size_bytes: 0, path: null },
+        { name: "unified_data.yaml", project: ecosystemService("dataset-compiler").project, format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
+        { name: "unified_models_v2.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
+        { name: "config.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Global training execution and hardware governor configuration.", exists: true, size_bytes: 0, path: null },
+        { name: "presets.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Canonical training and evaluation preset profiles.", exists: true, size_bytes: 0, path: null },
+        { name: "runtime_env.yaml", project: ecosystemService("env-manager").project, format: "yaml", description: "Runtime platform specifications and dependency matrices.", exists: true, size_bytes: 0, path: null },
+        { name: "package.json", project: guiProjectFolder(), format: "json", description: "Desktop GUI Tauri v2 and React package manifest.", exists: true, size_bytes: 0, path: null },
       ]);
+      setSelectedName((prev) => prev || "unified_data.yaml");
     }
-  }, [selectedName]);
+  }, []);
 
   const loadSecretsList = useCallback(async () => {
     setIsSecretsLoading(true);
     try {
       const data = await fetchSecrets();
       setSecrets(data);
-    } catch {
-      // Secrets endpoint handled gracefully by SecretsEditorTab
+    } catch (err: unknown) {
+      logger.warn("Secrets list could not be loaded", err);
     } finally {
       setIsSecretsLoading(false);
     }
@@ -63,63 +79,79 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
     }
   }, [isOpen, loadManifestList, loadSecretsList]);
 
-  if (!isOpen) return null;
+  const leave = (target: "close" | ConfigTab) => {
+    if (target === "close") {
+      setManifestDirty(false);
+      onClose();
+    } else {
+      setActiveTab(target);
+    }
+  };
+
+  /** Run a navigation that unmounts the manifest editor, asking first when it holds unsaved edits. */
+  const guardedLeave = (target: "close" | ConfigTab) => {
+    if (target === activeTab) return;
+    if (manifestDirty && activeTab === "manifests") {
+      setPendingLeave(target);
+      return;
+    }
+    leave(target);
+  };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="config-editor-modal-title">
-      <div className="modal-content">
-        <div className="modal-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <h2 id="config-editor-modal-title" style={{ fontSize: "18px", fontWeight: 700 }}>
-              Universal Dynamic Config &amp; Secrets Vault
-            </h2>
-            <HelpTooltip content="Universal in-app configuration editor. Manage manifest registries, neural hyperparameters, and cloud secrets (Kaggle mandatory, Google Drive, GitHub, MT5) with live validation and atomic backup." />
-
-            <div className="modal-tab-group" role="tablist">
-              <button
-                type="button"
-                className={`modal-tab-btn ${activeTab === "manifests" ? "active" : ""}`}
-                onClick={() => setActiveTab("manifests")}
-                role="tab"
-                aria-selected={activeTab === "manifests"}
-                aria-label="Switch to Registry Manifests editor"
-              >
-                Registry Manifests
-              </button>
-              <HelpTooltip content="Inspect and edit core YAML and JSON manifests across repositories with live syntax validation and diff preview." />
-
-              <button
-                type="button"
-                className={`modal-tab-btn ${activeTab === "secrets" ? "active" : ""}`}
-                onClick={() => setActiveTab("secrets")}
-                role="tab"
-                aria-selected={activeTab === "secrets"}
-                aria-label="Switch to Ecosystem Secrets & Tokens Vault"
-              >
-                Secrets &amp; Tokens Vault
-              </button>
-              <HelpTooltip content="Manage multi-service credentials and API tokens. Kaggle is mandatory; Google Drive, GitHub, Hugging Face, MetaTrader 5, and custom tokens are optional." />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={() => guardedLeave("close")}
+      id="config-editor-modal"
+      title="Universal Dynamic Config & Secrets Vault"
+      headerActions={
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, marginLeft: "12px" }}>
+          <HelpTooltip content="Universal in-app configuration editor. Manage manifest registries, neural hyperparameters, and cloud secrets (Kaggle mandatory, Google Drive, GitHub, MT5) with live validation and atomic backup." />
+          <TabList
+            idPrefix="config-editor"
+            label="Configuration sections"
+            items={CONFIG_TABS}
+            value={activeTab}
+            onChange={guardedLeave}
+            className="modal-tab-group"
+            tabClassName={(selected) => `modal-tab-btn ${selected ? "active" : ""}`}
+          />
+          <HelpTooltip content="Registry Manifests: inspect and edit core YAML and JSON manifests across repositories with live syntax validation and diff preview. Secrets & Tokens Vault: manage multi-service credentials and API tokens; Kaggle is mandatory, the rest optional." />
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={onClose}
+              onClick={() => guardedLeave("close")}
               aria-label="Close configuration editor modal"
             >
               Close
             </button>
-            <HelpTooltip content="Dismiss the configuration editor and return to the main workspace. Unsaved edits remain in memory." />
+            <HelpTooltip content="Dismiss the configuration editor and return to the main workspace. Unsaved manifest edits are discarded (you are asked first)." />
           </div>
         </div>
-
+      }
+    >
+      <ConfirmDialog
+        isOpen={pendingLeave !== null}
+        id="config-dialog-discard-edits"
+        title="Discard unsaved edits?"
+        message={`${selectedName} has unsaved edits. ${pendingLeave === "close" ? "Closing" : "Leaving the manifest editor"} discards them.`}
+        confirmLabel="Discard edits"
+        onCancel={() => setPendingLeave(null)}
+        onConfirm={() => {
+          const target = pendingLeave;
+          setPendingLeave(null);
+          setManifestDirty(false);
+          if (target) leave(target);
+        }}
+      />
+      <TabPanel idPrefix="config-editor" items={CONFIG_TABS} value={activeTab} className="modal-tab-content">
         {activeTab === "manifests" ? (
           <ManifestEditorTab
             manifests={manifests}
             selectedName={selectedName}
             onSelectName={setSelectedName}
+            onDirtyChange={setManifestDirty}
           />
         ) : (
           <SecretsEditorTab
@@ -128,8 +160,8 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
             isSecretsLoading={isSecretsLoading}
           />
         )}
-      </div>
-    </div>
+      </TabPanel>
+    </Modal>
   );
 };
 

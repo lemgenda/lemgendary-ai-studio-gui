@@ -3,8 +3,6 @@ import { useStudioStore } from "../store/useStudioStore";
 import {
   fetchDatasets,
   fetchCompilerPresets,
-  triggerQuickCompile,
-  triggerCustomCompile,
   downloadKaggleDataset,
   uploadKaggleDataset,
   updateKaggleMetadata,
@@ -24,8 +22,11 @@ import { DatasetCompilationForm } from "./compiler/DatasetCompilationForm";
 import { DatasetManifoldCard } from "./compiler/DatasetManifoldCard";
 import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
-import { FALLBACK_COMPILER_PRESETS, FALLBACK_DATASETS } from "./compiler/fallbackDatasets";
 import { ValidationBanner } from "./common/ValidationBanner";
+import { useCompilationForm } from "./compiler/useCompilationForm";
+import { logger } from "../utils/logger";
+import { useTransientValue } from "../utils/useTransientValue";
+import { servicePort } from "../api/config";
 
 interface CompilerPanelProps {
   datasetCompilerOnline?: boolean;
@@ -41,26 +42,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   // Production Datasets & Presets
   const [datasets, setDatasets] = useState<DatasetItem[]>(cachedDatasets);
   const [presets, setPresets] = useState<CompilerPreset[]>([]);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
-  const [selectedPreset, setSelectedPreset] = useState<string>("streaming-webdataset");
-  const [shardSize, setShardSize] = useState<number>(5000);
-  const [purgeLooseImages, setPurgeLooseImages] = useState<boolean>(true);
-  const [isCompiling, setIsCompiling] = useState<boolean>(false);
-  const [compileStatus, setCompileStatus] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [refreshFeedback, setRefreshFeedback] = useState<string | null>(null);
-
-  // Compilation Mode (Standard vs Custom Multi-Source)
-  const [compileMode, setCompileMode] = useState<"standard" | "custom">("standard");
-  const [customName, setCustomName] = useState<string>("");
-  const [customTask, setCustomTask] = useState<string>("restoration");
-  const [customPreset, setCustomPreset] = useState<string>("streaming-webdataset");
-  const [customCanonicalFormat, setCustomCanonicalFormat] = useState<"webdataset" | "parquet" | "mds" | "litdata">("webdataset");
-  const [customShardSize, setCustomShardSize] = useState<number>(5000);
-  const [customSourcesText, setCustomSourcesText] = useState<string>("");
-  const [customPurgeLoose, setCustomPurgeLoose] = useState<boolean>(true);
-  const [isCustomCompiling, setIsCustomCompiling] = useState<boolean>(false);
-  const [customCompileStatus, setCustomCompileStatus] = useState<string | null>(null);
+  const [refreshFeedback, showRefreshFeedback] = useTransientValue<string>(4000);
 
   // Search & Filter State for Manifolds Catalog
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -70,13 +55,6 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   // Pinned Upstream Sources details
   const [pinnedSourcesManifold, setPinnedSourcesManifold] = useState<string | null>(null);
-
-  // Custom Kaggle Link / Slug Download Bar state
-  const [customKaggleRef, setCustomKaggleRef] = useState<string>("");
-  const [downloadTargetFolder, setDownloadTargetFolder] = useState<string>("");
-  const [downloadForce, setDownloadForce] = useState<boolean>(false);
-  const [isDownloadingKaggle, setIsDownloadingKaggle] = useState<boolean>(false);
-  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // Card-level action busy states & status notices
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
@@ -105,148 +83,60 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
-    setRefreshFeedback(null);
+    showRefreshFeedback(null);
     try {
-      const [dsList, prList] = await Promise.all([
+      const [dsList, presetResult] = await Promise.all([
         fetchDatasets(),
-        fetchCompilerPresets(),
+        fetchCompilerPresets().then(
+          (list) => ({ list, error: null }),
+          (err: unknown) => ({ list: [] as CompilerPreset[], error: err instanceof Error ? err.message : String(err) })
+        ),
       ]);
 
       if (dsList.length > 0) {
         setDatasets(dsList);
         setCachedDatasets(dsList);
         setSelectedManifold((prev) => prev || dsList[0].key);
-        setRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
+        showRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else {
-        setDatasets(FALLBACK_DATASETS);
-        setCachedDatasets(FALLBACK_DATASETS);
-        setSelectedManifold((prev) => prev || "upn_v2");
-        if (!datasetCompilerOnline) {
-          setRefreshFeedback("Dataset Compiler Sidecar (Port 8100) is offline. Displaying cached registry catalog.");
-        }
+        // Empty or unreachable sidecar: show the empty/offline state, never a hand-written catalog.
+        setDatasets([]);
+        showRefreshFeedback(
+          datasetCompilerOnline
+            ? "Dataset Compiler returned no manifolds."
+            : `Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. The catalog stays empty until it is reachable.`
+        );
       }
 
-      if (prList.length > 0) {
-        setPresets(prList);
-      } else {
-        setPresets(FALLBACK_COMPILER_PRESETS);
+      // No offline preset copies: presets.yaml on the sidecar is the only source.
+      setPresets(presetResult.list);
+      setPresetsError(presetResult.error);
+      if (presetResult.error) {
+        logger.error("Failed to load compiler presets", presetResult.error);
       }
-    } catch {
-      setRefreshFeedback("Failed to query Dataset Compiler Sidecar (Port 8100).");
+    } catch (err: unknown) {
+      logger.error("Dataset Compiler refresh failed", err);
+      showRefreshFeedback(`Failed to query Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}).`);
     } finally {
       setIsRefreshing(false);
-      setTimeout(() => setRefreshFeedback(null), 4000);
     }
-  }, [datasetCompilerOnline, setCachedDatasets]);
+  }, [datasetCompilerOnline, setCachedDatasets, showRefreshFeedback]);
 
   useEffect(() => {
     loadCompilerData();
   }, [loadCompilerData]);
 
-  // Standard Compile Handler
-  const handleCompile = async () => {
-    if (!datasetCompilerOnline) {
-      setCompileStatus("Compilation failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
-      return;
-    }
-    setIsCompiling(true);
-    setCompileStatus(null);
-    try {
-      const res = await triggerQuickCompile({
-        manifold_key: selectedManifold,
-        preset: selectedPreset,
-        shard_size: shardSize,
-        purge_loose_images: purgeLooseImages,
-      });
-      setCompileStatus(`Compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Telemetry streaming to monitor below.`);
-      addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.job_id || "Active"}]`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setCompileStatus(`Compilation failed: ${msg}`);
-    } finally {
-      setIsCompiling(false);
-    }
-  };
-
-  // Custom Multi-Source Compile Handler
-  const handleCustomCompile = async () => {
-    if (!datasetCompilerOnline) {
-      setCustomCompileStatus("Custom compile failed: Dataset Compiler Sidecar (Port 8100) is not reachable.");
-      return;
-    }
-    const trimmedName = customName.trim();
-    if (!trimmedName) {
-      setCustomCompileStatus("Please specify a custom manifold name.");
-      return;
-    }
-
-    const rawLines = customSourcesText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.startsWith("#"));
-
-    if (rawLines.length === 0) {
-      setCustomCompileStatus("Please enter at least one source dataset reference or URL (Kaggle, HuggingFace, Google Drive, or GitHub).");
-      return;
-    }
-
-    setIsCustomCompiling(true);
-    setCustomCompileStatus(null);
-    try {
-      const res = await triggerCustomCompile({
-        custom_name: trimmedName,
-        task: customTask,
-        preset: customPreset,
-        canonical_format: customCanonicalFormat,
-        shard_size: customShardSize,
-        sources: rawLines,
-        purge_loose_images: customPurgeLoose,
-      });
-      setCustomCompileStatus(`Custom compilation initiated successfully (Job ID: ${res.job_id || "Active"}). Added to unified_data.yaml.`);
-      addTelemetryLog(`Custom compilation started for '${trimmedName}' [Job: ${res.job_id || "Active"}]`);
-      loadCompilerData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setCustomCompileStatus(`Custom compilation failed: ${msg}`);
-    } finally {
-      setIsCustomCompiling(false);
-    }
-  };
-
-  // Custom Kaggle Slug Download Handler
-  const handleCustomKaggleDownload = async () => {
-    if (!datasetCompilerOnline) {
-      setDownloadStatus("Kaggle download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
-      return;
-    }
-    const targetRef = customKaggleRef.trim();
-    if (!targetRef) {
-      setDownloadStatus("Please enter a Kaggle dataset link or repository slug (e.g. owner/dataset).");
-      return;
-    }
-
-    setIsDownloadingKaggle(true);
-    setDownloadStatus(null);
-    try {
-      const res = await downloadKaggleDataset({
-        kaggle_ref: targetRef,
-        target_folder: downloadTargetFolder.trim() || undefined,
-        force: downloadForce,
-      });
-      setDownloadStatus(`Kaggle download initiated for ${targetRef} (Job ID: ${res.job_id || "Active"}). Streaming to disk.`);
-      loadCompilerData();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setDownloadStatus(`Download failed: ${msg}`);
-    } finally {
-      setIsDownloadingKaggle(false);
-    }
-  };
+  const compilationForm = useCompilationForm({
+    datasetCompilerOnline,
+    selectedManifold,
+    addTelemetryLog,
+    reloadCatalog: loadCompilerData,
+  });
 
   // Per-Dataset Card Actions
   const handleDownloadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Download failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Download failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const ref = dataset.kaggle_ref || dataset.key;
@@ -259,7 +149,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         target_folder: folder,
         force: false,
       });
-      setActionNotice(`Kaggle download initiated for ${dataset.display_name} (Job ID: ${res.job_id || "Active"}).`);
+      setActionNotice(`Kaggle download initiated for ${dataset.display_name} (Job ID: ${res.id}).`);
       loadCompilerData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -271,7 +161,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const handleUploadManifold = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Upload failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Upload failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const manifoldFolder = dataset.modernized_folder || dataset.key;
@@ -282,7 +172,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      const jobId = res.job_id || res.id || "Active";
+      const jobId = res.id;
       setActionNotice(`Kaggle upload initiated for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -294,7 +184,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   const handleUpdateMetadataSingle = async (dataset: DatasetItem) => {
     if (!datasetCompilerOnline) {
-      setActionNotice("Metadata update failed: Dataset Compiler Sidecar (Port 8100) is offline.");
+      setActionNotice(`Metadata update failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline.`);
       return;
     }
     const manifoldFolder = dataset.modernized_folder || dataset.key;
@@ -305,7 +195,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: manifoldFolder,
         kaggle_ref: dataset.kaggle_ref || undefined,
       });
-      const jobId = res.job_id || res.id || "Active";
+      const jobId = res.id;
       setActionNotice(`Pushed dataset-metadata.json descriptors to Kaggle for ${dataset.display_name} (Job ID: ${jobId}).`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
@@ -318,10 +208,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const loadModernizationQueue = useCallback(async () => {
     setIsLoadingQueue(true);
     try {
-      const res = await fetchModernizationQueue();
-      setQueueItems(res.queue || []);
+      setQueueItems(await fetchModernizationQueue());
     } catch (err: unknown) {
-      console.error("Failed to load modernization queue:", err);
+      logger.error("Failed to load modernization queue", err);
+      setModernizeStatus(`Error loading modernization queue: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoadingQueue(false);
     }
@@ -344,7 +234,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         force: modernizeForce,
         dry_run: modernizeDryRun,
       });
-      setModernizeStatus(`Modernization job queued: ${res.job_id || "running"}`);
+      setModernizeStatus(`Modernization job queued: ${res.id}`);
       await loadModernizationQueue();
     } catch (err: unknown) {
       setModernizeStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
@@ -365,7 +255,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         manifold: reduceManifold,
         scale: reduceScale,
       });
-      setReduceStatus(`Manifold scale reduction queued: ${res.job_id || "running"}`);
+      setReduceStatus(`Manifold scale reduction queued: ${res.id}`);
     } catch (err: unknown) {
       setReduceStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -377,9 +267,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsUpdatingAllMetadata(true);
     try {
       const res = await updateAllKaggleMetadata();
-      setRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.job_id || "active"}).`);
+      showRefreshFeedback(`Bulk Kaggle metadata sync job started (Job ID: ${res.id}).`);
     } catch (err: unknown) {
-      setRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
+      showRefreshFeedback(`Failed to sync metadata: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsUpdatingAllMetadata(false);
     }
@@ -389,9 +279,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsRegeneratingIndex(true);
     try {
       const res = await triggerRegenerateManifolds();
-      setRefreshFeedback(`Regenerated manifolds index (Job ID: ${res.job_id || "active"}).`);
+      showRefreshFeedback(res.message);
     } catch (err: unknown) {
-      setRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
+      showRefreshFeedback(`Failed to regenerate manifolds: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsRegeneratingIndex(false);
     }
@@ -460,43 +350,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         presets={presets}
         selectedManifold={selectedManifold}
         onSelectManifold={setSelectedManifold}
-        selectedPreset={selectedPreset}
-        onSelectPreset={setSelectedPreset}
-        shardSize={shardSize}
-        onChangeShardSize={setShardSize}
-        purgeLooseImages={purgeLooseImages}
-        onTogglePurgeLooseImages={setPurgeLooseImages}
-        isCompiling={isCompiling}
-        compileStatus={compileStatus}
-        onCompile={handleCompile}
-        compileMode={compileMode}
-        onChangeCompileMode={setCompileMode}
-        customName={customName}
-        onChangeCustomName={setCustomName}
-        customTask={customTask}
-        onChangeCustomTask={setCustomTask}
-        customPreset={customPreset}
-        onChangeCustomPreset={setCustomPreset}
-        customCanonicalFormat={customCanonicalFormat}
-        onChangeCustomCanonicalFormat={setCustomCanonicalFormat}
-        customShardSize={customShardSize}
-        onChangeCustomShardSize={setCustomShardSize}
-        customSourcesText={customSourcesText}
-        onChangeCustomSourcesText={setCustomSourcesText}
-        customPurgeLoose={customPurgeLoose}
-        onToggleCustomPurgeLoose={setCustomPurgeLoose}
-        isCustomCompiling={isCustomCompiling}
-        customCompileStatus={customCompileStatus}
-        onCustomCompile={handleCustomCompile}
-        customKaggleRef={customKaggleRef}
-        onChangeCustomKaggleRef={setCustomKaggleRef}
-        downloadTargetFolder={downloadTargetFolder}
-        onChangeDownloadTargetFolder={setDownloadTargetFolder}
-        downloadForce={downloadForce}
-        onToggleDownloadForce={setDownloadForce}
-        isDownloadingKaggle={isDownloadingKaggle}
-        downloadStatus={downloadStatus}
-        onDownloadKaggleDirect={handleCustomKaggleDownload}
+        presetsError={presetsError}
+        {...compilationForm}
         datasetCompilerOnline={datasetCompilerOnline}
       />
 
@@ -554,7 +409,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <div className="card-grid card-grid-models">
             {filteredDatasets.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                No dataset manifolds matched your current search and filter settings.
+                {datasets.length > 0
+                  ? "No dataset manifolds matched your current search and filter settings."
+                  : datasetCompilerOnline
+                  ? "The Dataset Compiler returned no manifolds."
+                  : "No manifolds to show: the Dataset Compiler sidecar is offline. Start it to load the catalog."}
               </div>
             ) : (
               filteredDatasets.map((d) => (

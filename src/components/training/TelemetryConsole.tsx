@@ -3,7 +3,7 @@ import { HelpTooltip } from "../HelpTooltip";
 import { PipelineEvent } from "../../api/types";
 import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../../utils/progressParser";
-import { isProgressLine, rollupTelemetryEvents } from "../../api/client";
+import { isProgressLine, latestMilestone, rollupTelemetryEvents } from "../../api/client";
 
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
@@ -118,6 +118,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 1: Local Training */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "local"}
                 className={`btn ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("local")}
                 style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
@@ -137,6 +138,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 2: Remote / Cloud Training */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "remote"}
                 className={`btn ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("remote")}
                 style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
@@ -158,6 +160,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               {/* Tab 3: Mesh Stream */}
               <button
                 type="button"
+                aria-pressed={activeTelemetryTab === "mesh"}
                 className={`btn ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("mesh")}
                 style={{ fontSize: "11px", padding: "4px 10px" }}
@@ -256,7 +259,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className={`badge ${localJobId ? "badge-success" : "badge-neutral"}`} style={{ fontWeight: 700 }}>
+                <span className={`badge ${localJobId ? "badge-success" : "badge-secondary"}`} style={{ fontWeight: 700 }}>
                   {localJobId ? "LOCAL TRAINING IN PROGRESS" : "LOCAL WORKER IDLE"}
                 </span>
                 {localJobId ? (
@@ -276,10 +279,15 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             <TelemetryProgressTracker progress={activeLocalProgress} />
 
             {/* Local Training Monospace Stream */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {latestMilestone(cleanLocalEvents)}
+            </div>
             <div
               ref={localLogContainerRef}
               className="log-container"
               role="log"
+              aria-live="off"
+              aria-label="Local training stream log"
               style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}
             >
               {cleanLocalEvents.length === 0 ? (
@@ -291,7 +299,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               ) : (
                 cleanLocalEvents.map((ev, idx) => (
                   <div key={`local-${ev.timestamp}-${idx}`} className="log-line">
-                    <span className="log-timestamp">
+                    <span className="log-time">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
@@ -319,10 +327,15 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             <TelemetryProgressTracker progress={activeRemoteProgress} />
 
             {/* Remote Cloud Monospace Stream */}
+            <div className="sr-only" role="status" aria-live="polite">
+              {latestMilestone(cleanRemoteEvents)}
+            </div>
             <div
               ref={remoteLogContainerRef}
               className="log-container"
               role="log"
+              aria-live="off"
+              aria-label="Remote cloud training stream log"
               style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}
             >
               {cleanRemoteEvents.length === 0 ? (
@@ -332,7 +345,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               ) : (
                 cleanRemoteEvents.map((ev, idx) => (
                   <div key={`remote-${ev.timestamp}-${idx}`} className="log-line">
-                    <span className="log-timestamp">
+                    <span className="log-time">
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>

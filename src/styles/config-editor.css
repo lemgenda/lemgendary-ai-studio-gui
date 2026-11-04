@@ -1,0 +1,229 @@
+/* LemGendary AI Studio - Config and manifest editor, diff view, panels. */
+
+/* ─── Config & Manifest Editor ───────────────────────────────────────────── */
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.editor-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-select {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  outline: none;
+}
+
+.editor-select:focus {
+  border-color: var(--accent-cyan);
+}
+
+.editor-input {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.editor-input:focus {
+  border-color: var(--accent-cyan);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.form-group .editor-select,
+.form-group .editor-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.governor-toggle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.governor-toggle-card:hover {
+  border-color: var(--accent-cyan);
+  background-color: rgba(15, 23, 42, 0.8);
+}
+
+.editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.segmented-control {
+  display: inline-flex;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.segmented-btn:hover {
+  color: var(--text-primary);
+}
+
+.segmented-btn.active {
+  background-color: var(--bg-card);
+  color: var(--accent-cyan);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+}
+
+.editor-textarea {
+  flex: 1;
+  width: 100%;
+  background-color: #050810;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: #e2e8f0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 16px;
+  resize: none;
+  outline: none;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+.editor-textarea:focus {
+  border-color: var(--accent-cyan);
+}
+
+.validation-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-success {
+  background-color: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--accent-emerald);
+  color: var(--accent-emerald);
+}
+
+.banner-error {
+  background-color: rgba(244, 63, 94, 0.15);
+  border: 1px solid var(--accent-rose);
+  color: var(--accent-rose);
+}
+
+.banner-info {
+  background-color: rgba(56, 189, 248, 0.15);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* ─── Diff View ──────────────────────────────────────────────────────────── */
+.diff-view-container {
+  flex: 1;
+  width: 100%;
+  background-color: #050810;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 12px 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.diff-line {
+  display: flex;
+  align-items: flex-start;
+  padding: 1px 12px;
+}
+
+.diff-same {
+  color: var(--text-secondary);
+}
+
+.diff-add {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.diff-del {
+  background-color: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+}
+
+.diff-line-num {
+  width: 40px;
+  color: var(--text-muted);
+  user-select: none;
+  text-align: right;
+  padding-right: 12px;
+  font-size: 11px;
+}
+
+.diff-line-prefix {
+  width: 16px;
+  user-select: none;
+  font-weight: 700;
+}
+
+.diff-line-text {
+  flex: 1;
+  white-space: pre;
+}
+
+/* ─── Panels & Controls ──────────────────────────────────────────────────── */
+.panel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

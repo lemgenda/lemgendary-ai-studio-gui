@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
+import { ConfirmDialog } from "../common/ConfirmDialog";
 import { readManifest, validateManifest, saveManifest } from "../../api/client";
 import { ManifestItem } from "../../api/types";
+import { servicePort } from "../../api/config";
 
 interface ManifestEditorTabProps {
   manifests: ManifestItem[];
   selectedName: string;
   onSelectName: (name: string) => void;
+  /** Reports whether the editor holds unsaved edits, so the modal can confirm before discarding them. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
   manifests,
   selectedName,
   onSelectName,
+  onDirtyChange,
 }) => {
+  /** Manifest the user picked while edits were unsaved; switching waits for confirmation. */
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const [originalContent, setOriginalContent] = useState<string>("");
   const [currentContent, setCurrentContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -86,6 +93,19 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
 
   const isModified = originalContent !== currentContent;
 
+  useEffect(() => {
+    onDirtyChange?.(isModified);
+  }, [isModified, onDirtyChange]);
+
+  const handleSelectName = (name: string) => {
+    if (name === selectedName) return;
+    if (isModified) {
+      setPendingName(name);
+      return;
+    }
+    onSelectName(name);
+  };
+
   const computeDiffLines = () => {
     const origLines = originalContent.split("\n");
     const currLines = currentContent.split("\n");
@@ -110,12 +130,25 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
   };
 
   return (
-    <div className="modal-body">
+    <div className="modal-tab-content">
+      <ConfirmDialog
+        isOpen={pendingName !== null}
+        id="config-dialog-discard-manifest"
+        title="Discard unsaved edits?"
+        message={`${selectedName} has unsaved edits. Switching to ${pendingName ?? ""} discards them.`}
+        confirmLabel="Discard and switch"
+        onCancel={() => setPendingName(null)}
+        onConfirm={() => {
+          const next = pendingName;
+          setPendingName(null);
+          if (next) onSelectName(next);
+        }}
+      />
       {/* Offline banner */}
       {manifests.length === 0 && (
         <ValidationBanner
           type="error"
-          message="Manifest registry is unavailable (Port 8000 offline). Manifests can be edited directly in the workspace filesystem when the sidecar is running."
+          message={`Manifest registry is unavailable (Port ${servicePort("env-manager")} offline). Manifests can be edited directly in the workspace filesystem when the sidecar is running.`}
           style={{ marginBottom: "12px" }}
         />
       )}
@@ -129,7 +162,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
             id="manifest-select"
             className="editor-select"
             value={selectedName}
-            onChange={(e) => onSelectName(e.target.value)}
+            onChange={(e) => handleSelectName(e.target.value)}
             disabled={isLoading || isSaving}
             aria-label="Select manifest file to inspect and edit"
           >
@@ -156,7 +189,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           <HelpTooltip
             content={
               manifests.length === 0
-                ? "Validation requires Environment Manager (Port 8000) to be online."
+                ? `Validation requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
                 : "Check syntax in real-time. Parses YAML indentation or JSON structure and alerts if errors exist."
             }
           />
@@ -196,7 +229,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           <HelpTooltip
             content={
               manifests.length === 0
-                ? "Save requires Environment Manager (Port 8000) to be online."
+                ? `Save requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
                 : "Commit changes to disk. Creates an automatic .bak snapshot before atomically writing the file."
             }
           />

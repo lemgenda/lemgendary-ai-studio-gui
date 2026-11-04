@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
-import { SecretItem } from "../../api/types";
-import { saveSecrets } from "../../api/client";
+import { ConfirmDialog } from "../common/ConfirmDialog";
+import { SecretDraft, SecretsSaveResponse } from "../../api/types";
+import { fetchSecrets, saveSecrets } from "../../api/client";
+import { servicePort } from "../../api/config";
 
 export interface ServiceDefinition {
   key: string;
@@ -80,9 +82,28 @@ export const PREDEFINED_SERVICES: ServiceDefinition[] = [
   },
 ];
 
+/** True when the secret has a stored value or a new value waiting to be saved. */
+export function secretHasValue(secret: SecretDraft): boolean {
+  return secret.has_value || Boolean(secret.secret_value?.trim());
+}
+
+/** Human-readable status of a write-only secret; never shows the value itself. */
+export function describeSecretStatus(secret: SecretDraft): string {
+  if (secret.secret_value?.trim()) return "new value (unsaved)";
+  if (!secret.has_value) return "not set";
+  return secret.value_hint ? `set (••••${secret.value_hint})` : "set";
+}
+
+/** Summarise legacy credential files the server skipped or failed to write. */
+export function describePropagationIssues(res: SecretsSaveResponse): string | null {
+  const issues = [...(res.propagation?.failed ?? []), ...(res.propagation?.skipped ?? [])];
+  if (issues.length === 0) return null;
+  return issues.map((i) => `${i.path}: ${i.reason}`).join("; ");
+}
+
 interface SecretsEditorTabProps {
-  secrets: SecretItem[];
-  setSecrets: React.Dispatch<React.SetStateAction<SecretItem[]>>;
+  secrets: SecretDraft[];
+  setSecrets: React.Dispatch<React.SetStateAction<SecretDraft[]>>;
   isSecretsLoading: boolean;
 }
 
@@ -93,8 +114,9 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
 }) => {
   const [isSecretsSaving, setIsSecretsSaving] = useState<boolean>(false);
   const [secretsSuccessMsg, setSecretsSuccessMsg] = useState<string | null>(null);
+  /** Credential whose Delete button was pressed, waiting for confirmation. */
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [secretsErrorMsg, setSecretsErrorMsg] = useState<string | null>(null);
-  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
   const [isAddingSecret, setIsAddingSecret] = useState<boolean>(false);
 
   // New secret form state
@@ -105,8 +127,8 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
   const [newServer, setNewServer] = useState<string>("");
   const [newIsDefault, setNewIsDefault] = useState<boolean>(false);
 
-  const toggleSecretVisibility = (id: string) => {
-    setRevealedSecrets((prev) => ({ ...prev, [id]: !prev[id] }));
+  const handleReplacementChange = (id: string, value: string) => {
+    setSecrets((prev) => prev.map((s) => (s.id === id ? { ...s, secret_value: value } : s)));
   };
 
   const handleAddSecretSubmit = (e: React.FormEvent) => {
@@ -132,11 +154,13 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
       return s;
     });
 
-    const newEntry: SecretItem = {
+    const newEntry: SecretDraft = {
       id: newId,
       service: newService,
       label,
       username: newUsername.trim() || undefined,
+      has_value: false,
+      value_hint: "",
       secret_value: newSecretValue.trim(),
       server: newServer.trim() || undefined,
       is_default: newIsDefault || !secrets.some((s) => s.service === newService),
@@ -155,6 +179,10 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
   };
 
   const handleDeleteSecret = (id: string) => {
+    setPendingDeleteId(id);
+  };
+
+  const confirmDeleteSecret = (id: string) => {
     const remaining = secrets.filter((s) => s.id !== id);
     setSecrets(remaining);
     setSecretsSuccessMsg("Credential removed. Click 'Save Secrets to Ecosystem' to persist changes.");
@@ -176,7 +204,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
     setSecretsErrorMsg(null);
     setSecretsSuccessMsg(null);
 
-    const hasKaggle = secrets.some((s) => s.service.toLowerCase() === "kaggle" && s.secret_value.trim());
+    const hasKaggle = secrets.some((s) => s.service.toLowerCase() === "kaggle" && secretHasValue(s));
     if (!hasKaggle) {
       setSecretsErrorMsg("Validation failed: Kaggle API token is mandatory across the LemGendary Ecosystem.");
       setIsSecretsSaving(false);
@@ -186,21 +214,43 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
     try {
       const res = await saveSecrets(secrets);
       setSecretsSuccessMsg(res.message || "Secrets securely saved and propagated across repositories.");
+      const issues = describePropagationIssues(res);
+      if (issues) {
+        setSecretsErrorMsg(`Some legacy credential files were not updated: ${issues}`);
+      }
+      // Reload the masked list so pending values are cleared from memory.
+      setSecrets(await fetchSecrets());
       window.dispatchEvent(new CustomEvent("secrets-updated"));
-    } catch {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
       setSecretsErrorMsg(
-        "Secrets vault is unavailable (Port 8000 offline). " +
-        "Credentials cannot be encrypted until Environment Manager is running."
+        `Secrets could not be saved: ${detail}. ` +
+        `Check that the Environment Manager (port ${servicePort("env-manager")}) is running.`
       );
     } finally {
       setIsSecretsSaving(false);
     }
   };
 
-  const hasKaggleConfigured = secrets.some((s) => s.service.toLowerCase() === "kaggle" && s.secret_value.trim());
+  const hasKaggleConfigured = secrets.some((s) => s.service.toLowerCase() === "kaggle" && secretHasValue(s));
+
+  const pendingDelete = secrets.find((sec) => sec.id === pendingDeleteId);
 
   return (
     <div className="secrets-container">
+      <ConfirmDialog
+        isOpen={pendingDeleteId !== null}
+        id="config-dialog-delete-secret"
+        title="Delete this credential?"
+        message={`The ${pendingDelete?.service ?? ""} credential is removed from the list; saving the secrets then deletes it from the vault.`}
+        confirmLabel="Delete credential"
+        onCancel={() => setPendingDeleteId(null)}
+        onConfirm={() => {
+          const id = pendingDeleteId;
+          setPendingDeleteId(null);
+          if (id) confirmDeleteSecret(id);
+        }}
+      />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span className={`service-badge ${hasKaggleConfigured ? "badge-mandatory" : "badge-error"}`}>
@@ -231,7 +281,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
           >
             {isSecretsSaving ? "Saving..." : "Save Secrets to Ecosystem"}
           </button>
-          <HelpTooltip content="Persist credentials to encrypted .secrets.yaml and automatically update local .kaggle_token, .kaggle_users, and .mt5_credentials files." />
+          <HelpTooltip content="Persist credentials to .secrets.yaml and update the local .kaggle_token, .kaggle_users and kaggle.json files. Stored values are never sent back to the GUI; a blank replacement field keeps the stored value." />
         </div>
       </div>
 
@@ -295,7 +345,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                 id="new-username-input"
                 type="text"
                 className="form-input"
-                placeholder="e.g. lemtreursi or MT5 ID"
+                placeholder="e.g. Kaggle username or MT5 ID"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
               />
@@ -397,11 +447,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                 ) : (
                   <div className="credentials-list">
                     {serviceSecrets.map((sec) => {
-                      const isRevealed = revealedSecrets[sec.id] || false;
-                      const masked = sec.secret_value.length > 8
-                        ? `${sec.secret_value.slice(0, 4)}••••••••${sec.secret_value.slice(-4)}`
-                        : "••••••••";
-
+                      const replaceInputId = `replace-secret-${sec.id}`;
                       return (
                         <div key={sec.id} className="credential-item">
                           <div className="credential-meta">
@@ -416,22 +462,23 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                             <div className="credential-details">
                               {sec.username && <span>User: {sec.username}</span>}
                               {sec.server && <span>Server: {sec.server}</span>}
-                              <span>Token: {isRevealed ? sec.secret_value : masked}</span>
+                              <span>Token: {describeSecretStatus(sec)}</span>
                             </div>
+                            <label htmlFor={replaceInputId} style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                              Replace value (leave blank to keep):
+                            </label>
+                            <input
+                              id={replaceInputId}
+                              type="password"
+                              className="form-input"
+                              autoComplete="new-password"
+                              placeholder={sec.has_value ? "Leave blank to keep the stored value" : "Enter a value"}
+                              value={sec.secret_value ?? ""}
+                              onChange={(e) => handleReplacementChange(sec.id, e.target.value)}
+                            />
                           </div>
 
                           <div className="credential-actions">
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ padding: "4px 8px", fontSize: "11px" }}
-                              onClick={() => toggleSecretVisibility(sec.id)}
-                              aria-label={isRevealed ? "Hide token value" : "Reveal token value"}
-                            >
-                              {isRevealed ? "Hide" : "Show"}
-                            </button>
-                            <HelpTooltip content="Toggle plain-text view of this secret token." />
-
                             {!sec.is_default && (
                               <button
                                 type="button"

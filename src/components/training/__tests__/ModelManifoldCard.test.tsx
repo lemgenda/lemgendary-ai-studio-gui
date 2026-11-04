@@ -1,27 +1,45 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 import { ModelManifoldCard } from "../ModelManifoldCard";
-import { FALLBACK_MODELS } from "../fallbackModels";
-import { FALLBACK_DATASETS } from "../../compiler/fallbackDatasets";
+import { ModelItem } from "../../../api/types";
 
-describe("ModelManifoldCard & Canonical Registries", () => {
+/** Sidecar-shaped records (`ModelWithStats`); the GUI ships no offline model catalog. */
+const LLM_MODEL: ModelItem = {
+  key: "ai_helper_lemgend",
+  display_name: "LemGendary AI Studio Assistant (Causal LLM)",
+  architecture: "Causal Decoder Transformer (QLoRA Fine-Tuned)",
+  task_type: "llm",
+  category: "llm",
+  canonical_format: "jsonl",
+  is_llm: true,
+  ladder_type: "context_tokens",
+  target_res: 2048,
+  training_status: "initializing",
+  is_fully_trained: false,
+};
+
+const FOREX_MODEL: ModelItem = {
+  key: "forex_predictor",
+  display_name: "LemGendary Forex Predictor (Multi-Scale CNN-Transformer)",
+  architecture: "Multi-Scale CNN-Transformer (Causal TCN + Cross-Timeframe Attention)",
+  task_type: "forex",
+  category: "forex",
+  canonical_format: "parquet",
+  is_forex: true,
+  ladder_type: "timeframe",
+  active_fold: 1,
+  total_folds: 6,
+  training_status: "initializing",
+  is_fully_trained: false,
+};
+
+describe("ModelManifoldCard", () => {
   const noop = vi.fn();
 
-  it("contains all 23 canonical models in FALLBACK_MODELS and 21 datasets in FALLBACK_DATASETS", () => {
-    expect(FALLBACK_MODELS).toHaveLength(23);
-    expect(FALLBACK_DATASETS).toHaveLength(21);
-
-    const llmModel = FALLBACK_MODELS.find((m) => m.key === "ai_helper_lemgend");
-    expect(llmModel).toBeDefined();
-    expect(llmModel?.is_llm).toBe(true);
-    expect(llmModel?.ladder_type).toBe("context_tokens");
-  });
-
   it("renders LLM / Causal Assistant card with Context Window and LemGendizedAIHelperLemGend telemetry", () => {
-    const llmModel = FALLBACK_MODELS.find((m) => m.key === "ai_helper_lemgend")!;
     const html = renderToStaticMarkup(
       <ModelManifoldCard
-        model={llmModel}
+        model={LLM_MODEL}
         isCurrentlyTrainingThis={false}
         isBusy={false}
         actionBusyKey={null}
@@ -53,10 +71,9 @@ describe("ModelManifoldCard & Canonical Registries", () => {
   });
 
   it("renders Forex Predictor card with Walk-Forward Fold telemetry", () => {
-    const forexModel = FALLBACK_MODELS.find((m) => m.key === "forex_predictor")!;
     const html = renderToStaticMarkup(
       <ModelManifoldCard
-        model={forexModel}
+        model={FOREX_MODEL}
         isCurrentlyTrainingThis={false}
         isBusy={false}
         actionBusyKey={null}
@@ -82,5 +99,47 @@ describe("ModelManifoldCard & Canonical Registries", () => {
     expect(html).toContain("Walk-Forward Fold");
     expect(html).toContain("Fold 1 / 6");
     expect(html).toContain('id="train-btn-start-forex_predictor"');
+  });
+
+  it("shows the sidecar's unknown status with its reason and no fabricated ladder or metrics", () => {
+    const placeholder: ModelItem = {
+      key: "upn_v2",
+      display_name: "LemGendary UPN v2 Parameter Predictor",
+      architecture: "MobileNetV3-Small Parameter Regressor",
+      task_type: "enhance",
+      epochs_completed: 12,
+      training_status: "unknown",
+      is_fully_trained: false,
+      stats_error: "metrics.csv unreadable",
+    };
+    const html = renderToStaticMarkup(
+      <ModelManifoldCard
+        model={placeholder}
+        isCurrentlyTrainingThis={false}
+        isBusy={false}
+        actionBusyKey={null}
+        trainingSuiteOnline={false}
+        isTargetPinned={false}
+        onToggleTargetPin={noop}
+        generatingNotebookModel={null}
+        onStartLocalTrain={noop}
+        onStopLocalTrain={noop}
+        onOpenCloudModal={noop}
+        onPushArtifacts={noop}
+        onPullArtifacts={noop}
+        onGenerateTrainingNotebook={noop}
+        onGenerateUsageNotebook={noop}
+        onEvaluateModel={noop}
+        onExportModel={noop}
+        onGenerateDocs={noop}
+        onStageVariations={noop}
+      />
+    );
+    expect(html).toContain("UNKNOWN");
+    expect(html).toContain("metrics.csv unreadable");
+    expect(html).not.toContain("PARTIALLY TRAINED");
+    expect(html).not.toContain("INITIALIZING");
+    expect(html).not.toContain("256px");
+    expect(html).not.toContain("512px");
   });
 });
