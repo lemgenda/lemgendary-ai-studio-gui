@@ -13,6 +13,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::spawn_service,
             commands::spawn_all_services,
+            commands::stop_service,
             recording::commands::recording_start,
             recording::commands::recording_pause,
             recording::commands::recording_resume,

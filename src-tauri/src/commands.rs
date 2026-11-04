@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::OnceLock;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use tauri::Manager;
 
@@ -184,6 +184,132 @@ pub fn spawn_all_services(app: tauri::AppHandle) -> Result<String, String> {
     Ok(messages.join("\n"))
 }
 
+/// Outcome of a native `stop_service` call, mirrored by the frontend's
+/// `ServiceOperationResult`.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+pub struct ServiceStopResult {
+    status: &'static str,
+    message: String,
+    port: u16,
+}
+
+/// Process ids listening on `port` in `netstat -ano -p TCP` output. A listening
+/// socket is recognised by its `:0` foreign address, so the check does not
+/// depend on the Windows display language of the state column.
+#[cfg(any(target_os = "windows", test))]
+fn parse_netstat_listeners(output: &str, port: u16) -> Vec<u32> {
+    let local_suffix = format!(":{}", port);
+    let mut pids = Vec::new();
+    for line in output.lines() {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        if fields.len() != 5 || !fields[0].eq_ignore_ascii_case("TCP") {
+            continue;
+        }
+        if !fields[1].ends_with(&local_suffix) || !fields[2].ends_with(":0") {
+            continue;
+        }
+        if let Ok(pid) = fields[4].parse::<u32>() {
+            if pid != 0 && !pids.contains(&pid) {
+                pids.push(pid);
+            }
+        }
+    }
+    pids
+}
+
+/// Process ids printed one per line by `lsof -t`.
+#[cfg(any(not(target_os = "windows"), test))]
+fn parse_lsof_pids(output: &str) -> Vec<u32> {
+    let mut pids = Vec::new();
+    for pid in output.lines().filter_map(|l| l.trim().parse::<u32>().ok()) {
+        if !pids.contains(&pid) {
+            pids.push(pid);
+        }
+    }
+    pids
+}
+
+/// Run a helper program and return its stdout, or a descriptive error when it
+/// cannot start or exits unsuccessfully.
+fn run_checked(cmd: &mut Command, what: &str) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        // 0x08000000 = CREATE_NO_WINDOW
+        cmd.creation_flags(0x08000000);
+    }
+    let out = cmd
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|e| format!("Cannot run {}: {}", what, e))?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    } else {
+        Err(format!(
+            "{} failed ({}): {}",
+            what,
+            out.status,
+            String::from_utf8_lossy(&out.stderr).trim()
+        ))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn listening_pids(port: u16) -> Result<Vec<u32>, String> {
+    let out = run_checked(Command::new("netstat").args(["-ano", "-p", "TCP"]), "netstat")?;
+    Ok(parse_netstat_listeners(&out, port))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn listening_pids(port: u16) -> Result<Vec<u32>, String> {
+    let out = Command::new("lsof")
+        .args(["-t", &format!("-iTCP:{}", port), "-sTCP:LISTEN"])
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|e| format!("Cannot run lsof: {}", e))?;
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    // lsof exits 1 with no output when nothing listens on the port.
+    if !out.status.success() && !stderr.trim().is_empty() {
+        return Err(format!("lsof failed ({}): {}", out.status, stderr.trim()));
+    }
+    Ok(parse_lsof_pids(&String::from_utf8_lossy(&out.stdout)))
+}
+
+#[cfg(target_os = "windows")]
+fn kill_pid(pid: u32) -> Result<(), String> {
+    let pid = pid.to_string();
+    run_checked(Command::new("taskkill").args(["/PID", &pid, "/T", "/F"]), "taskkill").map(|_| ())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn kill_pid(pid: u32) -> Result<(), String> {
+    run_checked(Command::new("kill").args(["-9", &pid.to_string()]), "kill").map(|_| ())
+}
+
+/// Stop a mesh service natively by terminating whatever listens on its
+/// ecosystem port (used when the Environment Manager cannot do it, e.g. when
+/// stopping the Environment Manager itself).
+#[tauri::command]
+pub fn stop_service(service_id: String) -> Result<ServiceStopResult, String> {
+    let port = service_spec(&service_id)?.port;
+    let pids = listening_pids(port)?;
+    if pids.is_empty() {
+        return Ok(ServiceStopResult {
+            status: "not_running",
+            message: format!("Service '{}' is not listening on port {}.", service_id, port),
+            port,
+        });
+    }
+    for pid in &pids {
+        kill_pid(*pid).map_err(|e| format!("Failed to stop service '{}' (pid {}): {}", service_id, pid, e))?;
+    }
+    let pid_list: Vec<String> = pids.iter().map(u32::to_string).collect();
+    Ok(ServiceStopResult {
+        status: "stopped",
+        message: format!("Service '{}' stopped (pid {}).", service_id, pid_list.join(", ")),
+        port,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +369,37 @@ mod tests {
         assert_eq!(fs::read_to_string(&path)?, "one\ntwo\n");
         fs::remove_dir_all(&dir)?;
         Ok(())
+    }
+
+    #[test]
+    fn netstat_listeners_are_found_by_port() -> Result<(), String> {
+        let env = service_spec("env-manager")?.port;
+        let other = service_spec("dataset-compiler")?.port;
+        let client = env + 1;
+        let out = format!(
+            "Active Connections
+
+  Proto  Local Address          Foreign Address        State           PID
+  TCP    127.0.0.1:{env}         0.0.0.0:0              LISTENING       4242
+  TCP    [::]:{env}              [::]:0                 LISTENING       4242
+  TCP    127.0.0.1:{env}         127.0.0.1:{client}     ESTABLISHED     4242
+  TCP    127.0.0.1:{client}      127.0.0.1:{env}        ESTABLISHED     777
+  TCP    127.0.0.1:1{env}        0.0.0.0:0              LISTENING       999
+"
+        );
+        assert_eq!(parse_netstat_listeners(&out, env), vec![4242]);
+        assert!(parse_netstat_listeners(&out, other).is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn lsof_pids_are_parsed_and_deduplicated() {
+        assert_eq!(parse_lsof_pids("123\n456\n123\n\n"), vec![123, 456]);
+        assert!(parse_lsof_pids("").is_empty());
+    }
+
+    #[test]
+    fn stopping_an_unknown_service_is_an_error() {
+        assert_eq!(stop_service("nope".to_string()).err(), Some("Unknown service 'nope'".to_string()));
     }
 }

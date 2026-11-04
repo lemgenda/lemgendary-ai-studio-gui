@@ -82,12 +82,46 @@ export async function startService(serviceId: string): Promise<ServiceOperationR
   };
 }
 
-export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
-  const res = await sidecarFetch(`${ENV_BASE}/api/services/${encodeURIComponent(serviceId)}/stop`, {
-    method: "POST",
-  });
+/** Stop a sidecar through the Environment Manager's HTTP endpoint. */
+async function stopServiceViaEnvManager(serviceId: string): Promise<ServiceOperationResult> {
+  let res: Response;
+  try {
+    res = await sidecarFetch(`${ENV_BASE}/api/services/${encodeURIComponent(serviceId)}/stop`, {
+      method: "POST",
+    });
+  } catch (err: unknown) {
+    const envPort = MESH_SERVICES["env-manager"].defaultPort;
+    const reason = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Environment Manager (port ${envPort}) is offline (${reason}), so it cannot stop ${serviceId}. ` +
+        "Start the Environment Manager or use the LemGendary AI Studio desktop app."
+    );
+  }
   if (!res.ok) return throwHttpError(res, `Stop ${serviceId}`);
   return res.json();
+}
+
+/**
+ * Stop one sidecar. The desktop app terminates the process listening on the
+ * service's port with the native `stop_service` command, which also works when
+ * the Environment Manager is offline or is the service being stopped. When that
+ * command fails (or in a plain browser session) the Environment Manager's stop
+ * endpoint is used; if both fail, both reasons are reported.
+ */
+export async function stopService(serviceId: string): Promise<ServiceOperationResult> {
+  if (!isTauri()) return stopServiceViaEnvManager(serviceId);
+  try {
+    return await invoke<ServiceOperationResult>("stop_service", { serviceId });
+  } catch (nativeErr: unknown) {
+    const nativeMessage = nativeErr instanceof Error ? nativeErr.message : String(nativeErr);
+    logger.warn(`Native stop of ${serviceId} failed, trying the Environment Manager: ${nativeMessage}`);
+    try {
+      return await stopServiceViaEnvManager(serviceId);
+    } catch (httpErr: unknown) {
+      const httpMessage = httpErr instanceof Error ? httpErr.message : String(httpErr);
+      throw new Error(`Native stop failed (${nativeMessage}); ${httpMessage}`);
+    }
+  }
 }
 
 /**

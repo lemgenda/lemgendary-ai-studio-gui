@@ -274,6 +274,29 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.39 - Native Service Stop (Merged From master)
+
+- **Merge**: `origin/master` commit `19c4f6a` (master's v2.10.9 "Native
+  Tripartite Sidecar Termination & Offline Graceful Handling") is merged into
+  this branch. Its `src/api/client.ts` change now lives in
+  `src/api/serviceLifecycle.ts`, as `client.ts` is a barrel on this branch.
+- **Native stop (src-tauri/src/commands.rs)**: new Tauri command
+  `stop_service`, registered in `main.rs`. It reads the service port from the
+  ecosystem snapshot (no hardcoded ports), finds the process listening on it
+  (`netstat -ano` on Windows, `lsof` elsewhere), and ends it (`taskkill /T
+  /F`, `kill -9`). It returns `{status, message, port}` with status `stopped`
+  or `not_running`; a failing tool is an error, not a silent success.
+- **Client (src/api/serviceLifecycle.ts)**: in the desktop app,
+  `stopService()` calls `stop_service` first, so a service can be stopped
+  while the Environment Manager is offline, including the Environment Manager
+  itself. If the native stop fails, it logs a warning and uses `POST
+  /api/services/{id}/stop`; if that fails too, the error names both reasons.
+  When the Environment Manager cannot be reached, the error says so and names
+  its port.
+- Tests: Rust (24, +3) for `netstat` and `lsof` parsing and unknown services;
+  `sidecarRouting.test.ts` (+3) for native stop, fallback and offline errors.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.39`.
+
 ### v2.10.38 - Null Model Stats From the Training Suite
 
 - **Model catalog**: `parameters_m`, `best_metric` and `sota_target` are

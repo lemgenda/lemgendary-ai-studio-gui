@@ -127,6 +127,38 @@ describe("service control routing", () => {
 
     await expect(stopService("dataset-compiler")).rejects.toThrow("not running");
   });
+
+  it("explains an offline Environment Manager when a browser session stops a service", async () => {
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => {
+      throw new TypeError("Failed to fetch");
+    }));
+
+    await expect(stopService("training-suite")).rejects.toThrow(/Environment Manager \(port \d+\) is offline/);
+    expect(invokeMock).not.toHaveBeenCalled();
+  });
+
+  it("stops a service with the native stop_service command in the desktop app", async () => {
+    isTauriMock.mockReturnValue(true);
+    const native = { status: "stopped", message: "Service 'env-manager' stopped (pid 42).", port: MESH_SERVICES["env-manager"].defaultPort };
+    invokeMock.mockResolvedValue(native);
+    const fetchMock = stubFetch(false);
+
+    await expect(stopService("env-manager")).resolves.toEqual(native);
+    expect(invokeMock).toHaveBeenCalledWith("stop_service", { serviceId: "env-manager" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the Environment Manager when the native stop fails, and reports both failures", async () => {
+    isTauriMock.mockReturnValue(true);
+    invokeMock.mockRejectedValue("netstat failed");
+    const url = `${ENV_BASE}/api/services/dataset-compiler/stop`;
+    stubFetch(true, { [url]: () => new Response(JSON.stringify({ status: "stopped", message: "ok" })) });
+
+    await expect(stopService("dataset-compiler")).resolves.toMatchObject({ status: "stopped" });
+
+    stubFetch(true, { [url]: () => new Response(JSON.stringify({ detail: "not running" }), { status: 400 }) });
+    await expect(stopService("dataset-compiler")).rejects.toThrow(/Native stop failed \(netstat failed\);.*not running/);
+  });
 });
 
 describe("model telemetry", () => {
