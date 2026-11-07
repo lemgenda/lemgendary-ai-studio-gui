@@ -65,6 +65,14 @@ export const PREDEFINED_SERVICES: ServiceDefinition[] = [
     requiresServer: false,
   },
   {
+    key: "deepseek",
+    name: "DeepSeek",
+    description: "API key for DeepSeek LLM inference and dataset processing.",
+    mandatory: false,
+    requiresUsername: false,
+    requiresServer: false,
+  },
+  {
     key: "wandb",
     name: "Weights & Biases",
     description: "Experiment tracking and cloud loss curve visualization API key.",
@@ -281,7 +289,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
           >
             {isSecretsSaving ? "Saving..." : "Save Secrets to Ecosystem"}
           </button>
-          <HelpTooltip content="Persist credentials to .secrets.yaml and update the local .kaggle_token, .kaggle_users and kaggle.json files. Stored values are never sent back to the GUI; a blank replacement field keeps the stored value." />
+          <HelpTooltip content="Persist credentials to .secrets.yaml and update the user's kaggle.json CLI file. Stored values are never sent back to the GUI; a blank replacement field keeps the stored value." />
         </div>
       </div>
 

@@ -274,6 +274,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.41 - Authoritative .secrets.yaml SSOT & DeepSeek Secret Registration
+
+- **Secrets Vault (`SecretsEditorTab.tsx`)**: added predefined service entry for
+  `deepseek` (label "DeepSeek API Key") with appropriate placeholders and
+  instructions. Updated in-tab guidance explaining `.secrets.yaml` as the
+  authoritative Single Source of Truth (SSOT) across all ecosystem services,
+  confirming legacy token dotfiles are deprecated and automatically cleaned up.
+- **Version Alignment**: bumped `package.json`, `src-tauri/Cargo.toml`, and
+  `src-tauri/tauri.conf.json` to version `2.10.41`.
+
 ### v2.10.39 - Native Service Stop (Merged From master)
 
 - **Merge**: `origin/master` commit `19c4f6a` (master's v2.10.9 "Native
