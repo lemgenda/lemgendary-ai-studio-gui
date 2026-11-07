@@ -58,7 +58,11 @@ impl Frame {
                 bgra.len()
             ));
         }
-        Ok(Self { width, height, bgra })
+        Ok(Self {
+            width,
+            height,
+            bgra,
+        })
     }
 }
 

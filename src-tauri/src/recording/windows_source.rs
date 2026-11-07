@@ -68,7 +68,9 @@ impl WgcWindowSource {
     pub fn open(hwnd: *mut c_void) -> Result<Self, String> {
         let window = Window::from_raw_hwnd(hwnd);
         if !window.is_valid() {
-            return Err("The application window cannot be captured (not a valid window)".to_string());
+            return Err(
+                "The application window cannot be captured (not a valid window)".to_string(),
+            );
         }
         let slot: Slot = Arc::new(Mutex::new(None));
         let settings = Settings::new(
@@ -90,7 +92,9 @@ impl WgcWindowSource {
 impl FrameSource for WgcWindowSource {
     fn latest(&mut self) -> Result<Option<Arc<Frame>>, String> {
         if self.control.is_finished() {
-            return Err("Window capture stopped (the window was closed or capture failed)".to_string());
+            return Err(
+                "Window capture stopped (the window was closed or capture failed)".to_string(),
+            );
         }
         Ok(self.slot.lock().map_err(|_| lock_error())?.clone())
     }

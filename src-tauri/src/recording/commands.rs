@@ -16,7 +16,9 @@ pub struct RecorderState(Mutex<Box<dyn WindowRecorder>>);
 
 impl RecorderState {
     pub fn new() -> Self {
-        Self(Mutex::new(Box::new(ThreadedRecorder::new(SystemClock::new()))))
+        Self(Mutex::new(Box::new(ThreadedRecorder::new(
+            SystemClock::new(),
+        ))))
     }
 
     fn lock(&self) -> Result<MutexGuard<'_, Box<dyn WindowRecorder>>, String> {
@@ -72,7 +74,9 @@ pub fn recording_start<R: Runtime>(
 ) -> Result<RecordingStatus, String> {
     let mut recorder = state.lock()?;
     if recorder.status()?.state != RecordingState::Idle {
-        return Err("A recording is already in progress; stop it before starting another".to_string());
+        return Err(
+            "A recording is already in progress; stop it before starting another".to_string(),
+        );
     }
     let source = open_window_source(&window)?;
     recorder.start(source, Box::new(H264Mp4Encoder::new()))

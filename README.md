@@ -1,4 +1,4 @@
-﻿# LemGendary AI Studio GUI
+# LemGendary AI Studio GUI
 
 Modern cross-platform desktop user interface for the LemGendary AI ecosystem,
 built with Tauri v2, React 18, TypeScript, and Vite.
@@ -295,7 +295,7 @@ lem-env validate --project lemgendary-ai-studio-gui
   its port.
 - Tests: Rust (24, +3) for `netstat` and `lsof` parsing and unknown services;
   `sidecarRouting.test.ts` (+3) for native stop, fallback and offline errors.
-- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.39`.
+- **Version**: `package.json` and `src-tauri/Cargo.toml` are `2.10.40`.
 
 ### v2.10.38 - Null Model Stats From the Training Suite
 

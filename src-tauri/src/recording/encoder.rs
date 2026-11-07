@@ -5,7 +5,9 @@ use std::io::Cursor;
 use std::time::Duration;
 
 use bytes::Bytes;
-use mp4::{AvcConfig, FourCC, MediaConfig, Mp4Config, Mp4Sample, Mp4Writer, TrackConfig, TrackType};
+use mp4::{
+    AvcConfig, FourCC, MediaConfig, Mp4Config, Mp4Sample, Mp4Writer, TrackConfig, TrackType,
+};
 use openh264::encoder::{
     BitRate, Encoder, EncoderConfig, FrameRate, IntraFramePeriod, RateControlMode, UsageType,
 };
@@ -90,10 +92,8 @@ impl VideoEncoder for H264Mp4Encoder {
             None => self.encoder.insert(Self::make_encoder()?),
         };
         let canvas = scale_to_canvas(frame, out_w, out_h);
-        let yuv = YUVBuffer::from_rgb_source(BgraSliceU8::new(
-            &canvas,
-            (out_w as usize, out_h as usize),
-        ));
+        let yuv =
+            YUVBuffer::from_rgb_source(BgraSliceU8::new(&canvas, (out_w as usize, out_h as usize)));
         let stream = encoder
             .encode(&yuv)
             .map_err(|e| format!("H.264 encoding failed: {e}"))?;
@@ -137,9 +137,15 @@ impl VideoEncoder for H264Mp4Encoder {
     }
 
     fn finish(self: Box<Self>, end: Duration) -> Result<EncodedVideo, String> {
-        let (width, height) = self.size.ok_or_else(|| "No frames were encoded".to_string())?;
-        let sps = self.sps.ok_or_else(|| "Encoder produced no SPS".to_string())?;
-        let pps = self.pps.ok_or_else(|| "Encoder produced no PPS".to_string())?;
+        let (width, height) = self
+            .size
+            .ok_or_else(|| "No frames were encoded".to_string())?;
+        let sps = self
+            .sps
+            .ok_or_else(|| "Encoder produced no SPS".to_string())?;
+        let pps = self
+            .pps
+            .ok_or_else(|| "Encoder produced no PPS".to_string())?;
         mux(&self.samples, end, width, height, sps, pps).map(|bytes| EncodedVideo {
             bytes,
             mime: "video/mp4",
@@ -179,7 +185,12 @@ fn mux(
     let config = Mp4Config {
         major_brand: brand(b"isom"),
         minor_version: 512,
-        compatible_brands: vec![brand(b"isom"), brand(b"iso2"), brand(b"avc1"), brand(b"mp41")],
+        compatible_brands: vec![
+            brand(b"isom"),
+            brand(b"iso2"),
+            brand(b"avc1"),
+            brand(b"mp41"),
+        ],
         timescale: TIMESCALE,
     };
     let mut writer = Mp4Writer::write_start(Cursor::new(Vec::new()), &config).map_err(mp4_err)?;

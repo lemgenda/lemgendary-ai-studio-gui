@@ -248,7 +248,11 @@ pub(crate) mod tests {
 
     impl VideoEncoder for FakeEncoder {
         fn push(&mut self, _frame: &Frame, at: Duration) -> Result<(), String> {
-            self.log.lock().map_err(|e| e.to_string())?.pushed_at.push(at);
+            self.log
+                .lock()
+                .map_err(|e| e.to_string())?
+                .pushed_at
+                .push(at);
             Ok(())
         }
         fn finish(self: Box<Self>, end: Duration) -> Result<EncodedVideo, String> {
@@ -266,7 +270,11 @@ pub(crate) mod tests {
         let log = Arc::new(Mutex::new(FakeLog::default()));
         let frame = Some(Arc::new(Frame::new(2, 2, vec![0; 16]).expect("frame")));
         (
-            Box::new(FakeSource { log: log.clone(), frame, fail }),
+            Box::new(FakeSource {
+                log: log.clone(),
+                frame,
+                fail,
+            }),
             Box::new(FakeEncoder { log: log.clone() }),
             log,
         )
@@ -309,7 +317,11 @@ pub(crate) mod tests {
         let status = session.status(secs(80.0));
         assert_eq!(status.state, RecordingState::LimitReached);
         assert_eq!(status.elapsed_ms, 60_000);
-        assert_eq!(log.lock().expect("log").closed, 1, "capture stops at the limit");
+        assert_eq!(
+            log.lock().expect("log").closed,
+            1,
+            "capture stops at the limit"
+        );
         assert!(session.pause(secs(81.0)).is_err());
         let video = session.stop(secs(90.0)).expect("stop");
         assert_eq!(video.duration, MAX_DURATION);
@@ -323,7 +335,10 @@ pub(crate) mod tests {
         session.pause(secs(30.0)).expect("pause");
         session.resume(secs(500.0)).expect("resume");
         assert_eq!(session.status(secs(520.0)).state, RecordingState::Recording);
-        assert_eq!(session.status(secs(530.0)).state, RecordingState::LimitReached);
+        assert_eq!(
+            session.status(secs(530.0)).state,
+            RecordingState::LimitReached
+        );
     }
 
     #[test]

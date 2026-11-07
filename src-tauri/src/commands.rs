@@ -75,7 +75,11 @@ fn service_spec(service_id: &str) -> Result<ServiceSpec, String> {
 
 /// Every service id in the ecosystem file, in file order (Environment Manager first).
 fn service_ids() -> Result<Vec<&'static str>, String> {
-    Ok(ecosystem()?.services.iter().map(|s| s.id.as_str()).collect())
+    Ok(ecosystem()?
+        .services
+        .iter()
+        .map(|s| s.id.as_str())
+        .collect())
 }
 
 fn find_project_dir(folder_name: &str) -> Option<PathBuf> {
@@ -86,7 +90,10 @@ fn find_project_dir(folder_name: &str) -> Option<PathBuf> {
     ];
     for candidate in &candidates {
         if candidate.is_dir() {
-            return candidate.canonicalize().ok().or_else(|| Some(candidate.clone()));
+            return candidate
+                .canonicalize()
+                .ok()
+                .or_else(|| Some(candidate.clone()));
         }
     }
     None
@@ -125,16 +132,35 @@ fn python_for(proj_dir: &Path) -> String {
 /// so a service that exits on startup leaves its error behind.
 fn spawn_service_logged(service_id: &str, log_dir: &Path) -> Result<String, String> {
     let spec = service_spec(service_id)?;
-    let proj_dir = find_project_dir(spec.folder).unwrap_or_else(|| PathBuf::from("..").join(spec.folder));
+    let proj_dir =
+        find_project_dir(spec.folder).unwrap_or_else(|| PathBuf::from("..").join(spec.folder));
 
-    let (log_path, log_file) = open_service_log(log_dir, service_id)
-        .map_err(|e| format!("Cannot open the log file for service '{}' in {}: {}", service_id, log_dir.display(), e))?;
-    let stderr_file = log_file
-        .try_clone()
-        .map_err(|e| format!("Cannot share the log file {} for stderr: {}", log_path.display(), e))?;
+    let (log_path, log_file) = open_service_log(log_dir, service_id).map_err(|e| {
+        format!(
+            "Cannot open the log file for service '{}' in {}: {}",
+            service_id,
+            log_dir.display(),
+            e
+        )
+    })?;
+    let stderr_file = log_file.try_clone().map_err(|e| {
+        format!(
+            "Cannot share the log file {} for stderr: {}",
+            log_path.display(),
+            e
+        )
+    })?;
 
     let mut cmd = Command::new(python_for(&proj_dir));
-    cmd.args(["-m", "uvicorn", spec.app_module, "--host", spec.host, "--port", &spec.port.to_string()]);
+    cmd.args([
+        "-m",
+        "uvicorn",
+        spec.app_module,
+        "--host",
+        spec.host,
+        "--port",
+        &spec.port.to_string(),
+    ]);
 
     if proj_dir.is_dir() {
         cmd.current_dir(&proj_dir);
@@ -255,7 +281,10 @@ fn run_checked(cmd: &mut Command, what: &str) -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 fn listening_pids(port: u16) -> Result<Vec<u32>, String> {
-    let out = run_checked(Command::new("netstat").args(["-ano", "-p", "TCP"]), "netstat")?;
+    let out = run_checked(
+        Command::new("netstat").args(["-ano", "-p", "TCP"]),
+        "netstat",
+    )?;
     Ok(parse_netstat_listeners(&out, port))
 }
 
@@ -277,7 +306,11 @@ fn listening_pids(port: u16) -> Result<Vec<u32>, String> {
 #[cfg(target_os = "windows")]
 fn kill_pid(pid: u32) -> Result<(), String> {
     let pid = pid.to_string();
-    run_checked(Command::new("taskkill").args(["/PID", &pid, "/T", "/F"]), "taskkill").map(|_| ())
+    run_checked(
+        Command::new("taskkill").args(["/PID", &pid, "/T", "/F"]),
+        "taskkill",
+    )
+    .map(|_| ())
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -295,17 +328,29 @@ pub fn stop_service(service_id: String) -> Result<ServiceStopResult, String> {
     if pids.is_empty() {
         return Ok(ServiceStopResult {
             status: "not_running",
-            message: format!("Service '{}' is not listening on port {}.", service_id, port),
+            message: format!(
+                "Service '{}' is not listening on port {}.",
+                service_id, port
+            ),
             port,
         });
     }
     for pid in &pids {
-        kill_pid(*pid).map_err(|e| format!("Failed to stop service '{}' (pid {}): {}", service_id, pid, e))?;
+        kill_pid(*pid).map_err(|e| {
+            format!(
+                "Failed to stop service '{}' (pid {}): {}",
+                service_id, pid, e
+            )
+        })?;
     }
     let pid_list: Vec<String> = pids.iter().map(u32::to_string).collect();
     Ok(ServiceStopResult {
         status: "stopped",
-        message: format!("Service '{}' stopped (pid {}).", service_id, pid_list.join(", ")),
+        message: format!(
+            "Service '{}' stopped (pid {}).",
+            service_id,
+            pid_list.join(", ")
+        ),
         port,
     })
 }
@@ -316,7 +361,11 @@ mod tests {
     use std::io::Write;
 
     fn temp_log_dir(name: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("lemgendary-gui-test-{}-{}", name, std::process::id()))
+        std::env::temp_dir().join(format!(
+            "lemgendary-gui-test-{}-{}",
+            name,
+            std::process::id()
+        ))
     }
 
     #[test]
@@ -335,7 +384,10 @@ mod tests {
     fn embedded_ecosystem_matches_the_snapshot_shape() -> Result<(), String> {
         let eco = parse_ecosystem(ECOSYSTEM_JSON)?;
         assert_eq!(eco.identity.bind_host, "127.0.0.1");
-        assert_eq!(service_ids()?, vec!["env-manager", "dataset-compiler", "training-suite"]);
+        assert_eq!(
+            service_ids()?,
+            vec!["env-manager", "dataset-compiler", "training-suite"]
+        );
         for service in &eco.services {
             let spec = service_spec(&service.id)?;
             assert_eq!(spec.port, service.port);
@@ -348,12 +400,19 @@ mod tests {
     #[test]
     fn invalid_ecosystem_json_is_a_descriptive_error() {
         let err = parse_ecosystem("{}").err().unwrap_or_default();
-        assert!(err.starts_with("Embedded src/generated/ecosystem.json is invalid"), "{}", err);
+        assert!(
+            err.starts_with("Embedded src/generated/ecosystem.json is invalid"),
+            "{}",
+            err
+        );
     }
 
     #[test]
     fn unknown_service_is_an_error() {
-        assert_eq!(service_spec("nope").err(), Some("Unknown service 'nope'".to_string()));
+        assert_eq!(
+            service_spec("nope").err(),
+            Some("Unknown service 'nope'".to_string())
+        );
         let dir = temp_log_dir("unknown");
         assert!(spawn_service_logged("nope", &dir).is_err());
     }
@@ -400,6 +459,9 @@ mod tests {
 
     #[test]
     fn stopping_an_unknown_service_is_an_error() {
-        assert_eq!(stop_service("nope".to_string()).err(), Some("Unknown service 'nope'".to_string()));
+        assert_eq!(
+            stop_service("nope".to_string()).err(),
+            Some("Unknown service 'nope'".to_string())
+        );
     }
 }
