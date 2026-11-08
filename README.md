@@ -290,8 +290,8 @@ lem-env validate --project lemgendary-ai-studio-gui
 - **Deep Learning Ecosystem Alignment**:
   - Aligned GUI ecosystem telemetry expectations with PyTorch 2.15.0+cu134 and
     CUDA 13.4 across training and dataset compilers.
-- **Version Alignment**: bumped `package.json`, `src-tauri/Cargo.toml`, and
-  `src-tauri/tauri.conf.json` to version `2.10.42`.
+- **Version Alignment**: bumped `package.json`, `src-tauri/Cargo.toml`,
+  `src-tauri/Cargo.lock`, and `src-tauri/tauri.conf.json` to version `2.10.42`.
 
 ### v2.10.41 - Authoritative .secrets.yaml SSOT & DeepSeek Secret Registration
 
