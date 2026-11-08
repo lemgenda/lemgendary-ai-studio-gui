@@ -274,6 +274,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.44 - Tauri 2.12 Toolchain & Crate Alignment
+
+- **Tauri Package Synchronization**:
+  - Aligned `@tauri-apps/api` (`~2.12.0`) and `@tauri-apps/cli` (`~2.12.0`) with
+    underlying `tauri` crate version `2.12.5`.
+  - Aligned `@tauri-apps/plugin-shell` (`~2.6.0`) with `tauri-plugin-shell` crate
+    version `2.6.0`.
+  - Updated `src-tauri/Cargo.toml` dependencies to match `tauri = 2.12` and
+    `tauri-plugin-shell = 2.6`, eliminating Tauri CLI runtime mismatch warnings.
+
 ### v2.10.43 - Suppressed Redundant Cold-Start Refresh Error Warning
 
 - **Dashboard Sync Resiliency (`useMeshSync.ts`)**:
