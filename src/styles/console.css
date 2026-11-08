@@ -73,8 +73,7 @@
 
 /* Status Bar */
 .status-bar {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   z-index: 20;
   display: flex;
   justify-content: space-between;

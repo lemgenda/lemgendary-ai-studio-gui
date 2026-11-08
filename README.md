@@ -274,6 +274,25 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.42 - Fixed Viewport Overscroll & Confined Status Bar Footer
+
+- **Viewport & Scroll Containment (`accessibility.css`, `layout.css`,
+  `console.css`)**:
+  - Locked `html, body` to `height: 100%; overflow: hidden;` eliminating root
+    document overscroll past the bottom footer status bar.
+  - Set `.main-content` to `height: 100vh; overflow: hidden; display: flex;
+    flex-direction: column;` ensuring strict flex bounding.
+  - Confined internal view scrolling directly to `.view-container` (`flex: 1;
+    overflow-y: auto; min-height: 0;`).
+  - Fixed status bar positioning to `flex-shrink: 0;` ensuring it remains
+    permanently pinned to the bottom of the viewport under all zoom and scroll
+    states.
+- **Deep Learning Ecosystem Alignment**:
+  - Aligned GUI ecosystem telemetry expectations with PyTorch 2.15.0+cu134 and
+    CUDA 13.4 across training and dataset compilers.
+- **Version Alignment**: bumped `package.json`, `src-tauri/Cargo.toml`, and
+  `src-tauri/tauri.conf.json` to version `2.10.42`.
+
 ### v2.10.41 - Authoritative .secrets.yaml SSOT & DeepSeek Secret Registration
 
 - **Secrets Vault (`SecretsEditorTab.tsx`)**: added predefined service entry for
