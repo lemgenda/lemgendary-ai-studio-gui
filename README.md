@@ -284,6 +284,7 @@ lem-env validate --project lemgendary-ai-studio-gui
   - Updated `src-tauri/Cargo.toml` dependencies to match `tauri = 2.12` and
     `tauri-plugin-shell = 2.6`, keeping `tauri-build = 2.0.0`, eliminating
     Tauri CLI runtime mismatch warnings.
+  - Synchronized `src-tauri/Cargo.lock` package version to `2.10.44`.
 
 ### v2.10.43 - Suppressed Redundant Cold-Start Refresh Error Warning
 
