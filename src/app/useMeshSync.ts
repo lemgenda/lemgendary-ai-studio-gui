@@ -139,9 +139,17 @@ export function useMeshSync(): MeshSync {
 
       await refreshMeshStatus();
       setLastUpdated(new Date().toISOString());
-      setRefreshError(
-        refreshErrorMessage(["Hardware profile", "Health report", "Pipeline status"], [hwResult, healthResult, pipeResult])
-      );
+
+      const err = refreshErrorMessage(["Hardware profile", "Health report", "Pipeline status"], [hwResult, healthResult, pipeResult]);
+      // If the entire mesh or the environment manager is completely offline, suppress
+      // the transient "Refresh incomplete: Failed to fetch" banner since the top-level
+      // MeshOfflineBanner already clearly instructs the user to start services.
+      const isEnvManagerReachable = await probeSidecarPort("env-manager");
+      if (!isEnvManagerReachable) {
+        setRefreshError(null);
+      } else {
+        setRefreshError(err);
+      }
     } catch (err: unknown) {
       logger.error("Dashboard refresh failed", err);
       setRefreshError(`Refresh failed: ${errorMessage(err)}`);

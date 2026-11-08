@@ -274,6 +274,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.43 - Suppressed Redundant Cold-Start Refresh Error Warning
+
+- **Dashboard Sync Resiliency (`useMeshSync.ts`)**:
+  - Probes `env-manager` reachability during dashboard synchronization.
+  - When the ecosystem mesh or Environment Manager is offline on cold start,
+    suppresses redundant transient "Refresh incomplete: Failed to fetch" warnings,
+    delegating clearly and cleanly to the top-level `MeshOfflineBanner`.
+
 ### v2.10.42 - Fixed Viewport Overscroll & Confined Status Bar Footer
 
 - **Viewport & Scroll Containment (`accessibility.css`, `layout.css`,
