@@ -276,20 +276,21 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ### v2.10.46 - Native Process Socket Termination & Polling Window Hardening
 
-- **Native Stop Service Command (src-tauri/src/commands.rs)**:
-  - Enhanced Windows parse_netstat_listeners to resolve loopback socket owner
+- **Native Stop Service Command (`src-tauri/src/commands.rs`)**:
+  - Enhanced Windows `parse_netstat_listeners` to resolve loopback socket owner
     PIDs when listeners report wildcard or established local port endpoints,
-    ensuring unkillable background sidecars are properly identified and terminated.
-  - Native kill_pid dispatches 	askkill /PID [pid] /T /F on Windows and kill -9
-    on Unix to terminate the entire process tree cleanly.
-- **Service Control Polling Resiliency (src/app/useServiceControls.ts)**:
+    ensuring unkillable background sidecars are properly identified and
+    terminated.
+  - Native `kill_pid` dispatches `taskkill /PID [pid] /T /F` on Windows and
+    `kill -9` on Unix to terminate the entire process tree cleanly.
+- **Service Control Polling Resiliency (`src/app/useServiceControls.ts`)**:
   - Extended stop confirmation polling window from 10 attempts (5.0s) to 16
     attempts (8.0s) at 500ms intervals, preventing premature timeout alerts
     while Windows socket handles and Python virtual environment child processes
     tear down.
 - **Version Alignment**:
-  - Bumped package.json, src-tauri/Cargo.toml, and src-tauri/tauri.conf.json
-    to 2.10.46.
+  - Bumped `package.json`, `src-tauri/Cargo.toml`, and
+    `src-tauri/tauri.conf.json` to `2.10.46`.
 
 ### v2.10.45 - Viewport Collision Guard & Boundary Tooltip Positioning
 
