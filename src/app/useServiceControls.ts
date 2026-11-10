@@ -10,7 +10,7 @@ import { ServiceStartTimeoutError, startOfflineServices } from "./serviceStartup
 import { PollOptions, waitUntil } from "./waitForMesh";
 
 const START_POLL: PollOptions = { attempts: 15, intervalMs: 1000 };
-const STOP_POLL: PollOptions = { attempts: 10, intervalMs: 500 };
+const STOP_POLL: PollOptions = { attempts: 16, intervalMs: 500 };
 
 function isServiceId(id: string): id is ServiceId {
   return id in MESH_SERVICES;

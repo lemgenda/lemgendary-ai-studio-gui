@@ -219,9 +219,12 @@ pub struct ServiceStopResult {
     port: u16,
 }
 
-/// Process ids listening on `port` in `netstat -ano -p TCP` output. A listening
-/// socket is recognised by its `:0` foreign address, so the check does not
-/// depend on the Windows display language of the state column.
+/// Process ids bound to `port` in `netstat -ano -p TCP` output. A server
+/// socket on Windows may report a foreign address ending in `:0` (e.g. `0.0.0.0:0`
+/// or `127.0.0.1:0`), or may be in `LISTENING` state, or may own established
+/// local server sockets (`local_addr` matching `:port`). Any non-zero PID whose
+/// local socket ends with `:port` and whose foreign address indicates a listener
+/// or local endpoint is collected and deduplicated.
 #[cfg(any(target_os = "windows", test))]
 fn parse_netstat_listeners(output: &str, port: u16) -> Vec<u32> {
     let local_suffix = format!(":{}", port);
@@ -231,12 +234,22 @@ fn parse_netstat_listeners(output: &str, port: u16) -> Vec<u32> {
         if fields.len() != 5 || !fields[0].eq_ignore_ascii_case("TCP") {
             continue;
         }
-        if !fields[1].ends_with(&local_suffix) || !fields[2].ends_with(":0") {
+        if !fields[1].ends_with(&local_suffix) {
             continue;
         }
-        if let Ok(pid) = fields[4].parse::<u32>() {
-            if pid != 0 && !pids.contains(&pid) {
-                pids.push(pid);
+        let is_listener = fields[2].ends_with(":0")
+            || fields[2] == "*:*"
+            || fields[3].eq_ignore_ascii_case("LISTENING");
+        let pid_parsed = fields[4].parse::<u32>().ok().unwrap_or(0);
+        if is_listener && pid_parsed != 0 {
+            if !pids.contains(&pid_parsed) {
+                pids.push(pid_parsed);
+            }
+        } else if pid_parsed != 0 && (fields[2].ends_with(":0") || !fields[2].ends_with(&local_suffix)) {
+            // Fallback for Windows loopback sockets where listener PID is transferred
+            // to or held by established server sockets on the local port.
+            if !pids.contains(&pid_parsed) {
+                pids.push(pid_parsed);
             }
         }
     }
