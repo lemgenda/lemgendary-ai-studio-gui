@@ -64,7 +64,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }}
           />
           <h1 className="brand-title">LemGendary AI</h1>
-          <HelpTooltip content="LemGendary AI Studio Desktop GUI v2.0. Unified client interface for dataset compilation, model training, and environment governance." />
+          <HelpTooltip
+            position="bottom"
+            content="LemGendary AI Studio Desktop GUI v2.0. Unified client interface for dataset compilation, model training, and environment governance."
+          />
         </div>
       </div>
 

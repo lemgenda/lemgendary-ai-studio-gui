@@ -274,6 +274,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.45 - Viewport Collision Guard & Boundary Tooltip Positioning
+
+- **HelpTooltip Component (`src/components/HelpTooltip.tsx`)**:
+  - Implemented boundary collision detection (`handleShow`) checking bounding rectangle positions (`rect.top < 80px`).
+  - Automatically flips vertical placement from top to bottom when elements are positioned near the top of the viewport to prevent text clipping behind window bounds.
+- **Sidebar Header Positioning (`src/components/Sidebar.tsx`)**:
+  - Explicitly bound `position="bottom"` for the top-level application branding tooltip.
+
 ### v2.10.44 - Tauri 2.12 Toolchain & Crate Alignment
 
 - **Tauri Package Synchronization**:
