@@ -274,6 +274,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.57 - Portable Verify Script
+
+- **package.json**: `npm run verify` now uses the portable script from the
+  central manifest (`requirements/lemgendary-ai-studio-gui.package.json` in
+  the Environment Manager), which finds `lem-env` on Windows, macOS and
+  Linux instead of a Windows-only path.
+
 ### v2.10.56 - Validator Compliance
 
 - **Process Control Tests (`src-tauri/src/process_control.rs`)**: sample
