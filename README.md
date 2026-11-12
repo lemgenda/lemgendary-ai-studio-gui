@@ -274,6 +274,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.53 - Telemetry Console Auto-Scroll
+
+- **Telemetry Console (`src/components/training/TelemetryConsole.tsx`)**: the
+  Local Process and Remote Cloud streams now follow the newest line when
+  events arrive or their tab is shown. The refs were declared but never
+  scrolled (audit GUI-11).
+- **Scroll Hook (`src/utils/useScrollToBottom.ts`)**: new shared hook, also
+  used by `LogPanel.tsx` in place of its own effect.
+- **Tests (`src/components/training/__tests__/TelemetryConsole.scroll.test.tsx`)**.
+
 ### v2.10.52 - Model Card Buttons Need the Training Suite
 
 - **Model Card Actions (`src/components/training/ModelCardActions.tsx`)**:

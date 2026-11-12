@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { PipelineEvent } from "../api/types";
 import { TelemetryProgressTracker } from "./common/TelemetryProgressTracker";
@@ -6,6 +6,7 @@ import { parseProgressMessage } from "../utils/progressParser";
 import { copyTextToClipboard } from "../utils/clipboard";
 import { isProgressLine, isTerminalEvent, latestMilestone, rollupTelemetryEvents } from "../api/client";
 import { useTransientValue } from "../utils/useTransientValue";
+import { useScrollToBottom } from "../utils/useScrollToBottom";
 
 interface LogPanelProps {
   events: PipelineEvent[];
@@ -45,11 +46,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
 
   const milestone = useMemo(() => latestMilestone(events), [events]);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [cleanEvents]);
+  useScrollToBottom(containerRef, cleanEvents);
 
   const handleCopy = async () => {
     if (cleanEvents.length === 0) return;

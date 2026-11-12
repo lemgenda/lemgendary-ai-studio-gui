@@ -4,6 +4,7 @@ import { PipelineEvent } from "../../api/types";
 import { TelemetryProgressTracker } from "../common/TelemetryProgressTracker";
 import { parseProgressMessage } from "../../utils/progressParser";
 import { isProgressLine, latestMilestone, rollupTelemetryEvents } from "../../api/client";
+import { useScrollToBottom } from "../../utils/useScrollToBottom";
 
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
@@ -83,6 +84,10 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
   const cleanRemoteEvents = useMemo(() => {
     return rollupTelemetryEvents(displayedRemoteEvents);
   }, [displayedRemoteEvents]);
+
+  // Follow the newest line in each stream, as LogPanel does.
+  useScrollToBottom(localLogContainerRef, cleanLocalEvents, activeTelemetryTab === "local");
+  useScrollToBottom(remoteLogContainerRef, cleanRemoteEvents, activeTelemetryTab === "remote");
 
   return (
     <div id="telemetry-panel-anchor" style={{ marginTop: "28px" }}>
