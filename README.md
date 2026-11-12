@@ -274,6 +274,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.48 - Training Action Errors Use the Error Banner
+
+- **Training Actions (`src/components/training/useModelActions.ts`)**: every
+  failed action (local train, stop, Kaggle dispatch, push, pull, notebooks,
+  evaluate, export, docs, staging, fleet push) now goes through
+  `reportFailure`, which clears the notice and sets the red `statusError`
+  banner. Before, 12 of 13 failures were shown in the green success banner
+  (audit GUI-5). Successes go through `reportSuccess`, and each action clears
+  both banners when it starts.
+- **Tests (`src/components/training/__tests__/useModelActions.test.tsx`)**:
+  failure, success and the rethrowing Kaggle dispatch path.
+
 ### v2.10.47 - Manifest Editor Offline and Load-Failure Guards
 
 - **Config Editor (`src/components/ConfigEditorModal.tsx`)**: an unreachable

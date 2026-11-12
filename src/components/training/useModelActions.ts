@@ -51,16 +51,33 @@ export function useModelActions({
   const [isGeneratingAllNotebooks, setIsGeneratingAllNotebooks] = useState<boolean>(false);
   const [isPushingAllKaggle, setIsPushingAllKaggle] = useState<boolean>(false);
 
+  /** Drop the previous banner when a new action starts. */
+  const clearStatus = () => {
+    setStatusNotice(null);
+    setStatusError(null);
+  };
+  /** Success goes to the green notice banner. */
+  const reportSuccess = (message: string) => {
+    setStatusError(null);
+    setStatusNotice(message);
+  };
+  /** Failure goes to the red error banner, never the green notice banner. */
+  const reportFailure = (context: string, err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    setStatusNotice(null);
+    setStatusError(`${context}: ${msg}`);
+  };
+
   const handleStartLocalTrain = async (m: ModelItem, batchSize?: number) => {
     setActionBusyKey(`local_${m.key}`);
+    clearStatus();
     try {
       const res = await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
       setLocalJob({ jobId: res.job_id || null, modelKey: m.key });
       setActiveTelemetryTab("local");
-      setStatusNotice(`Local training initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
+      reportSuccess(`Local training initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to start local training for ${m.display_name}: ${msg}`);
+      reportFailure(`Failed to start local training for ${m.display_name}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -70,15 +87,14 @@ export function useModelActions({
     if (!localJob.jobId) return;
     const jobId = localJob.jobId;
     setActionBusyKey("stopping");
-    setStatusError(null);
+    clearStatus();
     try {
       // Resolves only after the sidecar confirms status "cancelled"; job state is kept otherwise.
       await cancelTrainingJob(jobId);
-      setStatusNotice(`Cancelled local training job ${jobId}.`);
+      reportSuccess(`Cancelled local training job ${jobId}.`);
       setLocalJob({ jobId: null, modelKey: null });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusError(`Failed to stop job ${jobId}: ${msg}`);
+      reportFailure(`Failed to stop job ${jobId}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -86,6 +102,7 @@ export function useModelActions({
 
   const handleLaunchKaggle = async (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => {
     setActionBusyKey(`cloud_${modelKey}`);
+    clearStatus();
     try {
       const res = await launchKaggleTrain({
         model: modelKey,
@@ -95,11 +112,10 @@ export function useModelActions({
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");
-      setStatusNotice(`Dispatched Kaggle training for ${modelKey} (Kernel: ${res.job_id}). Stream attached.`);
+      reportSuccess(`Dispatched Kaggle training for ${modelKey} (Kernel: ${res.job_id}). Stream attached.`);
       await loadKaggleData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to dispatch Kaggle training: ${msg}`);
+      reportFailure("Failed to dispatch Kaggle training", err);
       throw err;
     } finally {
       setActionBusyKey(null);
@@ -108,13 +124,13 @@ export function useModelActions({
 
   const handlePushArtifacts = async (modelKey: string) => {
     setActionBusyKey(`push_${modelKey}`);
+    clearStatus();
     setActiveTelemetryTab("local");
     try {
       const res = await pushKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed pushing artifacts for ${modelKey}: ${msg}`);
+      reportFailure(`Failed pushing artifacts for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -122,13 +138,13 @@ export function useModelActions({
 
   const handlePullArtifacts = async (modelKey: string) => {
     setActionBusyKey(`pull_${modelKey}`);
+    clearStatus();
     setActiveTelemetryTab("local");
     try {
       const res = await pullKaggleModelArtifacts(modelKey);
-      setStatusNotice(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed pulling model for ${modelKey}: ${msg}`);
+      reportFailure(`Failed pulling model for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -136,12 +152,12 @@ export function useModelActions({
 
   const handleGenerateTrainingNotebook = async (modelKey: string) => {
     setGeneratingNotebookModel(`${modelKey}_training`);
+    clearStatus();
     try {
       await generateNotebooks({ model_key: modelKey, kinds: ["training"] });
-      setStatusNotice(`Successfully regenerated training notebooks for ${modelKey}.`);
+      reportSuccess(`Successfully regenerated training notebooks for ${modelKey}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to generate training notebooks: ${msg}`);
+      reportFailure("Failed to generate training notebooks", err);
     } finally {
       setGeneratingNotebookModel(null);
     }
@@ -149,12 +165,12 @@ export function useModelActions({
 
   const handleGenerateUsageNotebook = async (modelKey: string) => {
     setGeneratingNotebookModel(`${modelKey}_usage`);
+    clearStatus();
     try {
       await generateNotebooks({ model_key: modelKey, kinds: ["usage"] });
-      setStatusNotice(`Successfully regenerated standalone usage guide notebook for ${modelKey}.`);
+      reportSuccess(`Successfully regenerated standalone usage guide notebook for ${modelKey}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to generate usage guide notebook: ${msg}`);
+      reportFailure("Failed to generate usage guide notebook", err);
     } finally {
       setGeneratingNotebookModel(null);
     }
@@ -162,12 +178,12 @@ export function useModelActions({
 
   const handleGenerateAllNotebooks = async () => {
     setIsGeneratingAllNotebooks(true);
+    clearStatus();
     try {
       const res = await generateAllNotebooks("all");
-      setStatusNotice(`Regenerated notebooks across all ${res.total_models} models (${res.total_files} files created).`);
+      reportSuccess(`Regenerated notebooks across all ${res.total_models} models (${res.total_files} files created).`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Batch notebook generation failed: ${msg}`);
+      reportFailure("Batch notebook generation failed", err);
     } finally {
       setIsGeneratingAllNotebooks(false);
     }
@@ -175,12 +191,12 @@ export function useModelActions({
 
   const handleEvaluateModel = async (modelKey: string) => {
     setActionBusyKey(`eval_${modelKey}`);
+    clearStatus();
     try {
       const res = await triggerModelEvaluate({ model: modelKey, env: "local" });
-      setStatusNotice(`Evaluation dispatched for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming below.`);
+      reportSuccess(`Evaluation dispatched for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming below.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Evaluation failed for ${modelKey}: ${msg}`);
+      reportFailure(`Evaluation failed for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -188,15 +204,15 @@ export function useModelActions({
 
   const handleExportModel = async (modelKey: string) => {
     setActionBusyKey(`export_${modelKey}`);
+    clearStatus();
     try {
       const res = await triggerModelExport({
         model: modelKey,
         targets: ["onnx_fp32", "onnx_fp16", "torch_pt"],
       });
-      setStatusNotice(`Export dispatched for ${modelKey} (Job ID: ${res.job_id}). Artifacts written to LemGendaryModels.`);
+      reportSuccess(`Export dispatched for ${modelKey} (Job ID: ${res.job_id}). Artifacts written to LemGendaryModels.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Export failed for ${modelKey}: ${msg}`);
+      reportFailure(`Export failed for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -204,12 +220,12 @@ export function useModelActions({
 
   const handleGenerateDocs = async (modelKey: string) => {
     setActionBusyKey(`docs_${modelKey}`);
+    clearStatus();
     try {
       await generateModelDocs(modelKey);
-      setStatusNotice(`Regenerated README.md and model-metadata.json for ${modelKey}.`);
+      reportSuccess(`Regenerated README.md and model-metadata.json for ${modelKey}.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Docs generation failed for ${modelKey}: ${msg}`);
+      reportFailure(`Docs generation failed for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -217,14 +233,14 @@ export function useModelActions({
 
   const handleStageVariations = async (modelKey: string) => {
     setActionBusyKey(`stage_${modelKey}`);
+    clearStatus();
     try {
       const res = await stageModelVariations(modelKey);
       const stagedCount = Object.keys(res.staged_files || {}).length;
-      setStatusNotice(`Staged ${stagedCount} isolated variation binaries for ${modelKey}.`);
+      reportSuccess(`Staged ${stagedCount} isolated variation binaries for ${modelKey}.`);
       await loadTrainingData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Staging failed for ${modelKey}: ${msg}`);
+      reportFailure(`Staging failed for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -232,13 +248,13 @@ export function useModelActions({
 
   const handlePushAllKaggle = async () => {
     setIsPushingAllKaggle(true);
+    clearStatus();
     setActiveTelemetryTab("local");
     try {
       const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
-      setStatusNotice(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setStatusNotice(`Failed to enqueue fleet Kaggle push: ${msg}`);
+      reportFailure("Failed to enqueue fleet Kaggle push", err);
     } finally {
       setIsPushingAllKaggle(false);
     }
