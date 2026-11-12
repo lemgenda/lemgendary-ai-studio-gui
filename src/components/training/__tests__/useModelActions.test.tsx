@@ -141,8 +141,9 @@ describe("useModelActions status routing", () => {
       weights: [0.5, 0.5],
     });
     await act(async () => {
-      await actions?.handleBlendSoup("upn_v2");
+      await actions?.handleBlendSoup("upn_v2", null);
     });
+    expect(mocked.blendModelSoup).toHaveBeenCalledWith("upn_v2", undefined);
     expect(lastCall(deps.setStatusNotice)).toBe("Blended model soup for upn_v2 from 2 checkpoint(s): checkpoints/upn_v2_soup.pth.");
     expect(deps.loadTrainingData).toHaveBeenCalled();
   });
@@ -150,8 +151,9 @@ describe("useModelActions status routing", () => {
   it("sends a failed soup blend to the error banner", async () => {
     mocked.blendModelSoup.mockRejectedValue(new Error("fewer than two checkpoints"));
     await act(async () => {
-      await actions?.handleBlendSoup("upn_v2");
+      await actions?.handleBlendSoup("upn_v2", { donors: ["psnr", "lpips"], weights: [0.75, 0.25] });
     });
+    expect(mocked.blendModelSoup).toHaveBeenCalledWith("upn_v2", { donors: ["psnr", "lpips"], weights: [0.75, 0.25] });
     expect(lastCall(deps.setStatusError)).toBe("Failed to blend model soup for upn_v2: fewer than two checkpoints");
     expect(lastCall(deps.setStatusNotice)).toBeNull();
   });

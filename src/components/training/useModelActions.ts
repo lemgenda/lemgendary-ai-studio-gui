@@ -22,6 +22,7 @@ import {
   triggerQuickTrain,
 } from "../../api/client";
 import { ModelItem } from "../../api/types";
+import { SoupRecipe } from "./soupRecipe";
 import { ActiveJobState } from "../../store/useStudioStore";
 
 export type TelemetryTab = "local" | "remote" | "mesh";
@@ -146,16 +147,19 @@ export function useModelActions({
     }
   };
 
-  const handleBlendSoup = async (modelKey: string) => {
+  /** `recipe` null blends every vault checkpoint uniformly; resolves true on success. */
+  const handleBlendSoup = async (modelKey: string, recipe: SoupRecipe | null): Promise<boolean> => {
     setActionBusyKey(`soup_${modelKey}`);
     clearStatus();
     try {
-      const res = await blendModelSoup(modelKey);
+      const res = await blendModelSoup(modelKey, recipe ?? undefined);
       const donors = res.donors?.length ? ` from ${res.donors.length} checkpoint(s)` : "";
       reportSuccess(`Blended model soup for ${modelKey}${donors}: ${res.soup_checkpoint ?? "no checkpoint path reported"}.`);
       await loadTrainingData();
+      return true;
     } catch (err: unknown) {
       reportFailure(`Failed to blend model soup for ${modelKey}`, err);
+      return false;
     } finally {
       setActionBusyKey(null);
     }

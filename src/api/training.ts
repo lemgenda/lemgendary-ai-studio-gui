@@ -121,10 +121,20 @@ export interface BlendSoupResponse {
   weights?: number[];
 }
 
-/** Blend the model's vault checkpoints into one Pareto Model Soup checkpoint (uniform weights). */
-export async function blendModelSoup(modelKey: string): Promise<BlendSoupResponse> {
+/** `SoupRequest` of the soup endpoint: vault metric donors and their weights (same length). */
+export interface BlendSoupPayload {
+  donors: string[];
+  weights: number[];
+}
+
+/**
+ * Blend vault checkpoints into one Pareto Model Soup checkpoint. Without a
+ * payload the sidecar blends every vault checkpoint with uniform weights.
+ */
+export async function blendModelSoup(modelKey: string, payload?: BlendSoupPayload): Promise<BlendSoupResponse> {
   const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/soup`, {
     method: "POST",
+    ...(payload ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) } : {}),
   });
   if (!res.ok) return throwSidecarError(res, `Failed to blend model soup: HTTP ${res.status} ${res.statusText}`);
   return res.json();

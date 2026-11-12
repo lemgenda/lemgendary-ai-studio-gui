@@ -274,6 +274,19 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.60 - Blend Soup Donors and Weights
+
+- **Blend Soup Dialog (`SoupBlendDialog.tsx`, `soupRecipe.ts`)**: the
+  Blend Soup card action opens a dialog. Donors are the vault checkpoints
+  `vault_<metric>.pth` of the measured SOTA metrics; each has a weight
+  (default 1, so uniform) and its normalised share. The recipe is validated
+  like the sidecar (at least 2 donors, weights finite and >= 0, positive sum)
+  and sent normalised to sum 1. "Every vault checkpoint on disk, uniform
+  weights" sends an empty body, as before; it is the only choice when fewer
+  than 2 metrics are measured. The dialog stays open when the blend fails.
+- **API (`blendModelSoup`)**: optional `{ donors, weights }` payload
+  (`SoupRequest` of `POST /api/models/{model_key}/soup`).
+
 ### v2.10.59 - Wired API Wrappers
 
 - **Dashboard (`ManagedProjectsSection.tsx`)**: "Refresh Projects"

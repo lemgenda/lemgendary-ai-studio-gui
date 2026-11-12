@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  blendModelSoup,
   cancelTrainingJob,
   fetchModels,
   fetchTrainingJob,
@@ -118,5 +119,25 @@ describe("training job control", () => {
     expect(model.spatial_ladder).toEqual([]);
     expect(model.target_res).toBeNull();
     expect(model.active_res).toBeNull();
+  });
+});
+
+describe("model soup request", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts an empty body for the uniform all-vault blend and the recipe otherwise", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ model_key: "upn_v2", success: true, soup_checkpoint: "best_soup.pth" }));
+    vi.stubGlobal("fetch", fetchMock);
+    await blendModelSoup("upn_v2");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: "POST" });
+    expect(fetchMock.mock.calls[0][1]?.body).toBeUndefined();
+
+    await blendModelSoup("upn_v2", { donors: ["psnr", "lpips"], weights: [0.5, 0.5] });
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(String(url)).toMatch(/\/api\/models\/upn_v2\/soup$/);
+    expect(JSON.parse(String(init?.body))).toEqual({ donors: ["psnr", "lpips"], weights: [0.5, 0.5] });
+    expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
   });
 });

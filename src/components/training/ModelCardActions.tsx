@@ -56,7 +56,8 @@ export interface ModelCardActionHandlers {
   onExportModel: (modelKey: string) => void;
   onGenerateDocs: (modelKey: string) => void;
   onStageVariations: (modelKey: string) => void;
-  onBlendSoup: (modelKey: string) => void;
+  /** Open the Blend Soup dialog (donors and weights) for this model. */
+  onOpenSoupDialog: (model: ModelItem) => void;
 }
 
 interface ModelCardActionsProps extends ModelCardActionHandlers {
@@ -89,7 +90,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   onExportModel,
   onGenerateDocs,
   onStageVariations,
-  onBlendSoup,
+  onOpenSoupDialog,
 }) => {
   const trainingNotebookBusy = generatingNotebookModel === `${m.key}_training`;
   const usageNotebookBusy = generatingNotebookModel === `${m.key}_usage`;
@@ -279,9 +280,9 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       <CardActionButton
         id={`train-btn-soup-${m.key}`}
         className="btn btn-secondary"
-        onClick={() => onBlendSoup(m.key)}
+        onClick={() => onOpenSoupDialog(m)}
         disabled={isBusy || !trainingSuiteOnline}
-        title="Blends the checkpoints in this model's vault into one Pareto Model Soup checkpoint (uniform weights)"
+        title="Opens the Blend Soup dialog: pick vault donor checkpoints and weights (uniform by default) for one Pareto Model Soup checkpoint"
         icon={
           <CardIcon>
             <path d="M3 11h18a9 9 0 0 1-18 0z" />

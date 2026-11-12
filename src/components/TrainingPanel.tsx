@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { CloudTrainModal } from "./CloudTrainModal";
+import { SoupBlendDialog } from "./training/SoupBlendDialog";
+import { SoupRecipe } from "./training/soupRecipe";
 import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
 import { TrainingTelemetry } from "./training/TrainingTelemetry";
@@ -60,6 +62,9 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
   const [kaggleAuthStatus, setKaggleAuthStatus] = useState<KaggleSuiteStatus | null>(null);
+
+  // Blend Soup dialog: the model whose donors and weights are being picked
+  const [soupModel, setSoupModel] = useState<ModelItem | null>(null);
 
   // Active telemetry tab: "local" | "remote" | "mesh"
   const [activeTelemetryTab, setActiveTelemetryTab] = useState<TelemetryTab>("local");
@@ -245,6 +250,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setIsCloudModalOpen(true);
   };
 
+  /** Blend from the dialog; it stays open on failure so the recipe can be adjusted. */
+  const handleBlendFromDialog = async (modelKey: string, recipe: SoupRecipe | null) => {
+    if (await handleBlendSoup(modelKey, recipe)) setSoupModel(null);
+  };
+
   return (
     <div style={{ padding: "20px 24px" }}>
       {/* 1. Toolbar */}
@@ -370,7 +380,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             onExportModel={handleExportModel}
             onGenerateDocs={handleGenerateDocs}
             onStageVariations={handleStageVariations}
-            onBlendSoup={handleBlendSoup}
+            onOpenSoupDialog={setSoupModel}
             trainingSuiteOnline={trainingSuiteOnline}
           />
         ))}
@@ -426,6 +436,12 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         onMonitorKaggle={handleMonitorKaggle}
         kaggleAuthStatus={kaggleAuthStatus}
         isBusy={Boolean(actionBusyKey && actionBusyKey.startsWith("cloud_"))}
+      />
+      <SoupBlendDialog
+        model={soupModel}
+        onClose={() => setSoupModel(null)}
+        onBlend={(modelKey, recipe) => void handleBlendFromDialog(modelKey, recipe)}
+        isBusy={Boolean(soupModel && actionBusyKey === `soup_${soupModel.key}`)}
       />
     </div>
   );

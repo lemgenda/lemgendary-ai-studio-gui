@@ -1,7 +1,7 @@
 {
   "name": "lemgendary-ai-studio-gui",
   "private": true,
-  "version": "2.10.59",
+  "version": "2.10.60",
   "type": "module",
   "scripts": {
     "sync:ecosystem": "node scripts/sync-ecosystem.mjs",

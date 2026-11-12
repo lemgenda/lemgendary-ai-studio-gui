@@ -44,7 +44,7 @@ describe("ModelCardActions sidecar guard", () => {
           onExportModel={noop}
           onGenerateDocs={noop}
           onStageVariations={noop}
-          onBlendSoup={noop}
+          onOpenSoupDialog={noop}
         />
       )
     );
