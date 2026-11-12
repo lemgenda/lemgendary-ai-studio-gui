@@ -135,7 +135,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         id={`train-btn-cloud-${m.key}`}
         className="btn btn-cloud"
         onClick={() => onOpenCloudModal(m)}
-        disabled={isBusy}
+        disabled={isBusy || !trainingSuiteOnline}
         title="Opens Cloud Training dialog to pre-validate URLs, attached datasets, and launch on Kaggle GPU"
         icon={
           <CardIcon>
@@ -149,7 +149,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         id={`train-btn-pub-model-${m.key}`}
         className="btn btn-vault-push"
         onClick={() => onPushArtifacts(m.key)}
-        disabled={isBusy}
+        disabled={isBusy || !trainingSuiteOnline}
         title="Pushes all 4 model variations (PyTorch Checkpoints, PyTorch FP32, ONNX FP16, ONNX FP32) to Kaggle Models Hub"
         icon={
           <CardIcon>
@@ -165,7 +165,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         id={`train-btn-pull-model-${m.key}`}
         className="btn btn-vault-pull"
         onClick={() => onPullArtifacts(m.key)}
-        disabled={isBusy}
+        disabled={isBusy || !trainingSuiteOnline}
         title="Downloads the latest model variation from Kaggle Models Hub into local LemGendaryModels"
         icon={
           <CardIcon>
@@ -181,7 +181,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         id={`train-btn-gen-nb-${m.key}`}
         className="btn btn-notebook-train"
         onClick={() => onGenerateTrainingNotebook(m.key)}
-        disabled={isBusy || trainingNotebookBusy}
+        disabled={isBusy || trainingNotebookBusy || !trainingSuiteOnline}
         title="Regenerates training notebooks in Model folder (both Colab and Kaggle)"
         icon={
           <CardIcon>
@@ -196,7 +196,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         id={`train-btn-usage-nb-${m.key}`}
         className="btn btn-notebook-usage"
         onClick={() => onGenerateUsageNotebook(m.key)}
-        disabled={isBusy || usageNotebookBusy}
+        disabled={isBusy || usageNotebookBusy || !trainingSuiteOnline}
         title="Regenerates standalone usage guide notebooks in Model folder (both Colab and Kaggle)"
         icon={
           <CardIcon>
@@ -242,7 +242,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       <CardActionButton
         className="btn btn-secondary"
         onClick={() => onGenerateDocs(m.key)}
-        disabled={isBusy}
+        disabled={isBusy || !trainingSuiteOnline}
         title="Regenerates Markdown Model Card (README.md) and Kaggle model-metadata.json from SSOT"
         icon={
           <CardIcon>
@@ -259,7 +259,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       <CardActionButton
         className="btn btn-secondary"
         onClick={() => onStageVariations(m.key)}
-        disabled={isBusy}
+        disabled={isBusy || !trainingSuiteOnline}
         title="Stages exported model binaries into isolated Kaggle variation subdirectories (dist/kaggle/)"
         icon={
           <CardIcon>

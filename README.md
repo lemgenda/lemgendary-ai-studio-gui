@@ -274,6 +274,15 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.52 - Model Card Buttons Need the Training Suite
+
+- **Model Card Actions (`src/components/training/ModelCardActions.tsx`)**:
+  Cloud Training, Push Model, Pull Model, Training Notebook, Usage Notebook,
+  Evaluate, Export, Docs & Meta and Stage Variations are disabled while the
+  Training Suite sidecar is offline, like Local Training already was (audit
+  GUI-10). Stop Training keeps its old rule.
+- **Tests (`src/components/training/__tests__/ModelCardActions.test.tsx`)**.
+
 ### v2.10.51 - Per-Format Variation Badges
 
 - **Variation Badges (`src/components/training/VariationBadges.tsx`)**: the
