@@ -21,7 +21,7 @@ const mocked = vi.mocked(client);
 
 const AUTHENTICATED = {
   authenticated: true,
-  auth_methods: { environment_variables: false, secrets_vault: true, dot_kaggle_token: false, user_kaggle_json: true },
+  auth_methods: { environment_variables: false, secrets_vault: true, user_access_token: true, user_kaggle_json: true },
 };
 
 const REGISTRY_ITEM = {
@@ -39,7 +39,7 @@ const REGISTRY_ITEM = {
 
 describe("kaggleAuthSources", () => {
   it("lists the credential sources the compiler found", () => {
-    expect(kaggleAuthSources(AUTHENTICATED)).toEqual(["secrets vault", "~/.kaggle/kaggle.json"]);
+    expect(kaggleAuthSources(AUTHENTICATED)).toEqual(["secrets vault", "~/.kaggle/access_token", "kaggle.json (legacy)"]);
   });
 });
 

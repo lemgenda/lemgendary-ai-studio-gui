@@ -16,7 +16,7 @@ import {
 
 const KAGGLE_UNAUTHENTICATED: KaggleStatusResponse = {
   authenticated: false,
-  auth_methods: { environment_variables: false, secrets_vault: false, dot_kaggle_token: false, user_kaggle_json: false },
+  auth_methods: { environment_variables: false, secrets_vault: false, user_access_token: false, user_kaggle_json: false },
 };
 
 /** Kaggle auth state from the Dataset Compiler; failures are logged and read as unauthenticated. */

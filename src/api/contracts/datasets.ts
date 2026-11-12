@@ -149,13 +149,19 @@ export interface KaggleDatasetRegistryItem {
   size_gb: number;
 }
 
-/** `GET /api/kaggle/status`: Kaggle credentials the Dataset Compiler can use. */
+/**
+ * `GET /api/kaggle/status`: which credential stores the Dataset Compiler finds
+ * (presence only, no network call; `core/kaggle_credentials.credential_sources`).
+ */
 export interface KaggleStatusResponse {
+  /** True when any store holds a token or key; it does not prove Kaggle accepts it. */
   authenticated: boolean;
   auth_methods: {
     environment_variables: boolean;
     secrets_vault: boolean;
-    dot_kaggle_token: boolean;
+    /** `~/.kaggle/access_token` or `access_token.txt` (kagglesdk). */
+    user_access_token: boolean;
+    /** Legacy `kaggle.json` in `KAGGLE_CONFIG_DIR` (default `~/.kaggle`). */
     user_kaggle_json: boolean;
   };
 }

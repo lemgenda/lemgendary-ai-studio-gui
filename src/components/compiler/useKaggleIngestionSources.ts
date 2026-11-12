@@ -12,8 +12,8 @@ import { KaggleDatasetRegistryItem, KaggleStatusResponse } from "../../api/types
 const AUTH_METHOD_LABELS: Record<keyof KaggleStatusResponse["auth_methods"], string> = {
   environment_variables: "environment variables",
   secrets_vault: "secrets vault",
-  dot_kaggle_token: ".kaggle_token",
-  user_kaggle_json: "~/.kaggle/kaggle.json",
+  user_access_token: "~/.kaggle/access_token",
+  user_kaggle_json: "kaggle.json (legacy)",
 };
 
 /** Credential sources the Dataset Compiler found, in display form. */

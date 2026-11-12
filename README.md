@@ -274,6 +274,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.64 - Dataset Compiler Kaggle Credential Sources
+
+- **Kaggle status (`KaggleStatusResponse`, `useKaggleIngestionSources.ts`)**:
+  Dataset Compiler v16.9.92 reports `environment_variables`,
+  `secrets_vault`, `user_access_token` (`~/.kaggle/access_token`) and
+  `user_kaggle_json` (legacy `kaggle.json`); `dot_kaggle_token` is gone. The
+  ingestion badge tooltip uses the new labels.
+
 ### v2.10.63 - Ecosystem Snapshot Sync
 
 - **Ecosystem snapshot (`src/generated/ecosystem.json`)**: re-synced with
@@ -527,7 +535,8 @@ lem-env validate --project lemgendary-ai-studio-gui
     are positioned near the top of the viewport to prevent text clipping
     behind window bounds.
 - **Sidebar Header Positioning (`src/components/Sidebar.tsx`)**:
-  - Explicitly bound `position="bottom"` for the top-level application branding tooltip.
+  - Explicitly bound `position="bottom"` for the top-level application
+    branding tooltip.
 
 ### v2.10.44 - Tauri 2.12 Toolchain & Crate Alignment
 
