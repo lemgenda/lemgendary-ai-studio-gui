@@ -274,6 +274,24 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.62 - Validate Schema and Shard Extension
+
+- **Validate Schema (`compiler-btn-validate-schema`, `useSchemaValidation.ts`)**:
+  a compiler toolbar button calls `POST /api/config/validate`
+  (`validateCompilerConfig`). The route needs no API token; the compiler's
+  origin guard admits it with the `X-LemGendary-Client: ai-studio-gui`
+  header. A valid registry shows a success notice (version, dataset count,
+  prefix, suffix, output folder); a schema error (HTTP 422) or missing file
+  shows an error banner. Disabled while the compiler is offline.
+- **Shard Extension (`comp-select-shard-ext`)**: the standard compile form
+  offers "Compiler default" (sends nothing; the compiler writes `.data`),
+  `.data` and `.tar` (`WEBDATASET_SHARD_EXTENSIONS`), sent as `shard_ext` of
+  `POST /api/gui/quick-compile`.
+- Both controls listed as "Not added" in v2.10.61 now exist (Dataset
+  Compiler commits 34319a4 and 8752933).
+- **Tests**: `CompilerPanel.schemaAndShards.test.tsx`; contract tests for
+  the validate route and `shard_ext`.
+
 ### v2.10.61 - Audit Control IDs
 
 - **Control IDs (2026-11 audit, DOCS-3)**: `compiler-subtabs-tab-catalog`,

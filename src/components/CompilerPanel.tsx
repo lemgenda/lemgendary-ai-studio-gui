@@ -24,6 +24,7 @@ import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { useCompilationForm } from "./compiler/useCompilationForm";
+import { useSchemaValidation } from "./compiler/useSchemaValidation";
 import { logger } from "../utils/logger";
 import { useTransientValue } from "../utils/useTransientValue";
 import { servicePort } from "../api/config";
@@ -132,6 +133,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     addTelemetryLog,
     reloadCatalog: loadCompilerData,
   });
+
+  const schemaValidation = useSchemaValidation(datasetCompilerOnline);
 
   // Per-Dataset Card Actions
   const handleDownloadManifold = async (dataset: DatasetItem) => {
@@ -383,6 +386,8 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           onUpdateAllMetadata={handleUpdateAllMetadata}
           isRegeneratingIndex={isRegeneratingIndex}
           onRegenerateIndex={handleRegenerateManifolds}
+          isValidatingSchema={schemaValidation.isValidatingSchema}
+          onValidateSchema={schemaValidation.onValidateSchema}
           totalDatasetsCount={datasets.length}
           filteredDatasetsCount={filteredDatasets.length}
         />
@@ -392,6 +397,15 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <ValidationBanner
             type="info"
             message={refreshFeedback}
+            style={{ marginBottom: "16px", fontSize: "12px" }}
+          />
+        )}
+
+        {schemaValidation.schemaNotice && (
+          <ValidationBanner
+            type={schemaValidation.schemaNotice.type}
+            message={schemaValidation.schemaNotice.message}
+            onDismiss={schemaValidation.onDismissSchemaNotice}
             style={{ marginBottom: "16px", fontSize: "12px" }}
           />
         )}

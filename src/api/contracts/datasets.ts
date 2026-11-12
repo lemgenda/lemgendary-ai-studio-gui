@@ -83,6 +83,26 @@ export interface QuickCompilePayload {
   preset?: string;
   max_gb?: number | null;
   workers?: number | null;
+  /** WebDataset shard file extension without dot; omit for the compiler default (`data`). */
+  shard_ext?: string;
+}
+
+/**
+ * Shard extensions the GUI offers for `shard_ext`: `data` (the compiler
+ * default, obfuscated for Kaggle ingestion) and `tar` (plain WebDataset).
+ * Both are recognised as WebDataset shards by the compiler's manifold scan.
+ */
+export const WEBDATASET_SHARD_EXTENSIONS = ["data", "tar"] as const;
+export type WebDatasetShardExtension = (typeof WEBDATASET_SHARD_EXTENSIONS)[number];
+
+/** `POST /api/config/validate`: summary of a valid `unified_data.yaml`; 422 carries the schema error. */
+export interface ConfigValidationResponse {
+  status: string;
+  version: string;
+  prefix: string;
+  suffix: string;
+  output_folder: string;
+  dataset_count: number;
 }
 
 /** Dataset Compiler job types (`JobType`). */

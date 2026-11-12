@@ -10,14 +10,16 @@ import {
   triggerManifoldReduce,
   triggerModernizationRun,
   triggerQuickCompile,
+  validateCompilerConfig,
 } from "../client";
+import { CLIENT_HEADER, CLIENT_HEADER_VALUE } from "../http";
 
 /**
  * Field names of the Dataset Compiler request models, copied from
  * `lemgendary-datasets/openapi.json` (the sidecar is the source of truth; the GUI adapts).
  */
 const SERVER_FIELDS = {
-  QuickCompileRequest: ["model", "preset", "max_gb", "workers"],
+  QuickCompileRequest: ["model", "preset", "max_gb", "workers", "shard_ext"],
   CustomCompileRequest: ["custom_name", "task", "preset", "canonical_format", "shard_size", "sources", "purge_loose_images"],
   ModernizeRunRequest: ["datasets", "dataset", "workers", "mds_shard_mb", "purge_loose", "push_kaggle", "dry_run", "force"],
   ManifoldReduceRequest: ["dataset_key", "manifold", "scale", "workers", "max_gb", "suffix", "dry_run"],
@@ -58,6 +60,40 @@ describe("Dataset Compiler contract (DS D-07)", () => {
     expect(body).toEqual({ model: "upn_v2", preset: "quality-vision" });
     expect(Object.keys(body).every((k) => (SERVER_FIELDS.QuickCompileRequest as readonly string[]).includes(k))).toBe(true);
     expect(job.id).toBe("job-123");
+  });
+
+  it("quick-compile forwards `shard_ext` when one is chosen", async () => {
+    const fetchMock = stubFetch(JOB);
+    await triggerQuickCompile({ model: "upn_v2", shard_ext: "tar" });
+    const body = sentBody(fetchMock);
+    expect(body).toEqual({ model: "upn_v2", shard_ext: "tar" });
+    expect(Object.keys(body).every((k) => (SERVER_FIELDS.QuickCompileRequest as readonly string[]).includes(k))).toBe(true);
+  });
+
+  it("schema validation POSTs to /api/config/validate with the client header and no token", async () => {
+    const summary = {
+      status: "valid",
+      version: "3.1",
+      prefix: "LemGendized",
+      suffix: "",
+      output_folder: "LemGendaryDatasets",
+      dataset_count: 42,
+    };
+    const fetchMock = stubFetch(summary);
+    expect(await validateCompilerConfig()).toEqual(summary);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/api/config/validate`);
+    const request = init as RequestInit;
+    expect(request.method).toBe("POST");
+    expect(request.body).toBeUndefined();
+    const headers = new Headers(request.headers);
+    expect(headers.get(CLIENT_HEADER)).toBe(CLIENT_HEADER_VALUE);
+    expect(headers.has("Authorization")).toBe(false);
+  });
+
+  it("schema validation surfaces the server's 422 schema error", async () => {
+    stubFetch({ detail: "Configuration schema validation failed: datasets.0.key missing" }, 422);
+    await expect(validateCompilerConfig()).rejects.toThrow("Configuration schema validation failed: datasets.0.key missing");
   });
 
   it("custom-compile only sends server fields and may omit `preset` for the server default", async () => {

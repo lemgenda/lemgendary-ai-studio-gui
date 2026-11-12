@@ -10,6 +10,7 @@ import {
   BackendDatasetStats,
   CompilerPreset,
   CompilerPresetListResponse,
+  ConfigValidationResponse,
   CustomCompilePayload,
   DatasetItem,
   DatasetJobResponse,
@@ -96,6 +97,16 @@ export function parseCompilerPresets(data: unknown): CompilerPreset[] {
 
 export async function triggerQuickCompile(payload: QuickCompilePayload): Promise<DatasetJobResponse> {
   return postJsonOrThrow<DatasetJobResponse>(`${DATASETS_BASE}/api/gui/quick-compile`, payload, "Compilation request");
+}
+
+/**
+ * Validate `unified_data.yaml` against the compiler's config schema
+ * (`POST /api/config/validate`). The route needs no API token; the origin
+ * guard admits it with the client header `sidecarFetch` sends. Throws with
+ * the schema error (HTTP 422) or the missing-file detail (HTTP 404).
+ */
+export async function validateCompilerConfig(): Promise<ConfigValidationResponse> {
+  return postJsonOrThrow<ConfigValidationResponse>(`${DATASETS_BASE}/api/config/validate`, undefined, "Schema validation");
 }
 
 export async function triggerCustomCompile(payload: CustomCompilePayload): Promise<DatasetJobResponse> {

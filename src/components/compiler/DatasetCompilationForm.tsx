@@ -24,6 +24,9 @@ export interface DatasetCompilationFormProps {
   /** Parallel worker processes (`workers`); empty = the sidecar default. */
   compileWorkers: string;
   onChangeCompileWorkers: (value: string) => void;
+  /** WebDataset shard extension (`shard_ext`); empty = the compiler default. */
+  compileShardExt: string;
+  onChangeCompileShardExt: (value: string) => void;
   isCompiling: boolean;
   compileStatus: string | null;
   onCompile: () => void;
@@ -76,6 +79,8 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onChangeCompileMaxGb,
   compileWorkers,
   onChangeCompileWorkers,
+  compileShardExt,
+  onChangeCompileShardExt,
   isCompiling,
   compileStatus,
   onCompile,
@@ -173,6 +178,8 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onChangeCompileMaxGb={onChangeCompileMaxGb}
             compileWorkers={compileWorkers}
             onChangeCompileWorkers={onChangeCompileWorkers}
+            compileShardExt={compileShardExt}
+            onChangeCompileShardExt={onChangeCompileShardExt}
             isCompiling={isCompiling}
             compileStatus={compileStatus}
             onCompile={onCompile}

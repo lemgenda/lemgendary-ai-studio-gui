@@ -23,6 +23,8 @@ export interface CompilerToolbarProps {
   onUpdateAllMetadata: () => void;
   isRegeneratingIndex: boolean;
   onRegenerateIndex: () => void;
+  isValidatingSchema: boolean;
+  onValidateSchema: () => void;
   totalDatasetsCount: number;
   filteredDatasetsCount: number;
 }
@@ -48,6 +50,8 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
   onUpdateAllMetadata,
   isRegeneratingIndex,
   onRegenerateIndex,
+  isValidatingSchema,
+  onValidateSchema,
   totalDatasetsCount,
   filteredDatasetsCount,
 }) => {
@@ -143,6 +147,18 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
             title="Re-scans all disk manifolds in LemGendaryDatasets and regenerates unified_data.yaml index"
           >
             <span>{isRegeneratingIndex ? "Regenerating..." : "Regen Index"}</span>
+          </button>
+
+          <button
+            id="compiler-btn-validate-schema"
+            type="button"
+            className="btn btn-secondary"
+            onClick={onValidateSchema}
+            disabled={isValidatingSchema || !datasetCompilerOnline}
+            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+            title="Validates unified_data.yaml against the Dataset Compiler config schema (read-only)"
+          >
+            <span>{isValidatingSchema ? "Validating..." : "Validate Schema"}</span>
           </button>
 
           <button

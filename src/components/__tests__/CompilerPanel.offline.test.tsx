@@ -62,6 +62,8 @@ describe("CompilerPanel without the Dataset Compiler sidecar", () => {
       "compiler-subtabs-tab-reduce",
       "comp-input-max-gb",
       "comp-input-workers",
+      "comp-select-shard-ext",
+      "compiler-btn-validate-schema",
     ]) {
       expect(document.getElementById(id), id).not.toBeNull();
     }

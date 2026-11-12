@@ -29,6 +29,8 @@ export function useCompilationForm({
   // Optional quick-compile overrides; "" leaves them to the preset / sidecar.
   const [compileMaxGb, setCompileMaxGb] = useState<string>("");
   const [compileWorkers, setCompileWorkers] = useState<string>("");
+  // "" = omit `shard_ext` so the compiler writes its default `.data` shards.
+  const [compileShardExt, setCompileShardExt] = useState<string>("");
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compileStatus, setCompileStatus] = useState<string | null>(null);
 
@@ -69,6 +71,7 @@ export function useCompilationForm({
         model: selectedManifold,
         ...(selectedPreset ? { preset: selectedPreset } : {}),
         ...limits.overrides,
+        ...(compileShardExt ? { shard_ext: compileShardExt } : {}),
       });
       setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);
       addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.id}]`);
@@ -162,6 +165,8 @@ export function useCompilationForm({
     onChangeCompileMaxGb: setCompileMaxGb,
     compileWorkers,
     onChangeCompileWorkers: setCompileWorkers,
+    compileShardExt,
+    onChangeCompileShardExt: setCompileShardExt,
     isCompiling,
     compileStatus,
     onCompile: handleCompile,

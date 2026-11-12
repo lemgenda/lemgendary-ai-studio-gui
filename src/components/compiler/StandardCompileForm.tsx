@@ -3,6 +3,7 @@ import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
 import { PresetOptions } from "./PresetOptions";
 import { DatasetCompilationFormProps } from "./DatasetCompilationForm";
+import { WEBDATASET_SHARD_EXTENSIONS } from "../../api/types";
 
 type StandardCompileFormProps = Pick<
   DatasetCompilationFormProps,
@@ -17,6 +18,8 @@ type StandardCompileFormProps = Pick<
   | "onChangeCompileMaxGb"
   | "compileWorkers"
   | "onChangeCompileWorkers"
+  | "compileShardExt"
+  | "onChangeCompileShardExt"
   | "isCompiling"
   | "compileStatus"
   | "onCompile"
@@ -45,6 +48,8 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   onChangeCompileMaxGb,
   compileWorkers,
   onChangeCompileWorkers,
+  compileShardExt,
+  onChangeCompileShardExt,
   isCompiling,
   compileStatus,
   onCompile,
@@ -151,6 +156,27 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           style={{ fontSize: "12px", padding: "6px 8px" }}
         />
       </div>
+
+      <div className="form-group">
+        <label htmlFor="comp-select-shard-ext" style={FIELD_LABEL_STYLE}>
+          Shard Extension:
+        </label>
+        <select
+          id="comp-select-shard-ext"
+          className="editor-select"
+          value={compileShardExt}
+          onChange={(e) => onChangeCompileShardExt(e.target.value)}
+          disabled={isCompiling}
+          style={{ fontSize: "12px", padding: "6px 8px" }}
+        >
+          <option value="">Compiler default</option>
+          {WEBDATASET_SHARD_EXTENSIONS.map((ext) => (
+            <option key={ext} value={ext}>
+              .{ext}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
 
     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -169,7 +195,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
       >
         {isCompiling ? "Compiling Manifold..." : "Compile Manifold"}
       </button>
-      <HelpTooltip content="Launch multi-threaded compilation with the selected presets.yaml profile (image format, quality, vetting and containers). Max Size and Workers are optional overrides; leave them empty for the preset and sidecar defaults." />
+      <HelpTooltip content="Launch multi-threaded compilation with the selected presets.yaml profile (image format, quality, vetting and containers). Max Size, Workers and Shard Extension are optional overrides; leave them empty for the preset and sidecar defaults (shards default to .data)." />
     </div>
 
     {compileStatus && (
