@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { describeKaggleAuth } from "../kaggleAuthStatus";
 import { summarizeKagglePush } from "../kagglePushSummary";
-import { describeJobOutcome } from "../jobOutcome";
-import { launchSettings, parsePollInterval, DEFAULT_KAGGLE_LAUNCH_FORM } from "../KaggleLaunchOptions";
+import { describeJobOutcome, transferJobLabel } from "../jobOutcome";
+import { launchSettings, parseMaxResumes, parsePollInterval, DEFAULT_KAGGLE_LAUNCH_FORM } from "../KaggleLaunchOptions";
 import { VARIATION_CHOICES, toVariationChoice } from "../kaggleVariations";
 import { kaggleLogStatus } from "../../../api/kaggleLogLines";
 import { isProgressLine, normalizeSocketMessage } from "../../../api/client";
@@ -113,8 +113,33 @@ describe("Kaggle launch form", () => {
 
   it("takes the listed default accelerator when none is picked", () => {
     const choices = { list: { default: "gpu-t4x2", accelerators: [] }, source: "sidecar" as const };
-    expect(launchSettings(DEFAULT_KAGGLE_LAUNCH_FORM, choices)).toEqual({ accelerator: "gpu-t4x2", autoPull: true, pollInterval: 30 });
+    expect(launchSettings(DEFAULT_KAGGLE_LAUNCH_FORM, choices)).toEqual({
+      accelerator: "gpu-t4x2",
+      autoPull: true,
+      pollInterval: 30,
+      autoResume: false,
+      maxResumes: null,
+    });
     expect(launchSettings({ ...DEFAULT_KAGGLE_LAUNCH_FORM, accelerator: "cpu" }, choices).accelerator).toBe("cpu");
+  });
+
+  it("parses the resume limit; empty keeps the config default and unchecked sends none", () => {
+    expect(parseMaxResumes("")).toBeNull();
+    expect(parseMaxResumes("abc")).toBeNull();
+    expect(parseMaxResumes("-2")).toBe(0);
+    expect(parseMaxResumes("4")).toBe(4);
+    const choices = { list: { default: "cpu", accelerators: [] }, source: "snapshot" as const };
+    const unchecked = { ...DEFAULT_KAGGLE_LAUNCH_FORM, maxResumesText: "4" };
+    expect(launchSettings(unchecked, choices).maxResumes).toBeNull();
+    expect(launchSettings({ ...unchecked, autoResume: true }, choices).maxResumes).toBe(4);
+  });
+
+  it("names card transfer jobs in the outcome banner", () => {
+    expect(transferJobLabel("kaggle_push")).toBe("Kaggle push job");
+    expect(transferJobLabel("kaggle_pull")).toBe("Kaggle pull job");
+    expect(transferJobLabel("toString")).toBe("Kaggle transfer job");
+    const pulled = describeJobOutcome("Kaggle pull job", "j4", { id: "j4", job_type: "kaggle_pull", model_key: "m", status: "completed", metrics: { variations_pulled: 4 } });
+    expect(pulled.message).toBe("Kaggle pull job j4 completed. Variations pulled: 4.");
   });
 });
 

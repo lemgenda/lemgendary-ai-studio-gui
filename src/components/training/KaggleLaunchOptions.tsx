@@ -1,12 +1,13 @@
 /**
  * LemGendary AI Studio - Kaggle cloud launch options: accelerator (from the
- * Training Suite or the ecosystem snapshot), first poll interval and auto-pull.
+ * Training Suite or the ecosystem snapshot), first poll interval, auto-pull and
+ * the session auto-resume chain (`auto_resume`, `max_resumes`).
  */
 
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { KaggleAcceleratorChoices } from "../../api/client";
-import { KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS } from "../../api/types";
+import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS } from "../../api/types";
 
 /** What the launch sends besides the model key. */
 export interface KaggleLaunchSettings {
@@ -15,19 +16,31 @@ export interface KaggleLaunchSettings {
   autoPull: boolean;
   /** Seconds; at least `KAGGLE_POLL_MIN_SECONDS`. */
   pollInterval: number;
+  /** Push a new kernel version when a session stops at its Kaggle deadline. */
+  autoResume: boolean;
+  /** Resume limit of this job; null = `kaggle_session.max_resumes` of the Training Suite config. */
+  maxResumes: number | null;
 }
+
+/** What attaching to a running kernel sends (no accelerator, no resume chain). */
+export type KaggleMonitorSettings = Pick<KaggleLaunchSettings, "autoPull" | "pollInterval">;
 
 /** Form state: the poll interval stays text while typing and is parsed on launch. */
 export interface KaggleLaunchForm {
   accelerator: string;
   autoPull: boolean;
   pollIntervalText: string;
+  autoResume: boolean;
+  /** "" = the Training Suite config default. */
+  maxResumesText: string;
 }
 
 export const DEFAULT_KAGGLE_LAUNCH_FORM: KaggleLaunchForm = {
   accelerator: "",
   autoPull: true,
   pollIntervalText: String(KAGGLE_POLL_DEFAULT_SECONDS),
+  autoResume: false,
+  maxResumesText: "",
 };
 
 /** Poll interval typed by the user, clamped to the backend minimum; default when not a number. */
@@ -37,12 +50,21 @@ export function parsePollInterval(text: string): number {
   return Math.max(KAGGLE_POLL_MIN_SECONDS, value);
 }
 
+/** Resume limit typed by the user (at least the backend minimum); null when empty or not a number. */
+export function parseMaxResumes(text: string): number | null {
+  const value = Math.round(Number(text));
+  if (!Number.isFinite(value) || text.trim() === "") return null;
+  return Math.max(KAGGLE_MAX_RESUMES_MIN, value);
+}
+
 /** Launch settings of a form; an unset accelerator takes the listed default. */
 export function launchSettings(form: KaggleLaunchForm, choices: KaggleAcceleratorChoices | null): KaggleLaunchSettings {
   return {
     accelerator: form.accelerator || choices?.list.default || "",
     autoPull: form.autoPull,
     pollInterval: parsePollInterval(form.pollIntervalText),
+    autoResume: form.autoResume,
+    maxResumes: form.autoResume ? parseMaxResumes(form.maxResumesText) : null,
   };
 }
 
@@ -123,6 +145,41 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
           </label>
           <HelpTooltip content="Pulls pytorch/default whenever the Kaggle Hub has a newer version, and merges the kernel output (checkpoints, README.md, metrics.csv) when the session completes." />
         </div>
+      </div>
+
+      <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+          <input
+            id="kaggle-auto-resume-checkbox"
+            type="checkbox"
+            checked={form.autoResume}
+            onChange={(e) => onChange({ ...form, autoResume: e.target.checked })}
+            style={{ cursor: "pointer", width: "16px", height: "16px" }}
+          />
+          <span>Auto-resume after the session deadline</span>
+        </label>
+        <HelpTooltip content="When a Kaggle session stops at its time limit (progress saved and synced to the Hub), the Training Suite pushes a new kernel version that resumes from the Hub. Unchecked sends auto_resume false for this job." />
+      </div>
+
+      <div className="form-group">
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+          <label htmlFor="kaggle-max-resumes-input" style={LABEL_STYLE}>
+            Max Resumes:
+          </label>
+          <HelpTooltip content={`Most resume sessions this job pushes (minimum ${KAGGLE_MAX_RESUMES_MIN}). Empty uses kaggle_session.max_resumes of the Training Suite config.yaml.`} />
+        </div>
+        <input
+          id="kaggle-max-resumes-input"
+          type="number"
+          className="editor-input"
+          min={KAGGLE_MAX_RESUMES_MIN}
+          step={1}
+          placeholder="Config default"
+          value={form.maxResumesText}
+          disabled={!form.autoResume}
+          onChange={(e) => onChange({ ...form, maxResumesText: e.target.value })}
+          style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
+        />
       </div>
     </div>
   );

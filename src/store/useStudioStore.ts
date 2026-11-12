@@ -16,6 +16,14 @@ export interface ActiveJobState {
   modelKey: string | null;
 }
 
+/** A Kaggle Models Hub transfer job (push or pull) started from a model card. */
+export interface TransferJobState extends ActiveJobState {
+  /** Sidecar `job_type` (`kaggle_push`, `kaggle_pull`); names the job in the outcome banner. */
+  jobType: string | null;
+}
+
+export const NO_TRANSFER_JOB: TransferJobState = { jobId: null, modelKey: null, jobType: null };
+
 /**
  * What the current (or most recent) install pipeline run covers: the whole
  * pipeline (`"full"`, also used for a single-project reconcile) or one step
@@ -56,6 +64,8 @@ export interface StudioState {
   setLocalJob: (job: ActiveJobState) => void;
   remoteJob: ActiveJobState;
   setRemoteJob: (job: ActiveJobState) => void;
+  transferJob: TransferJobState;
+  setTransferJob: (job: TransferJobState) => void;
 
   // Cached Collections (eliminates tab-switching re-fetch latency)
   cachedModels: ModelItem[];
@@ -139,6 +149,9 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   remoteJob: { jobId: null, modelKey: null },
   setRemoteJob: (job) => set({ remoteJob: job }),
+
+  transferJob: NO_TRANSFER_JOB,
+  setTransferJob: (job) => set({ transferJob: job }),
 
   cachedModels: [],
   setCachedModels: (models) =>

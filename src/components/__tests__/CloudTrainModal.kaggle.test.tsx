@@ -4,6 +4,7 @@ import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CloudTrainModal } from "../CloudTrainModal";
 import { KaggleSuiteStatus, ModelItem } from "../../api/types";
+import { ECOSYSTEM } from "../../api/ecosystem";
 
 vi.mock("../../api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/client")>();
@@ -111,7 +112,43 @@ describe("CloudTrainModal Kaggle launch", () => {
     await act(async () => {
       launch?.click();
     });
-    expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 5 });
+    expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", {
+      accelerator: "tpu-v5e8",
+      autoPull: true,
+      pollInterval: 5,
+      autoResume: false,
+      maxResumes: null,
+    });
+  });
+
+  it("offers auto-resume unchecked; checked it sends the typed resume limit", async () => {
+    const onLaunchKaggle = await renderModal(AUTHENTICATED);
+    const resume = document.getElementById("kaggle-auto-resume-checkbox") as HTMLInputElement;
+    const max = document.getElementById("kaggle-max-resumes-input") as HTMLInputElement;
+    expect(resume.checked).toBe(false);
+    expect(max.disabled).toBe(true);
+    await act(async () => {
+      resume.click();
+    });
+    expect(max.disabled).toBe(false);
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    await act(async () => {
+      setValue?.call(max, "2");
+      max.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const launch = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Launch Cloud Training");
+    await act(async () => {
+      launch?.click();
+    });
+    expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", expect.objectContaining({ autoResume: true, maxResumes: 2 }));
+  });
+
+  it("falls back to the ecosystem kaggle_owner when the status gives no username", async () => {
+    await renderModal({ ...AUTHENTICATED, authenticated: false, username: "" });
+    const owner = encodeURIComponent(ECOSYSTEM.identity.kaggle_owner);
+    const hrefs = Array.from(container.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain(`https://www.kaggle.com/code/${owner}/upn-v2-training`);
+    expect(hrefs).toContain(`https://www.kaggle.com/models/${owner}/upn-v2`);
   });
 
   it("links the kernel, model and datasets from the backend handles", async () => {

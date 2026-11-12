@@ -6,11 +6,12 @@ import {
   fetchKaggleSuiteStatus,
   fetchModelKaggleHandles,
   launchKaggleTrain,
+  monitorKaggleKernel,
   pushKaggleModelVariation,
   snapshotKaggleAccelerators,
 } from "../client";
 import { ECOSYSTEM } from "../ecosystem";
-import { KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS, VARIATION_KEYS } from "../types";
+import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS, VARIATION_KEYS } from "../types";
 
 /**
  * Training Suite Kaggle contract: the GUI mirrors these values from
@@ -54,6 +55,27 @@ describe("Training Suite Kaggle contract (R3-K)", () => {
     const serverFields = Object.keys(schemas.KaggleTrainRequest.properties);
     expect(Object.keys(body).every((k) => serverFields.includes(k))).toBe(true);
     expect(body).toEqual({ model: "upn_v2", accelerator: "gpu-t4x2", auto_pull: true, poll_interval: 30 });
+  });
+
+  it("launch sends the auto-resume options as KaggleTrainRequest fields", async () => {
+    const props = schemas.KaggleTrainRequest.properties;
+    expect(props.auto_resume.anyOf.map((t) => t.type)).toEqual(["boolean", "null"]);
+    const maxResumes = props.max_resumes.anyOf.find((t) => t.type === "integer");
+    expect(maxResumes?.minimum).toBe(KAGGLE_MAX_RESUMES_MIN);
+    const fetchMock = stubFetch({ job_id: "job-2", status: "pending", message: "queued", model: "upn_v2" });
+    await launchKaggleTrain({ model: "upn_v2", poll_interval: 30, auto_resume: true, max_resumes: 2 });
+    const body = sentBody(fetchMock);
+    expect(Object.keys(body).every((k) => Object.keys(props).includes(k))).toBe(true);
+    expect(body).toMatchObject({ auto_resume: true, max_resumes: 2 });
+  });
+
+  it("monitor sends only KaggleMonitorRequest fields, poll interval included", async () => {
+    const fetchMock = stubFetch({ job_id: "job-3", status: "pending", message: "attached", kernel_slug: "o/k" });
+    await monitorKaggleKernel({ kernel_slug: "o/k", model: "upn_v2", auto_pull: false, poll_interval: 60 });
+    const body = sentBody(fetchMock);
+    const serverFields = Object.keys(schemas.KaggleMonitorRequest.properties);
+    expect(Object.keys(body).every((k) => serverFields.includes(k))).toBe(true);
+    expect(body.poll_interval).toBe(60);
   });
 
   it("push-model sends a VariationKey and only KagglePushModelRequest fields", async () => {

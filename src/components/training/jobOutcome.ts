@@ -22,6 +22,17 @@ function unchangedVariations(metrics: Record<string, unknown>): string[] {
     .map(([name]) => name);
 }
 
+/** Banner labels of the transfer jobs the training panel tracks (model card Push / Pull). */
+export const TRANSFER_JOB_LABELS: ReadonlyMap<string, string> = new Map([
+  ["kaggle_push", "Kaggle push job"],
+  ["kaggle_pull", "Kaggle pull job"],
+]);
+
+/** Banner label of a transfer job type; a generic one for an unknown type. */
+export function transferJobLabel(jobType: string | null | undefined): string {
+  return (jobType && TRANSFER_JOB_LABELS.get(jobType)) || "Kaggle transfer job";
+}
+
 /** Readable details of a completed job's metrics; empty when there are none. */
 export function jobMetricsDetails(metrics: Record<string, unknown> | undefined): string[] {
   if (!metrics) return [];
@@ -35,6 +46,7 @@ export function jobMetricsDetails(metrics: Record<string, unknown> | undefined):
   }
   const unchanged = unchangedVariations(metrics);
   if (unchanged.length > 0) details.push(`${unchanged.join(", ")}: ${UNCHANGED_VARIATION_TEXT}.`);
+  if (typeof metrics.variations_pulled === "number") details.push(`Variations pulled: ${metrics.variations_pulled}.`);
   return details;
 }
 

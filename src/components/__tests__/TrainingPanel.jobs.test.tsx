@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrainingPanel } from "../TrainingPanel";
-import { useStudioStore } from "../../store/useStudioStore";
+import { NO_TRANSFER_JOB, useStudioStore } from "../../store/useStudioStore";
 import { ModelItem, PipelineEvent, TrainingJobInfo } from "../../api/types";
 import { servicePort } from "../../api/config";
 import * as client from "../../api/client";
@@ -78,6 +78,7 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
       cachedModels: [],
       localJob: { jobId: null, modelKey: null },
       remoteJob: { jobId: null, modelKey: null },
+      transferJob: NO_TRANSFER_JOB,
     });
     mocked.fetchModels.mockResolvedValue([]);
     mocked.fetchRunningTrainingJobs.mockResolvedValue([]);
@@ -201,6 +202,62 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(mocked.fetchTrainingJob).toHaveBeenCalledWith("job-kaggle-7");
     expect(useStudioStore.getState().remoteJob).toEqual({ jobId: null, modelKey: null });
     expect(container.textContent).toContain("Cloud training job job-kaggle-7 failed: kernel error");
+  });
+
+  it("restores a running card Push / Pull job into the transfer job on mount", async () => {
+    mocked.fetchRunningTrainingJobs.mockResolvedValue([
+      { id: "job-pull-3", job_type: "kaggle_pull", model_key: "upn_v2", status: "running" },
+    ]);
+    await render({ online: true });
+    expect(useStudioStore.getState().transferJob).toEqual({ jobId: "job-pull-3", modelKey: "upn_v2", jobType: "kaggle_pull" });
+    expect(useStudioStore.getState().remoteJob).toEqual({ jobId: null, modelKey: null });
+  });
+
+  it("shows unchanged variations of a finished card push in the banner", async () => {
+    vi.useFakeTimers();
+    useStudioStore.setState({
+      cachedModels: [LIVE_MODEL],
+      transferJob: { jobId: "job-push-4", modelKey: "upn_v2", jobType: "kaggle_push" },
+    });
+    await render({ online: true });
+
+    mocked.fetchTrainingJob.mockResolvedValue({
+      id: "job-push-4",
+      job_type: "kaggle_push",
+      model_key: "upn_v2",
+      status: "completed",
+      metrics: { variations: { "pytorch/default": { success: true, skipped: true }, "onnx/fp16": { success: true, skipped: false } } },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(useStudioStore.getState().transferJob).toEqual(NO_TRANSFER_JOB);
+    expect(container.textContent).toContain("Kaggle push job job-push-4 completed.");
+    expect(container.textContent).toContain("pytorch/default: unchanged, no new version.");
+  });
+
+  it("shows a failed page sync of a card push as an error banner", async () => {
+    vi.useFakeTimers();
+    useStudioStore.setState({
+      cachedModels: [LIVE_MODEL],
+      transferJob: { jobId: "job-push-5", modelKey: "upn_v2", jobType: "kaggle_push" },
+    });
+    await render({ online: true });
+
+    mocked.fetchTrainingJob.mockResolvedValue({
+      id: "job-push-5",
+      job_type: "kaggle_push",
+      model_key: "upn_v2",
+      status: "failed",
+      error_message: "Model page metadata sync failed; nothing uploaded: HTTP 403",
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    const alert = container.querySelector('[role="alert"]');
+    expect(alert?.textContent).toContain("Kaggle push job job-push-5 failed: Model page metadata sync failed");
   });
 
   it("loads once on mount; caching the fetched models does not re-run the load (D11)", async () => {

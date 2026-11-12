@@ -85,8 +85,38 @@ describe("CloudTrainModal kernel monitor", () => {
     await act(async () => {
       button.click();
     });
-    expect(onMonitorKaggle).toHaveBeenCalledWith("owner/upn-train", "upn_v2", true);
+    expect(onMonitorKaggle).toHaveBeenCalledWith("owner/upn-train", "upn_v2", { autoPull: true, pollInterval: 30 });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("sends the typed poll interval with the attach, like the launch", async () => {
+    const onMonitorKaggle = vi.fn(async () => undefined);
+    await act(async () => {
+      root.render(
+        <CloudTrainModal
+          isOpen
+          onClose={vi.fn()}
+          model={MODEL}
+          onLaunchKaggle={vi.fn(async () => undefined)}
+          onMonitorKaggle={onMonitorKaggle}
+          kaggleAuthStatus={null}
+          isBusy={false}
+        />
+      );
+    });
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    const poll = document.getElementById("kaggle-poll-interval-input") as HTMLInputElement;
+    const slug = document.getElementById("kaggle-monitor-slug") as HTMLInputElement;
+    await act(async () => {
+      setValue?.call(poll, "90");
+      poll.dispatchEvent(new Event("input", { bubbles: true }));
+      setValue?.call(slug, "owner/upn-train");
+      slug.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      (document.getElementById("kaggle-monitor-btn") as HTMLButtonElement).click();
+    });
+    expect(onMonitorKaggle).toHaveBeenCalledWith("owner/upn-train", "upn_v2", { autoPull: true, pollInterval: 90 });
   });
   it("fills the kernel reference from the recent kernel list", async () => {
     const onMonitorKaggle = vi.fn(async () => undefined);
@@ -114,6 +144,6 @@ describe("CloudTrainModal kernel monitor", () => {
     await act(async () => {
       (document.getElementById("kaggle-monitor-btn") as HTMLButtonElement).click();
     });
-    expect(onMonitorKaggle).toHaveBeenCalledWith("owner/upn-cloud", "upn_v2", true);
+    expect(onMonitorKaggle).toHaveBeenCalledWith("owner/upn-cloud", "upn_v2", { autoPull: true, pollInterval: 30 });
   });
 });

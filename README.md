@@ -277,6 +277,30 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.66 - Kaggle Auto-Resume Options, Card Job Outcomes, Owner Fallback
+
+Matches Training Suite v16.9.182 (`openapi.json`).
+
+- **Auto-resume (`KaggleLaunchOptions.tsx`)**: new
+  `kaggle-auto-resume-checkbox` (unchecked by default) and
+  `kaggle-max-resumes-input` (enabled when checked; empty = the Training
+  Suite `kaggle_session.max_resumes`). The launch sends `auto_resume` and,
+  when typed, `max_resumes` (minimum 0, `KAGGLE_MAX_RESUMES_MIN`).
+- **Card Push / Pull outcome**: the model card Push and Pull jobs are
+  tracked like the remote job (`transferJob` in the store, restored on
+  mount while running). When they finish, the summary banner names them
+  ("Kaggle push job", "Kaggle pull job") with unchanged variations, the
+  pulled variation count, or the failure reason (for example a failed
+  model page sync) instead of only console lines.
+- **Kaggle links (`kaggleLinkOwner`)**: when the status route reports no
+  username, the kernel and model links use the ecosystem snapshot
+  `identity.kaggle_owner` (the Training Suite model sync rule).
+- **Attach Monitor**: sends the poll interval of the launch options
+  (`poll_interval`), like the launch.
+- Tests: contract test of `auto_resume` / `max_resumes` and the monitor
+  fields against `../lemgendary-training-suite/openapi.json`; modal,
+  action, panel and text tests.
+
 ### v2.10.65 - Kaggle Training Backend Contract
 
 Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).

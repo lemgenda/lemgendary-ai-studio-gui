@@ -10,6 +10,7 @@ vi.mock("../../../api/client", async (importOriginal) => {
   return {
     ...actual,
     pushKaggleModelArtifacts: vi.fn(),
+    pullKaggleModelArtifacts: vi.fn(),
     generateModelDocs: vi.fn(),
     launchKaggleTrain: vi.fn(),
     monitorKaggleKernel: vi.fn(),
@@ -48,6 +49,7 @@ describe("useModelActions status routing", () => {
       localJob: { jobId: null, modelKey: null },
       setLocalJob: vi.fn(),
       setRemoteJob: vi.fn(),
+      setTransferJob: vi.fn(),
       setActiveTelemetryTab: vi.fn(),
       setStatusNotice: vi.fn(),
       setStatusError: vi.fn(),
@@ -106,7 +108,7 @@ describe("useModelActions status routing", () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30 });
+        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30, autoResume: false, maxResumes: null });
       } catch (err: unknown) {
         thrown = err;
       }
@@ -123,13 +125,15 @@ describe("useModelActions status routing", () => {
       model: "upn_v2",
     });
     await act(async () => {
-      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45 });
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45, autoResume: true, maxResumes: 2 });
     });
     expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
       model: "upn_v2",
       accelerator: "tpu-v5e8",
       auto_pull: true,
       poll_interval: 45,
+      auto_resume: true,
+      max_resumes: 2,
     });
     expect(lastCall(deps.setStatusNotice)).toContain("accelerator: TPU v5e-8");
   });
@@ -142,12 +146,46 @@ describe("useModelActions status routing", () => {
       kernel_slug: "owner/upn-train",
     });
     await act(async () => {
-      await actions?.handleMonitorKaggle("owner/upn-train", "upn_v2", true);
+      await actions?.handleMonitorKaggle("owner/upn-train", "upn_v2", { autoPull: true, pollInterval: 60 });
     });
-    expect(mocked.monitorKaggleKernel).toHaveBeenCalledWith({ kernel_slug: "owner/upn-train", model: "upn_v2", auto_pull: true });
+    expect(mocked.monitorKaggleKernel).toHaveBeenCalledWith({
+      kernel_slug: "owner/upn-train",
+      model: "upn_v2",
+      auto_pull: true,
+      poll_interval: 60,
+    });
     expect(deps.setRemoteJob).toHaveBeenCalledWith({ jobId: "job-7", modelKey: "upn_v2" });
     expect(deps.setActiveTelemetryTab).toHaveBeenCalledWith("remote");
     expect(lastCall(deps.setStatusNotice)).toContain("Monitoring Kaggle kernel owner/upn-train");
+  });
+
+  it("leaves max_resumes out when the form keeps the config default", async () => {
+    mocked.launchKaggleTrain.mockResolvedValue({ job_id: "job-k2", status: "pending", message: "queued", model: "upn_v2" });
+    await act(async () => {
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null });
+    });
+    expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
+      model: "upn_v2",
+      accelerator: "cpu",
+      auto_pull: true,
+      poll_interval: 30,
+      auto_resume: false,
+      max_resumes: undefined,
+    });
+  });
+
+  it("tracks card Push and Pull jobs so their outcome reaches the banner", async () => {
+    mocked.pushKaggleModelArtifacts.mockResolvedValue({ job_id: "job-push-1", status: "pending", model: "upn_v2", message: "queued" });
+    mocked.pullKaggleModelArtifacts.mockResolvedValue({ job_id: "job-pull-1", status: "pending", model: "upn_v2", message: "queued" });
+    await act(async () => {
+      await actions?.handlePushArtifacts("upn_v2");
+    });
+    expect(deps.setTransferJob).toHaveBeenCalledWith({ jobId: "job-push-1", modelKey: "upn_v2", jobType: "kaggle_push" });
+    await act(async () => {
+      await actions?.handlePullArtifacts("upn_v2");
+    });
+    expect(deps.setTransferJob).toHaveBeenCalledWith({ jobId: "job-pull-1", modelKey: "upn_v2", jobType: "kaggle_pull" });
+    expect(deps.setRemoteJob).not.toHaveBeenCalled();
   });
 
   it("reports a blended model soup and refreshes the catalog", async () => {

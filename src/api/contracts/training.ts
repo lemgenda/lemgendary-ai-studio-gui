@@ -120,6 +120,8 @@ export interface KaggleKernelItem {
 /** `poll_interval` default and minimum of `KaggleTrainRequest` (checked against the OpenAPI). */
 export const KAGGLE_POLL_DEFAULT_SECONDS = 30;
 export const KAGGLE_POLL_MIN_SECONDS = 5;
+/** `max_resumes` minimum of `KaggleTrainRequest` (checked against the OpenAPI). */
+export const KAGGLE_MAX_RESUMES_MIN = 0;
 
 /** `KaggleTrainRequest` of `POST /api/training/kaggle/train`. */
 export interface KaggleTrainPayload {
@@ -129,6 +131,10 @@ export interface KaggleTrainPayload {
   auto_pull?: boolean;
   /** First status poll interval in seconds (minimum 5, default 30; backs off to 300). */
   poll_interval?: number;
+  /** Push a new kernel version after a deadline stop; omitted = `kaggle_session.auto_resume`. */
+  auto_resume?: boolean;
+  /** Most resume sessions of this job; omitted = `kaggle_session.max_resumes` of config.yaml. */
+  max_resumes?: number;
 }
 
 /**

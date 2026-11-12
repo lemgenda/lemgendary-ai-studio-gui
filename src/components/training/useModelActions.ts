@@ -23,8 +23,8 @@ import {
 } from "../../api/client";
 import { ModelItem } from "../../api/types";
 import { SoupRecipe } from "./soupRecipe";
-import { ActiveJobState } from "../../store/useStudioStore";
-import { KaggleLaunchSettings } from "./KaggleLaunchOptions";
+import { ActiveJobState, TransferJobState } from "../../store/useStudioStore";
+import { KaggleLaunchSettings, KaggleMonitorSettings } from "./KaggleLaunchOptions";
 
 export type TelemetryTab = "local" | "remote" | "mesh";
 
@@ -32,6 +32,8 @@ export interface ModelActionDeps {
   localJob: ActiveJobState;
   setLocalJob: (job: ActiveJobState) => void;
   setRemoteJob: (job: ActiveJobState) => void;
+  /** Tracks a card Push / Pull job so its outcome reaches the banner. */
+  setTransferJob: (job: TransferJobState) => void;
   setActiveTelemetryTab: (tab: TelemetryTab) => void;
   setStatusNotice: (message: string | null) => void;
   setStatusError: (message: string | null) => void;
@@ -43,6 +45,7 @@ export function useModelActions({
   localJob,
   setLocalJob,
   setRemoteJob,
+  setTransferJob,
   setActiveTelemetryTab,
   setStatusNotice,
   setStatusError,
@@ -117,6 +120,8 @@ export function useModelActions({
         accelerator: settings.accelerator || undefined,
         auto_pull: settings.autoPull,
         poll_interval: settings.pollInterval,
+        auto_resume: settings.autoResume,
+        max_resumes: settings.maxResumes ?? undefined,
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");
@@ -131,11 +136,16 @@ export function useModelActions({
   };
 
   /** Attach to a Kaggle kernel that is already running; its job is tracked like a launched one. */
-  const handleMonitorKaggle = async (kernelSlug: string, modelKey: string, autoPull: boolean) => {
+  const handleMonitorKaggle = async (kernelSlug: string, modelKey: string, settings: KaggleMonitorSettings) => {
     setActionBusyKey(`cloud_${modelKey}`);
     clearStatus();
     try {
-      const res = await monitorKaggleKernel({ kernel_slug: kernelSlug, model: modelKey, auto_pull: autoPull });
+      const res = await monitorKaggleKernel({
+        kernel_slug: kernelSlug,
+        model: modelKey,
+        auto_pull: settings.autoPull,
+        poll_interval: settings.pollInterval,
+      });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");
       reportSuccess(`Monitoring Kaggle kernel ${res.kernel_slug} for ${modelKey} (Job ID: ${res.job_id}). Stream attached.`);
@@ -171,6 +181,7 @@ export function useModelActions({
     setActiveTelemetryTab("remote");
     try {
       const res = await pushKaggleModelArtifacts(modelKey);
+      setTransferJob({ jobId: res.job_id, modelKey, jobType: "kaggle_push" });
       reportSuccess(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Remote Cloud telemetry streaming.`);
     } catch (err: unknown) {
       reportFailure(`Failed pushing artifacts for ${modelKey}`, err);
@@ -185,6 +196,7 @@ export function useModelActions({
     setActiveTelemetryTab("remote");
     try {
       const res = await pullKaggleModelArtifacts(modelKey);
+      setTransferJob({ jobId: res.job_id, modelKey, jobType: "kaggle_pull" });
       reportSuccess(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Remote Cloud telemetry streaming.`);
     } catch (err: unknown) {
       reportFailure(`Failed pulling model for ${modelKey}`, err);

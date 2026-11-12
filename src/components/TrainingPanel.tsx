@@ -6,7 +6,7 @@ import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
 import { TrainingTelemetry } from "./training/TrainingTelemetry";
 import { ValidationBanner } from "./common/ValidationBanner";
-import { useStudioStore } from "../store/useStudioStore";
+import { NO_TRANSFER_JOB, useStudioStore } from "../store/useStudioStore";
 import { fetchModels, fetchRunningTrainingJobs, fetchKaggleSuiteStatus } from "../api/client";
 import { REMOTE_TRAINING_JOB_TYPES } from "../api/eventRouting";
 import { servicePort } from "../api/config";
@@ -16,7 +16,7 @@ import { useTransientValue } from "../utils/useTransientValue";
 import { useModelFilters } from "./training/useModelFilters";
 import { TelemetryTab, useModelActions } from "./training/useModelActions";
 import { useJobStatusPoll } from "./training/useJobStatusPoll";
-import { describeJobOutcome } from "./training/jobOutcome";
+import { TRANSFER_JOB_LABELS, describeJobOutcome, transferJobLabel } from "./training/jobOutcome";
 
 /** Model key of a sidecar job record (top-level field, or the `model` launch parameter). */
 function jobModelKey(job: TrainingJobInfo): string | null {
@@ -46,6 +46,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const setLocalJob = useStudioStore((s) => s.setLocalJob);
   const setRemoteJob = useStudioStore((s) => s.setRemoteJob);
   const remoteJob = useStudioStore((s) => s.remoteJob);
+  const transferJob = useStudioStore((s) => s.transferJob);
+  const setTransferJob = useStudioStore((s) => s.setTransferJob);
 
   // Only live sidecar data is shown: no offline placeholder catalog.
   const [models, setModels] = useState<ModelItem[]>(() => useStudioStore.getState().cachedModels);
@@ -152,6 +154,12 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           if (activeRemote) {
             setRemoteJob({ jobId: activeRemote.id, modelKey: jobModelKey(activeRemote) });
           }
+          // Restore a running card Push / Pull job, so its outcome still reaches the banner.
+          const transferJobs = running.filter((j) => TRANSFER_JOB_LABELS.has(j.job_type));
+          const activeTransfer = pickActiveJob(transferJobs);
+          if (activeTransfer) {
+            setTransferJob({ jobId: activeTransfer.id, modelKey: jobModelKey(activeTransfer), jobType: activeTransfer.job_type });
+          }
         }
       } catch (err: unknown) {
         logger.warn("Running training jobs could not be listed", err);
@@ -161,7 +169,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [setLocalJob, setRemoteJob]);
+  }, [setLocalJob, setRemoteJob, setTransferJob]);
 
   // Periodic telemetry refresh while a local job runs: one `with-stats` request per tick
   // (it carries every model's live metrics.csv telemetry), merged into the active model only.
@@ -195,6 +203,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   useJobStatusPoll(remoteJob.jobId, (jobId, job) => {
     setRemoteJob({ jobId: null, modelKey: null });
     showJobOutcome("Cloud training job", jobId, job);
+  });
+  useJobStatusPoll(transferJob.jobId, (jobId, job) => {
+    setTransferJob(NO_TRANSFER_JOB);
+    showJobOutcome(transferJobLabel(job.job_type || transferJob.jobType), jobId, job);
   });
 
   const {
@@ -235,6 +247,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     localJob,
     setLocalJob,
     setRemoteJob,
+    setTransferJob,
     setActiveTelemetryTab,
     setStatusNotice,
     setStatusError,

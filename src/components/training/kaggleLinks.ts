@@ -1,9 +1,11 @@
 /**
  * LemGendary AI Studio - Kaggle URLs for a model, built from the backend handles
  * (registry slug and dataset URLs from the Training Suite) and the account owner
- * that the Kaggle credentials report (never a hardcoded owner slug).
+ * that the Kaggle credentials report, else the ecosystem `identity.kaggle_owner`
+ * (never a hardcoded owner slug).
  */
 
+import { ECOSYSTEM } from "../../api/ecosystem";
 import type { ModelKaggleHandles } from "../../api/modelCatalog";
 
 /** Suffix of a model's training kernel slug (`training/cloud/kernel_bundle.py`). */
@@ -16,6 +18,15 @@ export interface KaggleModelLinks {
   modelHubUrl: string;
   /** The model's Kaggle dataset URLs as the Training Suite serves them. */
   datasetUrls: string[];
+}
+
+/**
+ * Owner of the model links: the username the Kaggle status route reports, else the
+ * ecosystem `identity.kaggle_owner` (the rule of the Training Suite model sync,
+ * `KaggleModelSyncManager`). Null only when both are empty.
+ */
+export function kaggleLinkOwner(statusUsername: string | null | undefined): string | null {
+  return statusUsername?.trim() || ECOSYSTEM.identity.kaggle_owner.trim() || null;
 }
 
 /** Links for a model under `owner`; null while the owner or the handles are unknown. */

@@ -4,7 +4,7 @@ import { ValidationBanner } from "./common/ValidationBanner";
 import { Modal } from "./common/Modal";
 import { ExternalLink } from "./common/ExternalLink";
 import { TabItem, TabList, TabPanel } from "./common/Tabs";
-import { isKernelSlug, kaggleModelLinks } from "./training/kaggleLinks";
+import { isKernelSlug, kaggleLinkOwner, kaggleModelLinks } from "./training/kaggleLinks";
 import { logger } from "../utils/logger";
 import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
 import { KaggleKernelPicker } from "./training/KaggleKernelPicker";
@@ -13,6 +13,7 @@ import {
   KaggleLaunchForm,
   KaggleLaunchOptions,
   KaggleLaunchSettings,
+  KaggleMonitorSettings,
   launchSettings,
 } from "./training/KaggleLaunchOptions";
 import { useKaggleAccelerators } from "./training/useKaggleAccelerators";
@@ -41,7 +42,7 @@ interface CloudTrainModalProps {
   model: ModelItem | null;
   onLaunchKaggle: (modelKey: string, settings: KaggleLaunchSettings) => Promise<void>;
   /** Attach to an already running Kaggle kernel (`owner/kernel-slug`). */
-  onMonitorKaggle: (kernelSlug: string, modelKey: string, autoPull: boolean) => Promise<void>;
+  onMonitorKaggle: (kernelSlug: string, modelKey: string, settings: KaggleMonitorSettings) => Promise<void>;
   kaggleAuthStatus: KaggleSuiteStatus | null;
   isBusy: boolean;
 }
@@ -94,8 +95,9 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
 
   if (!isOpen || !model) return null;
 
-  // Slug and dataset URLs come from the Training Suite registry; the owner from the Kaggle credentials.
-  const kaggleLinks = kaggleModelLinks(kaggleAuthStatus?.username, kaggleHandles);
+  // Slug and dataset URLs come from the Training Suite registry; the owner from the Kaggle
+  // credentials, else the ecosystem kaggle_owner (the backend model sync rule).
+  const kaggleLinks = kaggleModelLinks(kaggleLinkOwner(kaggleAuthStatus?.username), kaggleHandles);
   const authView = describeKaggleAuth(kaggleAuthStatus);
   const notebookFilename =
     targetPlatform === "colab"
@@ -116,7 +118,8 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const handleMonitor = async () => {
     setLaunchError(null);
     try {
-      await onMonitorKaggle(monitorSlug.trim(), model.key, launchForm.autoPull);
+      const { autoPull, pollInterval } = launchSettings(launchForm, acceleratorChoices);
+      await onMonitorKaggle(monitorSlug.trim(), model.key, { autoPull, pollInterval });
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -294,7 +297,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                   <label htmlFor="kaggle-monitor-slug" style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
                     Monitor an already running kernel:
                   </label>
-                  <HelpTooltip content="Attaches the Remote Cloud console to a Kaggle kernel that is already running (for example one launched from the Kaggle website), using the auto-pull setting above. Pick one of the account's recent kernels or type its owner/kernel-slug." />
+                  <HelpTooltip content="Attaches the Remote Cloud console to a Kaggle kernel that is already running (for example one launched from the Kaggle website), using the poll interval and auto-pull settings above. Pick one of the account's recent kernels or type its owner/kernel-slug." />
                 </div>
                 <KaggleKernelPicker value={monitorSlug.trim()} onPick={setMonitorSlug} disabled={isBusy} />
                 <div style={{ display: "flex", gap: "8px" }}>
@@ -386,7 +389,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                   </ExternalLink>
                 </>
               ) : (
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Kaggle links need the Kaggle credentials (username).</span>
+                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Kaggle links need the model handles from the Training Suite.</span>
               )}
             </div>
 
