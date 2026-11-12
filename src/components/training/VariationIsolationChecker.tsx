@@ -1,7 +1,9 @@
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
-import { ModelValidateIsolationResponse } from "../../api/types";
+import { ModelValidateIsolationResponse, VARIATION_KEYS, VariationChoice, VariationKey } from "../../api/types";
+import { PushStatusMessage } from "./kagglePushSummary";
+import { VARIATION_CHOICES, VARIATION_DISPLAY, toVariationChoice } from "./kaggleVariations";
 
 export interface VariationIsolationCheckerProps {
   modelKey: string;
@@ -12,12 +14,41 @@ export interface VariationIsolationCheckerProps {
   isBusy: boolean;
   onGenerateDocs: () => void;
   onStageVariations: () => void;
-  selectedVariation: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16";
-  onSelectVariation: (variation: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16") => void;
+  selectedVariation: VariationChoice;
+  onSelectVariation: (variation: VariationChoice) => void;
   dryRun: boolean;
   onToggleDryRun: (dryRun: boolean) => void;
-  uploadStatus: string | null;
+  uploadStatus: PushStatusMessage | null;
 }
+
+/** One staged instance of the isolation report (keyed by `VariationKey`). */
+const VariationCard: React.FC<{ variation: VariationKey; report: ModelValidateIsolationResponse | null }> = ({ variation, report }) => {
+  const detail = report?.variations?.[variation];
+  const files = detail?.files_found ?? [];
+  const isolated = Boolean(detail?.is_valid && files.length > 0);
+  const display = VARIATION_DISPLAY[variation];
+  return (
+    <div
+      data-variation={variation}
+      style={{ background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}
+    >
+      <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-primary)" }}>{display.label}</div>
+      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{variation}</div>
+      <div style={{ fontSize: "10px", color: "var(--text-muted)" }} title={files.join(", ")}>
+        {files.length ? `${files.length} file(s)` : `Nothing staged (${display.payload})`}
+      </div>
+      {detail?.errors?.length ? (
+        <div style={{ fontSize: "10px", color: "#f87171" }}>{detail.errors.join("; ")}</div>
+      ) : null}
+      <span
+        className={`badge ${isolated ? "badge-success" : "badge-secondary"}`}
+        style={{ fontSize: "9px", marginTop: "4px", display: "inline-block" }}
+      >
+        {isolated ? "ISOLATED" : "PENDING"}
+      </span>
+    </div>
+  );
+};
 
 export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps> = ({
   modelKey,
@@ -76,54 +107,10 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-          {/* Variation 1: PyTorch */}
-          <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-            <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-primary)" }}>PyTorch (.pt)</div>
-            <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-              {isolationReport?.variations?.pytorch?.files_found?.length
-                ? isolationReport.variations.pytorch.files_found.join(", ")
-                : "No .pt staged"}
-            </div>
-            <span
-              className={`badge ${isolationReport?.variations?.pytorch?.is_valid && (isolationReport.variations.pytorch.files_found.length > 0) ? "badge-success" : "badge-secondary"}`}
-              style={{ fontSize: "9px", marginTop: "4px", display: "inline-block" }}
-            >
-              {isolationReport?.variations?.pytorch?.is_valid && (isolationReport.variations.pytorch.files_found.length > 0) ? "ISOLATED" : "PENDING"}
-            </span>
-          </div>
-
-          {/* Variation 2: ONNX FP32 */}
-          <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-            <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-primary)" }}>ONNX FP32 (+Sidecar)</div>
-            <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-              {isolationReport?.variations?.onnx_fp32?.files_found?.length
-                ? `${isolationReport.variations.onnx_fp32.files_found.length} file(s)`
-                : "No FP32 staged"}
-            </div>
-            <span
-              className={`badge ${isolationReport?.variations?.onnx_fp32?.is_valid && (isolationReport.variations.onnx_fp32.files_found.length > 0) ? "badge-success" : "badge-secondary"}`}
-              style={{ fontSize: "9px", marginTop: "4px", display: "inline-block" }}
-            >
-              {isolationReport?.variations?.onnx_fp32?.is_valid && (isolationReport.variations.onnx_fp32.files_found.length > 0) ? "ISOLATED" : "PENDING"}
-            </span>
-          </div>
-
-          {/* Variation 3: ONNX FP16 */}
-          <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
-            <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-primary)" }}>ONNX FP16 (Embedded)</div>
-            <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>
-              {isolationReport?.variations?.onnx_fp16?.files_found?.length
-                ? isolationReport.variations.onnx_fp16.files_found.join(", ")
-                : "No FP16 staged"}
-            </div>
-            <span
-              className={`badge ${isolationReport?.variations?.onnx_fp16?.is_valid && (isolationReport.variations.onnx_fp16.files_found.length > 0) ? "badge-success" : "badge-secondary"}`}
-              style={{ fontSize: "9px", marginTop: "4px", display: "inline-block" }}
-            >
-              {isolationReport?.variations?.onnx_fp16?.is_valid && (isolationReport.variations.onnx_fp16.files_found.length > 0) ? "ISOLATED" : "PENDING"}
-            </span>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          {VARIATION_KEYS.map((key) => (
+            <VariationCard key={key} variation={key} report={isolationReport} />
+          ))}
         </div>
       </div>
 
@@ -137,13 +124,14 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
             id="variation-select"
             className="editor-select"
             value={selectedVariation}
-            onChange={(e) => onSelectVariation(e.target.value as "all" | "pytorch" | "onnx_fp32" | "onnx_fp16")}
+            onChange={(e) => onSelectVariation(toVariationChoice(e.target.value))}
             style={{ width: "100%", padding: "6px 10px", fontSize: "12px" }}
           >
-            <option value="all">All Variations (pytorch + onnx_fp32 + onnx_fp16)</option>
-            <option value="pytorch">PyTorch Only (.pt)</option>
-            <option value="onnx_fp32">ONNX FP32 Only (_FP32.onnx + .data)</option>
-            <option value="onnx_fp16">ONNX FP16 Only (.onnx embedded)</option>
+            {VARIATION_CHOICES.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -165,7 +153,8 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
 
       {uploadStatus && (
         <ValidationBanner
-          message={uploadStatus}
+          type={uploadStatus.type}
+          message={uploadStatus.message}
           style={{ marginTop: "6px", fontSize: "12px" }}
         />
       )}

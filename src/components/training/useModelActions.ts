@@ -24,6 +24,7 @@ import {
 import { ModelItem } from "../../api/types";
 import { SoupRecipe } from "./soupRecipe";
 import { ActiveJobState } from "../../store/useStudioStore";
+import { KaggleLaunchSettings } from "./KaggleLaunchOptions";
 
 export type TelemetryTab = "local" | "remote" | "mesh";
 
@@ -36,7 +37,6 @@ export interface ModelActionDeps {
   setStatusError: (message: string | null) => void;
   loadTrainingData: () => Promise<void>;
   loadKaggleData: () => Promise<void>;
-  kaggleUsername: string | undefined;
 }
 
 export function useModelActions({
@@ -48,7 +48,6 @@ export function useModelActions({
   setStatusError,
   loadTrainingData,
   loadKaggleData,
-  kaggleUsername,
 }: ModelActionDeps) {
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [generatingNotebookModel, setGeneratingNotebookModel] = useState<string | null>(null);
@@ -108,19 +107,20 @@ export function useModelActions({
     }
   };
 
-  const handleLaunchKaggle = async (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => {
+  /** Push the model's training kernel; the sidecar message names the accelerator it used. */
+  const handleLaunchKaggle = async (modelKey: string, settings: KaggleLaunchSettings) => {
     setActionBusyKey(`cloud_${modelKey}`);
     clearStatus();
     try {
       const res = await launchKaggleTrain({
         model: modelKey,
-        gpu,
-        auto_pull: autoPull,
-        username: kaggleUsername || undefined,
+        accelerator: settings.accelerator || undefined,
+        auto_pull: settings.autoPull,
+        poll_interval: settings.pollInterval,
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");
-      reportSuccess(`Dispatched Kaggle training for ${modelKey} (Kernel: ${res.job_id}). Stream attached.`);
+      reportSuccess(`${res.message || `Dispatched Kaggle training for ${modelKey}`} (Job ID: ${res.job_id}). Stream attached.`);
       await loadKaggleData();
     } catch (err: unknown) {
       reportFailure("Failed to dispatch Kaggle training", err);

@@ -9,9 +9,9 @@ interface VariationSpec {
 }
 
 const VARIATIONS: readonly VariationSpec[] = [
-  { label: "PyTorch (.pt)", flag: "pytorch_ready", location: "PyTorch (.pt) standalone binary in dist/kaggle/pytorch/" },
-  { label: "ONNX FP32", flag: "onnx_fp32_ready", location: "ONNX FP32 + External Tensor Data in dist/kaggle/onnx_fp32/" },
-  { label: "ONNX FP16", flag: "onnx_fp16_ready", location: "ONNX FP16 Embedded in dist/kaggle/onnx_fp16/" },
+  { label: "PyTorch (.pt)", flag: "pytorch_ready", location: "Kaggle instance pytorch/fp32: standalone .pt (staged in dist/kaggle/pytorch_fp32/)" },
+  { label: "ONNX FP32", flag: "onnx_fp32_ready", location: "Kaggle instance onnx/fp32: _FP32.onnx + .data sidecar (staged in dist/kaggle/onnx_fp32/)" },
+  { label: "ONNX FP16", flag: "onnx_fp16_ready", location: "Kaggle instance onnx/fp16: .onnx, weights embedded (staged in dist/kaggle/onnx_fp16/)" },
 ];
 
 /** Badge class and tooltip suffix for a readiness flag; `undefined` means the sidecar did not report it. */

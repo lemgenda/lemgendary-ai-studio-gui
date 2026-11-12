@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { fetchKaggleSuiteStatus, saveSecrets, toSecretWriteItems } from "../client";
+import { saveSecrets, toSecretWriteItems } from "../client";
 import { SecretDraft } from "../types";
 
 const kept: SecretDraft = {
@@ -51,21 +51,5 @@ describe("write-only secrets client", () => {
       created_at: null,
       secret_value: "",
     });
-  });
-
-  it("derives Kaggle token status from has_value, never from a raw value", async () => {
-    const fetchMock = vi.fn((url: string) => {
-      if (url.endsWith("/api/secrets")) {
-        return Promise.resolve(new Response(JSON.stringify({ status: "success", secrets: [kept] })));
-      }
-      return Promise.resolve(new Response("{}", { status: 503 }));
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const status = await fetchKaggleSuiteStatus();
-
-    expect(status.username).toBe("alice");
-    expect(status.token_configured).toBe(true);
-    expect(status.authenticated).toBe(true);
   });
 });

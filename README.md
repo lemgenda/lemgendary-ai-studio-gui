@@ -116,17 +116,20 @@ tripartite local microservice topology:
     sample counts, and disk metrics across all 20 production manifolds.
 
 - **Multi-Variation Kaggle Model Hub & Cloud Training**:
-  - Interactive cloud training dialog supporting Kaggle Dual-T4 and P100
-    hardware clusters.
+  - Interactive cloud training dialog: the Kaggle accelerator (CPU, GPU T4 x2,
+    TPU v5e-8) comes from `GET /api/training/kaggle/accelerators` (the
+    ecosystem snapshot while the Training Suite is offline), with the first
+    poll interval (default 30 s, minimum 5 s) and auto-pull.
   - Fleet-Wide Kaggle Push: One-click "Push All Models to Kaggle" toolbar action
     to stage, validate, and publish all 22 registered neural architectures and
     their multi-format variations with pre-flight isolation verification.
-  - Automated staging and verification of 3 distinct isolated variations:
-    - Variation 1 (`pytorch`): PyTorch checkpoint binaries (`*.pt`).
-    - Variation 2 (`onnx_fp32`): High-precision standard ONNX exports
-      (`*_FP32.onnx*`).
-    - Variation 3 (`onnx_fp16`): Edge-optimized half-precision ONNX exports
-      (`*.onnx`).
+  - Automated staging and verification of the 4 Kaggle Model Instances
+    (OpenAPI enum `VariationKey`):
+    - `pytorch/default`: training checkpoints (`checkpoints/*.pth`,
+      `README.md`, `metrics.csv`).
+    - `pytorch/fp32`: standalone PyTorch model (`*.pt`).
+    - `onnx/fp16`: edge-optimized half-precision ONNX export (`*.onnx`).
+    - `onnx/fp32`: full-precision ONNX export (`*_FP32.onnx` + `.data`).
   - Pre-upload isolation checks and model documentation regeneration
     (`ModelDocumentationService`).
 
@@ -273,6 +276,55 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.65 - Kaggle Training Backend Contract
+
+Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).
+
+- **Kaggle status (`fetchKaggleSuiteStatus`)**: shows
+  `GET /api/training/kaggle/status` as sent. The GUI no longer sets
+  `authenticated = true` when the vault has a default Kaggle secret; the route
+  now makes a real authenticated call. `KaggleSuiteStatus` adds `auth_method`,
+  `http_status` and `error`. The cloud dialog's "API Authentication" check
+  (`cloud-modal-auth-badge`) shows the user and method, and an error banner
+  (`cloud-modal-auth-error`) gives the HTTP status and reason when Kaggle
+  refused the token or none is configured.
+- **Kaggle launch (`KaggleLaunchOptions.tsx`)**: `POST
+  /api/training/kaggle/train` sends `accelerator` (an id) instead of `gpu`;
+  the P100 and T4 options are gone. Choices come from `GET
+  /api/training/kaggle/accelerators` (`kaggle-accelerator-select`), else the
+  ecosystem snapshot `kaggle.accelerators` without retired machine shapes
+  (`kaggle-accelerator-source` says so). New `kaggle-poll-interval-input`
+  (default 30 s, minimum 5 s, sent as `poll_interval`) and
+  `kaggle-auto-pull-checkbox`. `username` / `key` are no longer sent (the
+  route never accepted them, K-GUI-6). The route has no `kaggle_session`
+  option, so auto-resume stays a `config.yaml` setting.
+- **Kaggle links (`kaggleLinks.ts`, `fetchModelKaggleHandles`)**: the
+  kernel (`code/<user>/<registry slug>-training`) and model page
+  (`models/<user>/<registry slug>`) use the registry slug from `GET
+  /api/models/{model_key}`, and the dataset links are its
+  `kaggle_dataset_urls` (`cloud-modal-dataset-links`). The guessed
+  `LemGendized...` dataset name and the key-based slug are gone (K-GUI-7).
+- **Variations**: `VARIATION_KEYS` mirrors the OpenAPI enum `VariationKey`
+  (`pytorch/default`, `pytorch/fp32`, `onnx/fp16`, `onnx/fp32`); the push
+  select offers those or `all` (the old names are HTTP 422). The isolation
+  check shows the four instances under those keys with their errors.
+- **Push result (`kagglePushSummary.ts`)**: `POST
+  /api/training/kaggle/push-model` answers HTTP 200 also on failure; a
+  `success: false` body (for example "Model page metadata sync failed;
+  nothing uploaded") is now an error banner, and `skipped` variations read
+  "unchanged, no new version".
+- **Job log**: `[UPLOAD] ... UNCHANGED (no new version)` lines are warnings
+  and the failed page sync line is an error (`kaggleLogLines.ts`); both stay
+  as their own console lines (never folded into progress). The consoles
+  colour lines by event status (`log-warning`).
+- **Job outcome (`jobOutcome.ts`)**: a finished job's banner shows
+  `cancelled` with its reason (a kernel cancelled on kaggle.com) and the
+  metrics `kernel_slug`, `deadline_stop`, `resumes` and unchanged
+  variations.
+- Tests: `trainingKaggleContract.test.ts` compares the variation enum, the
+  poll interval default and minimum and the request fields with
+  `../lemgendary-training-suite/openapi.json`; new modal and text tests.
 
 ### v2.10.64 - Dataset Compiler Kaggle Credential Sources
 

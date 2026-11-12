@@ -2,6 +2,7 @@
  * LemGendary AI Studio - telemetry text cleanup, progress detection and roll-up.
  */
 
+import { kaggleLogStatus } from "./kaggleLogLines";
 import { PipelineEvent } from "./types";
 
 const ANSI_CSI_REGEX = new RegExp(`${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`, "g");
@@ -37,6 +38,8 @@ export function cleanAnsiAndControlChars(text: string): string {
 
 export function isProgressLine(msg: string): boolean {
   if (!msg) return false;
+  // Kaggle push notices (unchanged variation, failed page sync) stay as their own lines.
+  if (kaggleLogStatus(msg)) return false;
   // Package and requirement installation operations
   const hasPkgProgress =
     msg.includes("INSTALLING:") ||

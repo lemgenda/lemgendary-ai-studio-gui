@@ -3,6 +3,7 @@
  */
 
 import { MESH_SERVICES } from "./config";
+import { kaggleLogStatus } from "./kaggleLogLines";
 import { cleanAnsiAndControlChars, isProgressLine } from "./telemetry";
 import { PipelineEvent } from "./types";
 
@@ -54,9 +55,12 @@ export function normalizeSocketMessage(
     const cleanMsg = cleanAnsiAndControlChars(raw.message);
     if (!cleanMsg) return null;
     const isProgress = Boolean(raw.is_progress || isProgressLine(cleanMsg));
+    const kaggleStatus = kaggleLogStatus(cleanMsg);
     let status: PipelineEvent["status"] = "info";
     const msgLower = cleanMsg.toLowerCase();
-    if (msgLower.includes("[error]") || msgLower.includes("failed") || msgLower.includes("exception")) {
+    if (kaggleStatus) {
+      status = kaggleStatus;
+    } else if (msgLower.includes("[error]") || msgLower.includes("failed") || msgLower.includes("exception")) {
       status = "error";
     } else if (msgLower.includes("[success]") || msgLower.includes("complete")) {
       status = "success";

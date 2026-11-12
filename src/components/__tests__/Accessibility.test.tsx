@@ -173,12 +173,17 @@ describe("config editor (D20, D21, D24)", () => {
 });
 
 describe("Kaggle owner and external links (D32, D38)", () => {
-  it("builds Kaggle URLs from the credential username only", () => {
-    expect(kaggleModelLinks(null, { key: "upn_v2" }, false)).toBeNull();
-    expect(kaggleModelLinks("someone", { key: "upn_v2" }, false)).toEqual({
-      notebookUrl: "https://www.kaggle.com/code/someone/upn-v2-training",
-      modelHubUrl: "https://www.kaggle.com/models/someone/upn-v2",
-      datasetSearch: "someone/upn-v2",
+  it("builds Kaggle URLs from the credential username and the backend handles only", () => {
+    const handles = {
+      slug: "nima-aesthetic-mobile",
+      datasetUrls: ["https://www.kaggle.com/datasets/owner/lemgendizednimaaesthetic"],
+    };
+    expect(kaggleModelLinks(null, handles)).toBeNull();
+    expect(kaggleModelLinks("someone", null)).toBeNull();
+    expect(kaggleModelLinks("someone", handles)).toEqual({
+      notebookUrl: "https://www.kaggle.com/code/someone/nima-aesthetic-mobile-training",
+      modelHubUrl: "https://www.kaggle.com/models/someone/nima-aesthetic-mobile",
+      datasetUrls: ["https://www.kaggle.com/datasets/owner/lemgendizednimaaesthetic"],
     });
     expect(kaggleRefOwner("kaggle://owner/dataset")).toBe("owner");
     expect(kaggleRefOwner(undefined)).toBeNull();

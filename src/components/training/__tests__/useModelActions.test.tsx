@@ -53,7 +53,6 @@ describe("useModelActions status routing", () => {
       setStatusError: vi.fn(),
       loadTrainingData: vi.fn(async () => undefined),
       loadKaggleData: vi.fn(async () => undefined),
-      kaggleUsername: undefined,
     };
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -107,13 +106,32 @@ describe("useModelActions status routing", () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await actions?.handleLaunchKaggle("upn_v2", "T4", false);
+        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30 });
       } catch (err: unknown) {
         thrown = err;
       }
     });
     expect(thrown).toBeInstanceOf(Error);
     expect(lastCall(deps.setStatusError)).toBe("Failed to dispatch Kaggle training: no quota");
+  });
+
+  it("sends the accelerator id and poll interval, never gpu or credentials", async () => {
+    mocked.launchKaggleTrain.mockResolvedValue({
+      job_id: "job-k1",
+      status: "pending",
+      message: "Kaggle Cloud training queued for upn_v2 (accelerator: TPU v5e-8)",
+      model: "upn_v2",
+    });
+    await act(async () => {
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45 });
+    });
+    expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
+      model: "upn_v2",
+      accelerator: "tpu-v5e8",
+      auto_pull: true,
+      poll_interval: 45,
+    });
+    expect(lastCall(deps.setStatusNotice)).toContain("accelerator: TPU v5e-8");
   });
 
   it("tracks a monitored Kaggle kernel as the remote job", async () => {

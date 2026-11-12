@@ -6,6 +6,13 @@ import { parseProgressMessage } from "../../utils/progressParser";
 import { isProgressLine, latestMilestone, rollupTelemetryEvents } from "../../api/client";
 import { useScrollToBottom } from "../../utils/useScrollToBottom";
 
+/** Colour class of a console line: errors (status or wording), then warnings. */
+export function logLineClass(ev: PipelineEvent): string {
+  if (ev.status === "error" || ev.message.includes("failed") || ev.message.includes("error")) return "log-error";
+  if (ev.status === "warning") return "log-warning";
+  return "";
+}
+
 export interface TelemetryConsoleProps {
   activeTelemetryTab: "local" | "remote" | "mesh";
   onTabChange: (tab: "local" | "remote" | "mesh") => void;
@@ -312,9 +319,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                     </span>
                     <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
                     <span
-                      className={`log-message ${
-                        ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""
-                      }`}
+                      className={`log-message ${logLineClass(ev)}`}
                       style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                     >
                       {ev.message}
@@ -358,9 +363,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                     </span>
                     <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>
                     <span
-                      className={`log-message ${
-                        ev.message.includes("failed") || ev.message.includes("error") ? "log-error" : ""
-                      }`}
+                      className={`log-message ${logLineClass(ev)}`}
                       style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                     >
                       {ev.message}

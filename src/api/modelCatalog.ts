@@ -160,3 +160,46 @@ export async function fetchModels(): Promise<ModelItem[]> {
     return [];
   }
 }
+
+/** Kaggle handles of one registry model, as the Training Suite serves them. */
+export interface ModelKaggleHandles {
+  /** Registry `kaggle_metadata.slug` (model page and kernel slug base). */
+  slug: string;
+  /** Full Kaggle dataset URLs of the model's manifolds (`kaggle_dataset_urls`). */
+  datasetUrls: string[];
+}
+
+interface RawModelInfo {
+  kaggle_metadata?: { slug?: string | null } | null;
+  kaggle_dataset_urls?: string[];
+}
+
+/**
+ * Registry slug of a model key when the registry has none: the Training Suite's own
+ * fallback (`training/notebooks/registry.py`: underscores to hyphens, lower case).
+ */
+export function fallbackKaggleSlug(modelKey: string): string {
+  return modelKey.replace(/_/g, "-").toLowerCase();
+}
+
+/**
+ * Kaggle handles of `modelKey` from `GET /api/models/{model_key}` (registry entry with the
+ * dataset references filled in). null when the Training Suite cannot answer (logged).
+ */
+export async function fetchModelKaggleHandles(modelKey: string): Promise<ModelKaggleHandles | null> {
+  try {
+    const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}`);
+    if (!res.ok) {
+      logger.warn(`Model info request for ${modelKey} failed: HTTP ${res.status} ${res.statusText}`);
+      return null;
+    }
+    const info = (await res.json()) as RawModelInfo;
+    return {
+      slug: info.kaggle_metadata?.slug || fallbackKaggleSlug(modelKey),
+      datasetUrls: Array.isArray(info.kaggle_dataset_urls) ? info.kaggle_dataset_urls : [],
+    };
+  } catch (err: unknown) {
+    logger.warn(`Training Suite is unreachable; no Kaggle handles for ${modelKey}`, err);
+    return null;
+  }
+}

@@ -8,7 +8,18 @@ import { isKernelSlug, kaggleModelLinks } from "./training/kaggleLinks";
 import { logger } from "../utils/logger";
 import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
 import { KaggleKernelPicker } from "./training/KaggleKernelPicker";
-import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse } from "../api/types";
+import {
+  DEFAULT_KAGGLE_LAUNCH_FORM,
+  KaggleLaunchForm,
+  KaggleLaunchOptions,
+  KaggleLaunchSettings,
+  launchSettings,
+} from "./training/KaggleLaunchOptions";
+import { useKaggleAccelerators } from "./training/useKaggleAccelerators";
+import { useModelKaggleHandles } from "./training/useModelKaggleHandles";
+import { describeKaggleAuth } from "./training/kaggleAuthStatus";
+import { PushStatusMessage, summarizeKagglePush } from "./training/kagglePushSummary";
+import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse, VariationChoice } from "../api/types";
 import {
   pushKaggleModelVariation,
   validateModelIsolation,
@@ -19,7 +30,7 @@ import {
 type CloudPlatform = "kaggle" | "colab" | "upload";
 
 const PLATFORM_TABS: readonly TabItem<CloudPlatform>[] = [
-  { id: "kaggle", label: "Kaggle GPU Cloud" },
+  { id: "kaggle", label: "Kaggle Cloud" },
   { id: "colab", label: "Google Colab FUSE" },
   { id: "upload", label: "Kaggle Models Hub", domId: "train-modal-tab-upload" },
 ];
@@ -28,7 +39,7 @@ interface CloudTrainModalProps {
   isOpen: boolean;
   onClose: () => void;
   model: ModelItem | null;
-  onLaunchKaggle: (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => Promise<void>;
+  onLaunchKaggle: (modelKey: string, settings: KaggleLaunchSettings) => Promise<void>;
   /** Attach to an already running Kaggle kernel (`owner/kernel-slug`). */
   onMonitorKaggle: (kernelSlug: string, modelKey: string, autoPull: boolean) => Promise<void>;
   kaggleAuthStatus: KaggleSuiteStatus | null;
@@ -45,15 +56,14 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   isBusy,
 }) => {
   const [targetPlatform, setTargetPlatform] = useState<CloudPlatform>("kaggle");
-  const [selectedGpu, setSelectedGpu] = useState<"T4" | "P100">("T4");
-  const [autoPull, setAutoPull] = useState<boolean>(true);
+  const [launchForm, setLaunchForm] = useState<KaggleLaunchForm>(DEFAULT_KAGGLE_LAUNCH_FORM);
   const [launchError, setLaunchError] = useState<string | null>(null);
   const [monitorSlug, setMonitorSlug] = useState<string>("");
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<PushStatusMessage | null>(null);
 
   // Phase 8: Multi-Variation Kaggle Models Hub State
-  const [selectedVariation, setSelectedVariation] = useState<"all" | "pytorch" | "onnx_fp32" | "onnx_fp16">("all");
+  const [selectedVariation, setSelectedVariation] = useState<VariationChoice>("all");
   const [dryRun, setDryRun] = useState<boolean>(false);
   const [isolationReport, setIsolationReport] = useState<ModelValidateIsolationResponse | null>(null);
   const [isValidatingIsolation, setIsValidatingIsolation] = useState<boolean>(false);
@@ -79,14 +89,14 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     }
   }, [isOpen, model, checkIsolation]);
 
+  const acceleratorChoices = useKaggleAccelerators(isOpen);
+  const kaggleHandles = useModelKaggleHandles(isOpen && model ? model.key : null);
+
   if (!isOpen || !model) return null;
 
-  const isForex = Boolean(model.is_forex || model.task_type === "forex" || model.category === "forex");
-  const datasetSlug = isForex
-    ? "ForexUniverse (2019-2026)"
-    : `LemGendized${model.key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("")}`;
-  // Owner comes from the Kaggle credentials; without them no Kaggle link can be built.
-  const kaggleLinks = kaggleModelLinks(kaggleAuthStatus?.username, model, isForex);
+  // Slug and dataset URLs come from the Training Suite registry; the owner from the Kaggle credentials.
+  const kaggleLinks = kaggleModelLinks(kaggleAuthStatus?.username, kaggleHandles);
+  const authView = describeKaggleAuth(kaggleAuthStatus);
   const notebookFilename =
     targetPlatform === "colab"
       ? `${model.key}_colab_training.ipynb`
@@ -95,7 +105,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const handleLaunch = async () => {
     setLaunchError(null);
     try {
-      await onLaunchKaggle(model.key, selectedGpu, autoPull);
+      await onLaunchKaggle(model.key, launchSettings(launchForm, acceleratorChoices));
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -106,7 +116,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const handleMonitor = async () => {
     setLaunchError(null);
     try {
-      await onMonitorKaggle(monitorSlug.trim(), model.key, autoPull);
+      await onMonitorKaggle(monitorSlug.trim(), model.key, launchForm.autoPull);
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -120,11 +130,11 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     try {
       const res = await stageModelVariations(model.key);
       const stagedCount = Object.keys(res.staged_files || {}).length;
-      setUploadStatus(`Staged ${stagedCount} isolated variation binaries for ${model.key}.`);
+      setUploadStatus({ type: "success", message: `Staged ${stagedCount} isolated variation binaries for ${model.key}.` });
       await checkIsolation(model.key);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`Staging failed: ${msg}`);
+      setUploadStatus({ type: "error", message: `Staging failed: ${msg}` });
     } finally {
       setIsStaging(false);
     }
@@ -135,10 +145,10 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     setUploadStatus(null);
     try {
       await generateModelDocs(model.key);
-      setUploadStatus(`README.md and model-metadata.json regenerated for ${model.key}.`);
+      setUploadStatus({ type: "success", message: `README.md and model-metadata.json regenerated for ${model.key}.` });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`Docs generation failed: ${msg}`);
+      setUploadStatus({ type: "error", message: `Docs generation failed: ${msg}` });
     } finally {
       setIsGeneratingDocs(false);
     }
@@ -153,16 +163,11 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
         variation: selectedVariation,
         dry_run: dryRun,
       });
-      const varCount = Object.keys(res.variations || {}).length;
-      if (dryRun) {
-        setUploadStatus(`[DRY RUN PASSED] Verified ${varCount} variation payload(s) for ${model.key} with strict isolation.`);
-      } else {
-        setUploadStatus(`Successfully published ${varCount} variation(s) for ${model.key} to Kaggle Models Hub.`);
-      }
+      setUploadStatus(summarizeKagglePush(model.key, res, dryRun));
       await checkIsolation(model.key);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setUploadStatus(`Upload failed: ${msg}`);
+      setUploadStatus({ type: "error", message: `Upload failed: ${msg}` });
     } finally {
       setIsUploading(false);
     }
@@ -177,7 +182,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
       title={`Cloud & Registry Dispatch: ${model.display_name}`}
       headerActions={
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <HelpTooltip content="Dispatches remote execution notebooks to Kaggle GPU cloud or pushes isolated multi-variation models to Kaggle Models Hub." />
+          <HelpTooltip content="Dispatches the generated training notebook to a Kaggle session or pushes isolated multi-variation models to Kaggle Models Hub." />
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -227,9 +232,16 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Required Dataset Manifold</div>
-                  <div style={{ fontSize: "11px", color: "#60a5fa", fontFamily: "var(--font-mono)" }}>
-                    {datasetSlug}
-                    {kaggleLinks ? ` (search: ${kaggleLinks.datasetSearch})` : " (Kaggle username unknown: set the Kaggle credentials)"}
+                  <div id="cloud-modal-dataset-links" style={{ fontSize: "11px", color: "#60a5fa", fontFamily: "var(--font-mono)", display: "flex", flexDirection: "column" }}>
+                    {kaggleHandles === null
+                      ? "Dataset handles unavailable (Training Suite offline)"
+                      : kaggleHandles.datasetUrls.length === 0
+                        ? "No Kaggle dataset in the registry entry"
+                        : kaggleHandles.datasetUrls.map((url) => (
+                            <ExternalLink key={url} href={url}>
+                              {url}
+                            </ExternalLink>
+                          ))}
                   </div>
                 </div>
                 <span className="badge badge-secondary" style={{ fontSize: "11px" }} title="The notebook resolves the dataset on Kaggle at run time; the GUI does not check that it exists.">
@@ -254,55 +266,28 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
                 <div>
                   <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>API Authentication</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                    {kaggleAuthStatus?.authenticated ? `Authenticated as @${kaggleAuthStatus.username}` : "Local Credentials / Token"}
-                  </div>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{authView.detail}</div>
                 </div>
-                <span className={`badge ${kaggleAuthStatus?.authenticated ? "badge-success" : "badge-warning"}`} style={{ fontSize: "11px" }}>
-                  {kaggleAuthStatus?.authenticated ? "AUTHENTICATED" : "CHECK SECRETS"}
+                <span
+                  id="cloud-modal-auth-badge"
+                  className={`badge ${authView.badge === "AUTHENTICATED" ? "badge-success" : "badge-warning"}`}
+                  style={{ fontSize: "11px" }}
+                >
+                  {authView.badge}
                 </span>
               </div>
             </div>
+            {authView.problem && (
+              <div id="cloud-modal-auth-error" style={{ marginTop: "8px" }}>
+                <ValidationBanner type="error" role="alert" message={authView.problem} />
+              </div>
+            )}
           </div>
 
           {/* Configuration Options */}
           {targetPlatform === "kaggle" ? (
             <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-                <div className="form-group">
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                    <label htmlFor="gpu-select" style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                      Target Cloud GPU Accelerator:
-                    </label>
-                    <HelpTooltip content="Choose cloud GPU. Dual T4 x2 provides 30GB aggregate memory for high-resolution ladders; P100 provides dedicated fast single-chip compute." />
-                  </div>
-                  <select
-                    id="gpu-select"
-                    className="editor-select"
-                    value={selectedGpu}
-                    onChange={(e) => setSelectedGpu(e.target.value as "T4" | "P100")}
-                    style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
-                  >
-                    <option value="T4">GPU T4 x2 (30 GB combined VRAM)</option>
-                    <option value="P100">GPU P100 (16 GB dedicated VRAM)</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "8px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
-                      <input
-                        type="checkbox"
-                        checked={autoPull}
-                        onChange={(e) => setAutoPull(e.target.checked)}
-                        style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                      />
-                      <span>Auto-pull checkpoints to LemGendaryModels</span>
-                    </label>
-                    <HelpTooltip content="Automatically pulls latest .pth, .onnx, and metrics.csv artifacts down to local LemGendaryModels upon epoch completion." />
-                  </div>
-                </div>
-              </div>
+              <KaggleLaunchOptions choices={acceleratorChoices} form={launchForm} onChange={setLaunchForm} />
 
               <div className="form-group">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>

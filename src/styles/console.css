@@ -64,6 +64,10 @@
   color: var(--accent-rose);
 }
 
+.log-warning {
+  color: var(--accent-amber);
+}
+
 .log-empty {
   color: var(--text-muted);
   font-style: italic;

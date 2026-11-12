@@ -3,6 +3,8 @@
  * Kaggle cloud training, unit tests, exports and model variations.
  */
 
+import type { EcosystemKaggleAccelerator } from "../ecosystem";
+
 /** Training state from the Training Suite 4-pillar verdict (`ModelWithStats.training_status`). */
 export type TrainingStatus = "fully_trained" | "partially_trained" | "weights_ready" | "initializing" | "unknown";
 
@@ -104,6 +106,8 @@ export interface TrainingJobInfo {
   started_at?: string;
   error_message?: string | null;
   params?: Record<string, unknown>;
+  /** Result record of a finished job (`metrics_json`); `{}` while running. */
+  metrics?: Record<string, unknown>;
 }
 
 export interface KaggleKernelItem {
@@ -113,13 +117,30 @@ export interface KaggleKernelItem {
   failure_message?: string | null;
 }
 
+/** `poll_interval` default and minimum of `KaggleTrainRequest` (checked against the OpenAPI). */
+export const KAGGLE_POLL_DEFAULT_SECONDS = 30;
+export const KAGGLE_POLL_MIN_SECONDS = 5;
+
+/** `KaggleTrainRequest` of `POST /api/training/kaggle/train`. */
 export interface KaggleTrainPayload {
   model: string;
-  gpu?: string;
+  /** Accelerator id from `GET /api/training/kaggle/accelerators`; omitted = backend default. */
+  accelerator?: string;
   auto_pull?: boolean;
+  /** First status poll interval in seconds (minimum 5, default 30; backs off to 300). */
   poll_interval?: number;
-  username?: string;
-  key?: string;
+}
+
+/**
+ * One Kaggle session type: `id` is what `KaggleTrainPayload.accelerator` takes.
+ * Same shape as the ecosystem `kaggle.accelerators` entries the route serves.
+ */
+export type KaggleAccelerator = EcosystemKaggleAccelerator;
+
+/** `GET /api/training/kaggle/accelerators` (retired machine shapes are left out). */
+export interface KaggleAcceleratorList {
+  default: string;
+  accelerators: KaggleAccelerator[];
 }
 
 export interface KaggleMonitorPayload {
@@ -129,10 +150,22 @@ export interface KaggleMonitorPayload {
   poll_interval?: number;
 }
 
+/** How the Training Suite authenticated against Kaggle. */
+export type KaggleAuthMethod = "access_token" | "legacy_api_key";
+
+/**
+ * `GET /api/training/kaggle/status`: the outcome of one real authenticated call
+ * (list the user's own kernels). `authenticated` is what Kaggle answered.
+ */
 export interface KaggleSuiteStatus {
   authenticated: boolean;
   username: string;
   token_configured: boolean;
+  auth_method: KaggleAuthMethod | null;
+  /** HTTP status of the probe call; null when no call was made (no token) or no response. */
+  http_status: number | null;
+  /** Why the probe failed; null when authenticated. */
+  error: string | null;
 }
 
 export interface UnitTestAllPayload {
@@ -173,8 +206,20 @@ export interface ModelExportPayload {
   targets?: string[];
 }
 
+/**
+ * Kaggle Model Instance keys: OpenAPI enum `VariationKey` of the Training Suite
+ * (`training/cloud/variations.py`). Mirrored here; `trainingContract.test.ts`
+ * compares it with `lemgendary-training-suite/openapi.json`.
+ */
+export const VARIATION_KEYS = ["pytorch/default", "pytorch/fp32", "onnx/fp16", "onnx/fp32"] as const;
+
+export type VariationKey = (typeof VARIATION_KEYS)[number];
+
+/** Request value of the Kaggle pull/push routes: one variation or `"all"`. */
+export type VariationChoice = VariationKey | "all";
+
 export interface ModelVariationInfo {
-  variation: "pytorch" | "onnx_fp32" | "onnx_fp16";
+  variation: VariationKey;
   exists: boolean;
   files: string[];
   is_valid: boolean;
@@ -213,32 +258,38 @@ export interface ModelValidateIsolationResponse {
   all_errors: string[];
 }
 
+/** `KagglePushModelRequest` of `POST /api/training/kaggle/push-model`. */
 export interface KagglePushModelPayload {
   model: string;
-  variation?: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16";
+  variation?: VariationChoice;
   version_notes?: string;
   dry_run?: boolean;
-  username?: string;
-  key?: string;
 }
 
+/** One variation of a push result (`ModelPushResult.to_dict`). */
+export interface KaggleVariationPushResult {
+  variation: string;
+  handle: string;
+  success: boolean;
+  files: string[];
+  error?: string | null;
+  dry_run: boolean;
+  /** True when the payload equals the last upload: unchanged, no new Hub version. */
+  skipped?: boolean;
+}
+
+/** `POST /api/training/kaggle/push-model` (HTTP 200 also when `success` is false). */
 export interface KagglePushModelResponse {
   model_key: string;
   success: boolean;
-  variations: Record<string, {
-    variation: string;
-    handle: string;
-    success: boolean;
-    files: string[];
-    error?: string | null;
-    dry_run: boolean;
-  }>;
-  isolation_report?: ModelValidateIsolationResponse;
+  variations: Record<string, KaggleVariationPushResult>;
+  is_valid_isolation?: boolean;
+  metadata_sync?: Record<string, unknown> | null;
   errors: string[];
 }
 
 export interface KagglePushAllPayload {
-  variation?: "all" | "pytorch" | "onnx_fp32" | "onnx_fp16";
+  variation?: VariationChoice;
   version_notes?: string;
   dry_run?: boolean;
 }

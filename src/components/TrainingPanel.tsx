@@ -16,6 +16,7 @@ import { useTransientValue } from "../utils/useTransientValue";
 import { useModelFilters } from "./training/useModelFilters";
 import { TelemetryTab, useModelActions } from "./training/useModelActions";
 import { useJobStatusPoll } from "./training/useJobStatusPoll";
+import { describeJobOutcome } from "./training/jobOutcome";
 
 /** Model key of a sidecar job record (top-level field, or the `model` launch parameter). */
 function jobModelKey(job: TrainingJobInfo): string | null {
@@ -182,21 +183,18 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   }, [localJob.modelKey]);
 
   // Clear the local and remote jobs once the sidecar reports a terminal state (completed / failed / cancelled)
+  const showJobOutcome = (label: string, jobId: string, job: TrainingJobInfo) => {
+    const outcome = describeJobOutcome(label, jobId, job);
+    if (outcome.kind === "error") setStatusError(outcome.message);
+    else setStatusNotice(outcome.message);
+  };
   useJobStatusPoll(localJob.jobId, (jobId, job) => {
     setLocalJob({ jobId: null, modelKey: null });
-    if (job.status === "failed") {
-      setStatusError(`Local training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
-    } else {
-      setStatusNotice(`Local training job ${jobId} ${job.status}.`);
-    }
+    showJobOutcome("Local training job", jobId, job);
   });
   useJobStatusPoll(remoteJob.jobId, (jobId, job) => {
     setRemoteJob({ jobId: null, modelKey: null });
-    if (job.status === "failed") {
-      setStatusError(`Cloud training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
-    } else {
-      setStatusNotice(`Cloud training job ${jobId} ${job.status}.`);
-    }
+    showJobOutcome("Cloud training job", jobId, job);
   });
 
   const {
@@ -242,7 +240,6 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     setStatusError,
     loadTrainingData,
     loadKaggleData,
-    kaggleUsername: kaggleAuthStatus?.username,
   });
 
   const handleOpenCloudModal = (m: ModelItem) => {
