@@ -159,10 +159,10 @@ export function useModelActions({
   const handlePushArtifacts = async (modelKey: string) => {
     setActionBusyKey(`push_${modelKey}`);
     clearStatus();
-    setActiveTelemetryTab("local");
+    setActiveTelemetryTab("remote");
     try {
       const res = await pushKaggleModelArtifacts(modelKey);
-      reportSuccess(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Kaggle push enqueued for ${modelKey} (Job ID: ${res.job_id}). Remote Cloud telemetry streaming.`);
     } catch (err: unknown) {
       reportFailure(`Failed pushing artifacts for ${modelKey}`, err);
     } finally {
@@ -173,10 +173,10 @@ export function useModelActions({
   const handlePullArtifacts = async (modelKey: string) => {
     setActionBusyKey(`pull_${modelKey}`);
     clearStatus();
-    setActiveTelemetryTab("local");
+    setActiveTelemetryTab("remote");
     try {
       const res = await pullKaggleModelArtifacts(modelKey);
-      reportSuccess(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Kaggle pull enqueued for ${modelKey} (Job ID: ${res.job_id}). Remote Cloud telemetry streaming.`);
     } catch (err: unknown) {
       reportFailure(`Failed pulling model for ${modelKey}`, err);
     } finally {
@@ -283,10 +283,10 @@ export function useModelActions({
   const handlePushAllKaggle = async () => {
     setIsPushingAllKaggle(true);
     clearStatus();
-    setActiveTelemetryTab("local");
+    setActiveTelemetryTab("remote");
     try {
       const res = await pushAllKaggleModels({ variation: "all", dry_run: false });
-      reportSuccess(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Local telemetry streaming.`);
+      reportSuccess(`Fleet Kaggle push enqueued for all models (Job ID: ${res.job_id}). Remote Cloud telemetry streaming.`);
     } catch (err: unknown) {
       reportFailure("Failed to enqueue fleet Kaggle push", err);
     } finally {

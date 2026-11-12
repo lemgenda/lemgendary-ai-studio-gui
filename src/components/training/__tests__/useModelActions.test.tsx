@@ -75,6 +75,16 @@ describe("useModelActions status routing", () => {
     expect(lastCall(deps.setStatusNotice)).toBeNull();
   });
 
+  it("shows a Kaggle push on the Remote Cloud console", async () => {
+    mocked.pushKaggleModelArtifacts.mockResolvedValue({ job_id: "job-p1", status: "pending", model: "upn_v2", message: "queued" });
+    await act(async () => {
+      await actions?.handlePushArtifacts("upn_v2");
+    });
+    expect(deps.setActiveTelemetryTab).toHaveBeenCalledWith("remote");
+    expect(deps.setActiveTelemetryTab).not.toHaveBeenCalledWith("local");
+    expect(lastCall(deps.setStatusNotice)).toContain("Remote Cloud telemetry streaming");
+  });
+
   it("sends a successful action to the notice banner and clears an old error", async () => {
     mocked.generateModelDocs.mockResolvedValue({
       status: "success",

@@ -274,6 +274,15 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.58 - Kaggle Transfers on the Remote Cloud Console
+
+- **Event Routing (`src/api/eventRouting.ts`)**: `kaggle_push`,
+  `kaggle_push_all` and `kaggle_pull` job output streams to the Remote
+  Cloud console (`REMOTE_TRANSFER_JOB_TYPES`); a running transfer is never
+  restored as the remote training job.
+- **Model Actions (`useModelActions.ts`)**: Push, Pull and Push All switch
+  to the Remote Cloud console tab.
+
 ### v2.10.57 - Portable Verify Script
 
 - **package.json**: `npm run verify` now uses the portable script from the

@@ -56,6 +56,12 @@ describe("training-suite telemetry routing", () => {
     expect(isLocalTrainingEvent(local, null)).toBe(true);
   });
 
+  it.each(["kaggle_push", "kaggle_push_all", "kaggle_pull"])("routes %s output to the Remote Cloud console", (jobType) => {
+    const ev = normalizeSocketMessage(trainingSuiteBroadcast("job-x", jobType, "Uploading"), "Training", "training-suite")!;
+    expect(isRemoteTrainingEvent(ev, null)).toBe(true);
+    expect(isLocalTrainingEvent(ev, null)).toBe(false);
+  });
+
   it("routes events matching the attached remote job id to the remote stream", () => {
     const ev = normalizeSocketMessage(trainingSuiteBroadcast("job-r9", "custom", "line"), "Training", "training-suite")!;
     expect(isRemoteTrainingEvent(ev, "job-r9")).toBe(true);
