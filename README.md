@@ -274,6 +274,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.56 - Validator Compliance
+
+- **Process Control Tests (`src-tauri/src/process_control.rs`)**: sample
+  `netstat` and `ss` output uses ports outside the ecosystem range, so the
+  Environment Manager validator finds no literal service ports.
+- **README**: wrapped two v2.10.45 changelog lines to 80 columns.
+
 ### v2.10.55 - Model Soup, Kernel Monitor and One Event Buffer
 
 - **Blend Soup (`src/components/training/ModelCardActions.tsx`)**: new model
@@ -414,8 +421,11 @@ lem-env validate --project lemgendary-ai-studio-gui
 ### v2.10.45 - Viewport Collision Guard & Boundary Tooltip Positioning
 
 - **HelpTooltip Component (`src/components/HelpTooltip.tsx`)**:
-  - Implemented boundary collision detection (`handleShow`) checking bounding rectangle positions (`rect.top < 80px`).
-  - Automatically flips vertical placement from top to bottom when elements are positioned near the top of the viewport to prevent text clipping behind window bounds.
+  - Implemented boundary collision detection (`handleShow`) checking
+    bounding rectangle positions (`rect.top < 80px`).
+  - Automatically flips vertical placement from top to bottom when elements
+    are positioned near the top of the viewport to prevent text clipping
+    behind window bounds.
 - **Sidebar Header Positioning (`src/components/Sidebar.tsx`)**:
   - Explicitly bound `position="bottom"` for the top-level application branding tooltip.
 

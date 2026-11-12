@@ -20,8 +20,8 @@ use std::os::windows::process::CommandExt;
 fn run_checked(cmd: &mut Command, what: &str) -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        // 0x08000000 = CREATE_NO_WINDOW
-        cmd.creation_flags(0x08000000);
+        // 0x07100000 = CREATE_NO_WINDOW
+        cmd.creation_flags(0x07100000);
     }
     let out = cmd
         .stdin(Stdio::null())
@@ -84,7 +84,7 @@ fn parse_lsof_pids(output: &str) -> Vec<u32> {
 }
 
 /// PIDs of sockets listening on `port` in `ss -tlpnH` output, e.g.
-/// `LISTEN 0 2048 127.0.0.1:8000 0.0.0.0:* users:(("python",pid=1234,fd=3))`.
+/// `LISTEN 0 2048 127.0.0.1:7100 0.0.0.0:* users:(("python",pid=1234,fd=3))`.
 #[cfg(any(target_os = "linux", test))]
 fn parse_ss_pids(output: &str, port: u16) -> Vec<u32> {
     let local_suffix = format!(":{}", port);
@@ -237,14 +237,14 @@ mod tests {
         let out = "Active Connections
 
   Proto  Local Address          Foreign Address        State           PID
-  TCP    127.0.0.1:8000         0.0.0.0:0              LISTENING       4242
-  TCP    [::]:8000              [::]:0                 LISTENING       4242
-  TCP    127.0.0.1:8000         127.0.0.1:8001         ESTABLISHED     4242
-  TCP    127.0.0.1:8001         127.0.0.1:8000         ESTABLISHED     777
-  TCP    127.0.0.1:18000        0.0.0.0:0              LISTENING       999
+  TCP    127.0.0.1:7100         0.0.0.0:0              LISTENING       4242
+  TCP    [::]:7100              [::]:0                 LISTENING       4242
+  TCP    127.0.0.1:7100         127.0.0.1:7101         ESTABLISHED     4242
+  TCP    127.0.0.1:7101         127.0.0.1:7100         ESTABLISHED     777
+  TCP    127.0.0.1:17100        0.0.0.0:0              LISTENING       999
 ";
-        assert_eq!(parse_netstat_listeners(out, 8000), vec![4242]);
-        assert!(parse_netstat_listeners(out, 8100).is_empty());
+        assert_eq!(parse_netstat_listeners(out, 7100), vec![4242]);
+        assert!(parse_netstat_listeners(out, 7300).is_empty());
     }
 
     #[test]
@@ -255,14 +255,14 @@ mod tests {
 
     #[test]
     fn ss_pids_are_parsed_by_port() {
-        let out = "LISTEN 0 2048 127.0.0.1:8000 0.0.0.0:* users:((\"python\",pid=1234,fd=3),(\"python\",pid=1240,fd=3))
-LISTEN 0 2048 127.0.0.1:18000 0.0.0.0:* users:((\"python\",pid=999,fd=3))
-LISTEN 0 4096 [::1]:8000 [::]:* users:((\"python\",pid=1234,fd=4))
+        let out = "LISTEN 0 2048 127.0.0.1:7100 0.0.0.0:* users:((\"python\",pid=1234,fd=3),(\"python\",pid=1240,fd=3))
+LISTEN 0 2048 127.0.0.1:17100 0.0.0.0:* users:((\"python\",pid=999,fd=3))
+LISTEN 0 4096 [::1]:7100 [::]:* users:((\"python\",pid=1234,fd=4))
 LISTEN 0 128 0.0.0.0:22 0.0.0.0:*
 ";
-        assert_eq!(parse_ss_pids(out, 8000), vec![1234, 1240]);
+        assert_eq!(parse_ss_pids(out, 7100), vec![1234, 1240]);
         assert!(parse_ss_pids(out, 22).is_empty());
-        assert!(parse_ss_pids(out, 8200).is_empty());
+        assert!(parse_ss_pids(out, 7200).is_empty());
     }
 
     /// Fake process: exits after `exits_after` liveness checks, or ignores SIGTERM when `None`.
