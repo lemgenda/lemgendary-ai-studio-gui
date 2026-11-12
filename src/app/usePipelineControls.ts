@@ -3,14 +3,12 @@
  * single-project reconcile. Completion is detected by `useMeshSync`.
  */
 
-import { MutableRefObject } from "react";
 import { triggerPipeline, triggerPipelineStep } from "../api/client";
 import { useStudioStore } from "../store/useStudioStore";
 import { logger } from "../utils/logger";
 import { servicePort } from "../api/config";
 
 export interface PipelineControlDeps {
-  runningSingleStepRef: MutableRefObject<number | null>;
   setRefreshError: (message: string | null) => void;
 }
 
@@ -20,13 +18,13 @@ export interface PipelineControls {
   handleRunPipelineStep: (stepNumber: number) => Promise<void>;
 }
 
-export function usePipelineControls({ runningSingleStepRef, setRefreshError }: PipelineControlDeps): PipelineControls {
+export function usePipelineControls({ setRefreshError }: PipelineControlDeps): PipelineControls {
   const setIsRunningPipeline = useStudioStore((s) => s.setIsRunningPipeline);
+  const startPipelineRun = useStudioStore((s) => s.startPipelineRun);
 
   const handleRunPipeline = async (clean: boolean) => {
     try {
-      runningSingleStepRef.current = null;
-      setIsRunningPipeline(true);
+      startPipelineRun("full");
       await triggerPipeline({ clean });
     } catch (err: unknown) {
       logger.error("Pipeline trigger failed", err);
@@ -37,8 +35,7 @@ export function usePipelineControls({ runningSingleStepRef, setRefreshError }: P
 
   const handleReconcileProject = async (projectName: string) => {
     try {
-      runningSingleStepRef.current = null;
-      setIsRunningPipeline(true);
+      startPipelineRun("full");
       await triggerPipeline({ clean: false, targetProject: projectName });
     } catch (err: unknown) {
       logger.error(`Reconcile failed for ${projectName}`, err);
@@ -49,13 +46,11 @@ export function usePipelineControls({ runningSingleStepRef, setRefreshError }: P
 
   const handleRunPipelineStep = async (stepNumber: number) => {
     try {
-      runningSingleStepRef.current = stepNumber;
-      setIsRunningPipeline(true);
+      startPipelineRun(stepNumber);
       await triggerPipelineStep(stepNumber, false);
     } catch (err: unknown) {
       logger.error(`Pipeline step ${stepNumber} trigger failed`, err);
       setRefreshError(`Failed to trigger Step ${stepNumber}: Environment Manager (Port ${servicePort("env-manager")}) is not reachable.`);
-      runningSingleStepRef.current = null;
       setIsRunningPipeline(false);
     }
   };

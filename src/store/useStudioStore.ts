@@ -14,6 +14,16 @@ export interface ActiveJobState {
   modelKey: string | null;
 }
 
+/**
+ * What the current (or most recent) install pipeline run covers: the whole
+ * pipeline (`"full"`, also used for a single-project reconcile) or one step
+ * number. `startedAt` scopes the step pills to this run's events.
+ */
+export interface PipelineRun {
+  scope: "full" | number;
+  startedAt: string;
+}
+
 /** The app-level modals; at most one is open at a time. */
 export type StudioModalId = "config" | "tests" | "bug-report";
 
@@ -63,6 +73,10 @@ export interface StudioState {
   // Pipeline Running Status
   isRunningPipeline: boolean;
   setIsRunningPipeline: (running: boolean) => void;
+  /** Kept after the run ends so the pills keep showing its result. */
+  pipelineRun: PipelineRun | null;
+  /** Record a new run and mark the pipeline as running. */
+  startPipelineRun: (scope: PipelineRun["scope"]) => void;
 
   // Global Refresh Error / Notification
   notification: string | null;
@@ -177,6 +191,9 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   isRunningPipeline: false,
   setIsRunningPipeline: (running) => set({ isRunningPipeline: running }),
+  pipelineRun: null,
+  startPipelineRun: (scope) =>
+    set({ pipelineRun: { scope, startedAt: new Date().toISOString() }, isRunningPipeline: true }),
 
   notification: null,
   setNotification: (msg) => set({ notification: msg }),

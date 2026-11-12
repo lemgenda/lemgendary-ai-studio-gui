@@ -4,7 +4,7 @@
  * and auto-start of offline sidecars on launch.
  */
 
-import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   createLogWebSocket,
   fetchEcosystemMesh,
@@ -51,8 +51,6 @@ export interface MeshSync {
   lastUpdated: string | null;
   refreshError: string | null;
   setRefreshError: (message: string | null) => void;
-  /** Step number of a running single-step pipeline run, or null. */
-  runningSingleStepRef: MutableRefObject<number | null>;
 }
 
 /** Last step in the ecosystem snapshot; its terminal event ends a full pipeline run. */
@@ -73,6 +71,12 @@ function isPipelineTerminalEvent(ev: PipelineEvent, targetStep: number | null): 
   return isPipelineTerminal || isSingleStepTerminal;
 }
 
+/** Step number of a running single-step pipeline run, or null (read live inside socket callbacks). */
+function runningSingleStep(): number | null {
+  const { isRunningPipeline, pipelineRun } = useStudioStore.getState();
+  return isRunningPipeline && pipelineRun && typeof pipelineRun.scope === "number" ? pipelineRun.scope : null;
+}
+
 export function useMeshSync(): MeshSync {
   const setHardware = useStudioStore((s) => s.setHardware);
   const setHealth = useStudioStore((s) => s.setHealth);
@@ -85,7 +89,6 @@ export function useMeshSync(): MeshSync {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const runningSingleStepRef = useRef<number | null>(null);
 
   const refreshMeshStatus = useCallback(async () => {
     let newMesh: MeshStatus;
@@ -169,9 +172,8 @@ export function useMeshSync(): MeshSync {
     const cleanupWs = createLogWebSocket(
       (ev) => {
         setEvents((prev) => appendLiveEvent(prev, ev));
-        if (isPipelineTerminalEvent(ev, runningSingleStepRef.current)) {
+        if (isPipelineTerminalEvent(ev, runningSingleStep())) {
           setIsRunningPipeline(false);
-          runningSingleStepRef.current = null;
           void loadData();
         }
       },
@@ -194,7 +196,6 @@ export function useMeshSync(): MeshSync {
         const pipeStatus = await fetchPipelineStatus();
         if (pipeStatus && !pipeStatus.is_running) {
           setIsRunningPipeline(false);
-          runningSingleStepRef.current = null;
           void loadData();
         }
       } catch (err: unknown) {
@@ -238,5 +239,5 @@ export function useMeshSync(): MeshSync {
     };
   }, [loadData, refreshMeshStatus]);
 
-  return { loadData, refreshMeshStatus, isRefreshing, lastUpdated, refreshError, setRefreshError, runningSingleStepRef };
+  return { loadData, refreshMeshStatus, isRefreshing, lastUpdated, refreshError, setRefreshError };
 }

@@ -274,6 +274,25 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.49 - Pipeline Step Pills Follow Pipeline Events Only
+
+- **Pipeline Progress (`src/app/pipelineProgress.ts`)**: new
+  `derivePipelineProgress` gives each step its own state (WAIT, RUN, DONE,
+  FAILED) from that step's latest Environment Manager event. Compiler,
+  training and console events (`step_number: 0`) no longer reset the pills,
+  and a single-step run no longer marks the steps before it as DONE (audit
+  GUI-6).
+- **Store (`src/store/useStudioStore.ts`)**: `pipelineRun` records the scope
+  (`"full"` or a step number) and start time of the current or last run;
+  `startPipelineRun` sets it. It replaces `runningSingleStepRef` in
+  `useMeshSync` and `usePipelineControls`, so the run scope lives in one
+  place.
+- **Pipeline Panel (`src/components/PipelinePanel.tsx`)** and
+  **step cards (`src/app/liveViews.tsx`)**: use the derived state; a failed
+  step shows a FAILED pill.
+- **Tests (`src/app/__tests__/pipelineProgress.test.ts`)**: mixed events,
+  single-step runs, failures and run scoping.
+
 ### v2.10.48 - Training Action Errors Use the Error Banner
 
 - **Training Actions (`src/components/training/useModelActions.ts`)**: every

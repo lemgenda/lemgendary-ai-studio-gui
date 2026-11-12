@@ -34,14 +34,10 @@ export const App: React.FC = () => {
   const openModal = useStudioStore((s) => s.openModal);
   const closeModal = useStudioStore((s) => s.closeModal);
 
-  const { loadData, refreshMeshStatus, isRefreshing, lastUpdated, refreshError, setRefreshError, runningSingleStepRef } =
-    useMeshSync();
+  const { loadData, refreshMeshStatus, isRefreshing, lastUpdated, refreshError, setRefreshError } = useMeshSync();
   const { startingServiceId, stoppingServiceId, handleStartService, handleStopService, handleStartAllServices } =
     useServiceControls({ refreshMeshStatus, loadData, setRefreshError });
-  const { handleRunPipeline, handleReconcileProject, handleRunPipelineStep } = usePipelineControls({
-    runningSingleStepRef,
-    setRefreshError,
-  });
+  const { handleRunPipeline, handleReconcileProject, handleRunPipelineStep } = usePipelineControls({ setRefreshError });
 
   const displayProjects = health?.projects ?? FALLBACK_PROJECTS;
 

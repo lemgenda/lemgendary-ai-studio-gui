@@ -1,9 +1,19 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { CleanInstallConfirmDialog } from "./CleanInstallConfirmDialog";
 import { PipelineEvent } from "../api/types";
 import { PIPELINE_STEPS } from "./PipelineStepCards";
 import { servicePort } from "../api/config";
+import { PipelineRun } from "../store/useStudioStore";
+import { derivePipelineProgress, PipelineStepState } from "../app/pipelineProgress";
+
+/** Badge class and label of each step pill. */
+const PILL: Record<PipelineStepState, { badge: string; label: string }> = {
+  run: { badge: "badge-warning", label: "RUN" },
+  done: { badge: "badge-success", label: "DONE" },
+  failed: { badge: "badge-error", label: "FAILED" },
+  wait: { badge: "badge-info", label: "WAIT" },
+};
 
 interface PipelinePanelProps {
   isRunning: boolean;
@@ -11,6 +21,8 @@ interface PipelinePanelProps {
   onRunPipeline: (clean: boolean) => void;
   recentEvents: PipelineEvent[];
   envManagerOnline: boolean;
+  /** Scope of the current or last run; null before any run in this session. */
+  pipelineRun?: PipelineRun | null;
 }
 
 export const PipelinePanel: React.FC<PipelinePanelProps> = ({
@@ -18,9 +30,12 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
   onRunPipeline,
   recentEvents,
   envManagerOnline,
+  pipelineRun = null,
 }) => {
-  const lastEvent = recentEvents[recentEvents.length - 1];
-  const activeStep = lastEvent ? lastEvent.step_number : 0;
+  const { states, activeStep } = useMemo(
+    () => derivePipelineProgress(recentEvents, pipelineRun, isRunning, PIPELINE_STEPS.length),
+    [recentEvents, pipelineRun, isRunning],
+  );
   const currentStepName = PIPELINE_STEPS[activeStep - 1]?.name || "Ready";
   const [isCleanDialogOpen, setIsCleanDialogOpen] = useState(false);
   const isDisabled = isRunning || !envManagerOnline;
@@ -70,11 +85,9 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         style={{ display: "flex", gap: "10px", flexWrap: "wrap", listStyle: "none", padding: 0, margin: "0 0 24px 0" }}
       >
         {PIPELINE_STEPS.map((s) => {
-          const isCurrent = isRunning && activeStep === s.num;
-          // A step is DONE if: the pipeline is still running and we're past it,
-          // OR the pipeline finished and we've reached or passed this step number.
-          const isDone = isRunning ? activeStep > s.num : activeStep >= s.num;
-          const statusBadge = isCurrent ? "badge-warning" : isDone ? "badge-success" : "badge-info";
+          const state = states[s.num - 1];
+          const isCurrent = state === "run";
+          const pill = PILL[state];
 
           return (
             <li
@@ -92,8 +105,8 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
                 <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
                   [Step {s.num}]
                 </span>
-                <span className={`badge ${statusBadge}`} style={{ fontSize: "9px", padding: "1px 4px" }}>
-                  {isCurrent ? "RUN" : isDone ? "DONE" : "WAIT"}
+                <span className={`badge ${pill.badge}`} style={{ fontSize: "9px", padding: "1px 4px" }}>
+                  {pill.label}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>

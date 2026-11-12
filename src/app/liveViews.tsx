@@ -9,8 +9,9 @@ import React, { useMemo } from "react";
 import { PipelineEvent } from "../api/types";
 import { LogPanel } from "../components/LogPanel";
 import { PipelinePanel } from "../components/PipelinePanel";
-import { PipelineStepCards } from "../components/PipelineStepCards";
+import { PIPELINE_STEPS, PipelineStepCards } from "../components/PipelineStepCards";
 import { useStudioStore } from "../store/useStudioStore";
+import { derivePipelineProgress } from "./pipelineProgress";
 
 export interface LiveLogPanelProps {
   /** Show (and clear) only the events this predicate accepts; all events when omitted. */
@@ -35,12 +36,14 @@ export const LivePipelinePanel: React.FC<LivePipelinePanelProps> = ({ onRunPipel
   const events = useStudioStore((s) => s.events);
   const isRunning = useStudioStore((s) => s.isRunningPipeline);
   const envManagerOnline = useStudioStore((s) => s.meshStatus.envManager);
+  const pipelineRun = useStudioStore((s) => s.pipelineRun);
   return (
     <PipelinePanel
       isRunning={isRunning}
       onRunPipeline={onRunPipeline}
       recentEvents={events}
       envManagerOnline={envManagerOnline}
+      pipelineRun={pipelineRun}
     />
   );
 };
@@ -53,7 +56,12 @@ export const LivePipelineStepCards: React.FC<LivePipelineStepCardsProps> = ({ on
   const events = useStudioStore((s) => s.events);
   const isRunning = useStudioStore((s) => s.isRunningPipeline);
   const envManagerOnline = useStudioStore((s) => s.meshStatus.envManager);
-  const activeStepNum = events.length > 0 && isRunning ? events[events.length - 1].step_number : null;
+  const pipelineRun = useStudioStore((s) => s.pipelineRun);
+  // Ignore compiler, training and console events (step 0) when picking the running step.
+  const activeStepNum = useMemo(() => {
+    const { activeStep } = derivePipelineProgress(events, pipelineRun, isRunning, PIPELINE_STEPS.length);
+    return activeStep > 0 ? activeStep : null;
+  }, [events, pipelineRun, isRunning]);
   return (
     <PipelineStepCards
       isRunning={isRunning}
