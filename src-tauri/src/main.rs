@@ -2,7 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
+mod process_control;
 mod recording;
+mod workspace_paths;
 
 use recording::commands::RecorderState;
 

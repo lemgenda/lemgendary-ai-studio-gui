@@ -274,6 +274,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.54 - Sidecar Lifecycle Hardening
+
+- **Process Control (`src-tauri/src/process_control.rs`)**: port listener
+  lookup and process termination moved out of `commands.rs`. On macOS and
+  Linux a stopped service now gets SIGTERM and up to 3 s to exit before
+  SIGKILL, so sidecars can flush logs. Linux falls back to `ss -tlpnH` when
+  `lsof` is not installed (audit GUI-12). Windows keeps `taskkill /T /F`.
+- **Workspace Paths (`src-tauri/src/workspace_paths.rs`)**: sibling projects
+  are found from the working directory and from the executable's folders, so
+  a build started outside the GUI folder still finds the sidecars (audit
+  GUI-12).
+- **Tests**: Rust unit tests for `ss` parsing, the TERM-then-KILL sequence
+  and executable-relative project lookup.
+
 ### v2.10.53 - Telemetry Console Auto-Scroll
 
 - **Telemetry Console (`src/components/training/TelemetryConsole.tsx`)**: the
