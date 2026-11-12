@@ -123,7 +123,11 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
           className="btn btn-primary"
           onClick={() => onStartLocalTrain(m, selectedBatchSize)}
           disabled={isBusy || !trainingSuiteOnline}
-          title="Starts local GPU training pass and focuses telemetry terminal below"
+          title={
+            m.is_llm
+              ? "Starts local QLoRA instruction tuning of this assistant LLM and focuses telemetry terminal below"
+              : "Starts local GPU training pass and focuses telemetry terminal below"
+          }
           icon={
             <CardIcon filled>
               <polygon points="6 4 20 12 6 20 6 4" />

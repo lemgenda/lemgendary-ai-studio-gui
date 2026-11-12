@@ -129,10 +129,12 @@ export interface KaggleDatasetRegistryItem {
   size_gb: number;
 }
 
+/** `GET /api/kaggle/status`: Kaggle credentials the Dataset Compiler can use. */
 export interface KaggleStatusResponse {
   authenticated: boolean;
   auth_methods: {
     environment_variables: boolean;
+    secrets_vault: boolean;
     dot_kaggle_token: boolean;
     user_kaggle_json: boolean;
   };

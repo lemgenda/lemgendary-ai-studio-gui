@@ -3,6 +3,7 @@ import {
   HardwareProfile,
   HealthAuditReport,
   MeshStatus,
+  ProjectHealth,
   PipelineEvent,
   ModelItem,
   DatasetItem,
@@ -47,6 +48,8 @@ export interface StudioState {
   setHardware: (hardware: HardwareProfile | null) => void;
   health: HealthAuditReport | null;
   setHealth: (health: HealthAuditReport | null) => void;
+  /** Replace only the project health rows of the current report (no-op without a report). */
+  setProjects: (projects: ProjectHealth[]) => void;
 
   // Global Active Running Jobs
   localJob: ActiveJobState;
@@ -129,6 +132,7 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   health: null,
   setHealth: (health) => set({ health }),
+  setProjects: (projects) => set((state) => (state.health ? { health: { ...state.health, projects } } : {})),
 
   localJob: { jobId: null, modelKey: null },
   setLocalJob: (job) => set({ localJob: job }),

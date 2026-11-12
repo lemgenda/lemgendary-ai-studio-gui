@@ -14,6 +14,8 @@ vi.mock("../../../api/client", async (importOriginal) => {
     launchKaggleTrain: vi.fn(),
     monitorKaggleKernel: vi.fn(),
     blendModelSoup: vi.fn(),
+    trainLLM: vi.fn(),
+    triggerQuickTrain: vi.fn(),
   };
 });
 
@@ -152,5 +154,24 @@ describe("useModelActions status routing", () => {
     });
     expect(lastCall(deps.setStatusError)).toBe("Failed to blend model soup for upn_v2: fewer than two checkpoints");
     expect(lastCall(deps.setStatusNotice)).toBeNull();
+  });
+  it("trains an assistant LLM through the QLoRA route and a vision model through quick-train", async () => {
+    mocked.trainLLM.mockResolvedValue({ job_id: "job-llm", status: "pending", message: "queued" });
+    mocked.triggerQuickTrain.mockResolvedValue({ status: "pending", job_id: "job-q" });
+    const llm = { key: "ai_helper_lemgend", display_name: "AI Helper", architecture: "LLM", task_type: "llm", is_llm: true, is_fully_trained: false, training_status: "initializing" as const };
+    const vision = { ...llm, key: "upn_v2", display_name: "UPN v2", is_llm: false };
+    await act(async () => {
+      await actions?.handleStartLocalTrain(llm, 2);
+    });
+    expect(mocked.trainLLM).toHaveBeenCalledWith({ model: "ai_helper_lemgend", batch_size: 2, env: "local" });
+    expect(mocked.triggerQuickTrain).not.toHaveBeenCalled();
+    expect(deps.setLocalJob).toHaveBeenCalledWith({ jobId: "job-llm", modelKey: "ai_helper_lemgend" });
+    expect(lastCall(deps.setStatusNotice)).toContain("QLoRA instruction tuning initialized");
+
+    await act(async () => {
+      await actions?.handleStartLocalTrain(vision, 8);
+    });
+    expect(mocked.triggerQuickTrain).toHaveBeenCalledWith({ model_key: "upn_v2", batch_size: 8 });
+    expect(mocked.trainLLM).toHaveBeenCalledTimes(1);
   });
 });

@@ -274,6 +274,26 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.59 - Wired API Wrappers
+
+- **Dashboard (`ManagedProjectsSection.tsx`)**: "Refresh Projects"
+  (`dash-btn-refresh-projects`) re-reads project health with `fetchProjects`
+  (`GET /api/projects`) and replaces only the project rows of the health
+  report (store action `setProjects`); disabled while the Environment
+  Manager is offline or no report is loaded.
+- **Kaggle Ingestion Bar**: shows the Dataset Compiler's Kaggle credential
+  state (`fetchKaggleStatus`, badge `comp-badge-kaggle-auth`) and a
+  registry manifold picker (`fetchKaggleRegistryDatasets`,
+  `comp-select-kaggle-registry`, reload `comp-btn-kaggle-registry-reload`)
+  that fills the Kaggle reference and the modernized target folder. The
+  status contract gains `auth_methods.secrets_vault`.
+- **Cloud Training Dialog**: the kernel monitor lists the account's recent
+  kernels with their status (`fetchKaggleKernels`,
+  `kaggle-monitor-kernel-select`, reload `kaggle-monitor-kernels-refresh`).
+- **Model Cards**: Local Training of an assistant LLM (`is_llm`) uses
+  `trainLLM` (`POST /api/training/llm/train`, QLoRA instruction tuning)
+  with the selected batch size; other models keep `quick-train`.
+
 ### v2.10.58 - Kaggle Transfers on the Remote Cloud Console
 
 - **Event Routing (`src/api/eventRouting.ts`)**: `kaggle_push`,

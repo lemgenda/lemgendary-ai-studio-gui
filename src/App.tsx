@@ -3,7 +3,7 @@ import { useStudioStore } from "./store/useStudioStore";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { HardwareCard } from "./components/HardwareCard";
-import { ProjectCard } from "./components/ProjectCard";
+import { ManagedProjectsSection } from "./components/ManagedProjectsSection";
 import { HealthPanel } from "./components/HealthPanel";
 import { StatusBar } from "./components/StatusBar";
 import { CompilerPanel } from "./components/CompilerPanel";
@@ -12,7 +12,6 @@ import { ConfigEditorModal } from "./components/ConfigEditorModal";
 import { TestModal } from "./components/TestModal";
 import { BugReportModal } from "./components/bugReport/BugReportModal";
 import { ServiceTiles } from "./components/ServiceTiles";
-import { HelpTooltip } from "./components/HelpTooltip";
 import { MeshOfflineBanner, RefreshErrorBanner } from "./components/MeshBanners";
 import { isCompilerEvent } from "./api/client";
 import { workspaceTabTitle } from "./navigation/workspaceTabs";
@@ -98,23 +97,13 @@ export const App: React.FC = () => {
                 <LivePipelinePanel onRunPipeline={handleRunPipeline} />
               </div>
 
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-                  <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Managed Workspace Projects</h3>
-                  <HelpTooltip content="Independent sub-repositories in the workspace governed by the LemGendary environment manager. Each card provides status, package metrics, and individual virtual environment reconciliation." />
-                </div>
-                <div className="card-grid">
-                  {displayProjects.map((p) => (
-                    <ProjectCard
-                      key={p.name}
-                      project={p}
-                      onInstall={handleReconcileProject}
-                      isProcessing={isRunningPipeline}
-                      isOffline={!health}
-                    />
-                  ))}
-                </div>
-              </div>
+              <ManagedProjectsSection
+                projects={displayProjects}
+                onInstall={handleReconcileProject}
+                isProcessing={isRunningPipeline}
+                isOffline={!health}
+                envManagerOnline={meshStatus.envManager}
+              />
 
               <LiveLogPanel />
             </>

@@ -16,6 +16,7 @@ import {
   pushAllKaggleModels,
   pushKaggleModelArtifacts,
   stageModelVariations,
+  trainLLM,
   triggerModelEvaluate,
   triggerModelExport,
   triggerQuickTrain,
@@ -74,10 +75,14 @@ export function useModelActions({
     setActionBusyKey(`local_${m.key}`);
     clearStatus();
     try {
-      const res = await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
+      // Assistant LLMs train through the dedicated QLoRA instruction-tuning route.
+      const res = m.is_llm
+        ? await trainLLM({ model: m.key, batch_size: batchSize, env: "local" })
+        : await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
+      const mode = m.is_llm ? "QLoRA instruction tuning" : "Local training";
       setLocalJob({ jobId: res.job_id || null, modelKey: m.key });
       setActiveTelemetryTab("local");
-      reportSuccess(`Local training initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
+      reportSuccess(`${mode} initialized for ${m.display_name} (Batch: ${batchSize ?? m.batch_size ?? "Auto"}, Job ID: ${res.job_id || "started"}). Telemetry stream active.`);
     } catch (err: unknown) {
       reportFailure(`Failed to start local training for ${m.display_name}`, err);
     } finally {
