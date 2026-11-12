@@ -5,22 +5,25 @@ import { ModelManifoldCard } from "./training/ModelManifoldCard";
 import { TrainingTelemetry } from "./training/TrainingTelemetry";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { useStudioStore } from "../store/useStudioStore";
-import {
-  fetchModels,
-  fetchRunningTrainingJobs,
-  fetchTrainingJob,
-  TERMINAL_JOB_STATUSES,
-  fetchKaggleSuiteStatus,
-} from "../api/client";
+import { fetchModels, fetchRunningTrainingJobs, fetchKaggleSuiteStatus } from "../api/client";
+import { REMOTE_TRAINING_JOB_TYPES } from "../api/eventRouting";
 import { servicePort } from "../api/config";
-import { ModelItem, KaggleSuiteStatus } from "../api/types";
+import { ModelItem, KaggleSuiteStatus, TrainingJobInfo } from "../api/types";
 import { errorMessage, logger } from "../utils/logger";
 import { useTransientValue } from "../utils/useTransientValue";
 import { useModelFilters } from "./training/useModelFilters";
 import { TelemetryTab, useModelActions } from "./training/useModelActions";
+import { useJobStatusPoll } from "./training/useJobStatusPoll";
 
-/** Interval for polling the active local job's status on the training sidecar. */
-const JOB_STATUS_POLL_MS = 3000;
+/** Model key of a sidecar job record (top-level field, or the `model` launch parameter). */
+function jobModelKey(job: TrainingJobInfo): string | null {
+  return job.model_key || (job.params?.model as string) || null;
+}
+
+/** The running job of a set, or the first one when none reports `running`. */
+function pickActiveJob(jobs: TrainingJobInfo[]): TrainingJobInfo | undefined {
+  return jobs.find((j) => j.status === "running") || jobs[0];
+}
 
 interface TrainingPanelProps {
   trainingSuiteOnline: boolean;
@@ -39,6 +42,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   const localJob = useStudioStore((s) => s.localJob);
   const setLocalJob = useStudioStore((s) => s.setLocalJob);
   const setRemoteJob = useStudioStore((s) => s.setRemoteJob);
+  const remoteJob = useStudioStore((s) => s.remoteJob);
 
   // Only live sidecar data is shown: no offline placeholder catalog.
   const [models, setModels] = useState<ModelItem[]>(() => useStudioStore.getState().cachedModels);
@@ -132,10 +136,15 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         if (!isCancelled && running.length > 0) {
           // Strictly look for active training jobs ("train") to avoid clobbering training state with background push/pull/eval
           const trainJobs = running.filter((j) => j.job_type === "train" || (!j.job_type && j.status === "running"));
-          if (trainJobs.length > 0) {
-            const active = trainJobs.find((j) => j.status === "running") || trainJobs[0];
-            const activeKey = active.model_key || (active.params?.model as string) || null;
-            setLocalJob({ jobId: active.id, modelKey: activeKey });
+          const activeLocal = pickActiveJob(trainJobs);
+          if (activeLocal) {
+            setLocalJob({ jobId: activeLocal.id, modelKey: jobModelKey(activeLocal) });
+          }
+          // Restore a running cloud (Kaggle) job too, so the Remote Cloud stream and its poll resume.
+          const cloudJobs = running.filter((j) => typeof j.job_type === "string" && REMOTE_TRAINING_JOB_TYPES.has(j.job_type));
+          const activeRemote = pickActiveJob(cloudJobs);
+          if (activeRemote) {
+            setRemoteJob({ jobId: activeRemote.id, modelKey: jobModelKey(activeRemote) });
           }
         }
       } catch (err: unknown) {
@@ -146,7 +155,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [setLocalJob]);
+  }, [setLocalJob, setRemoteJob]);
 
   // Periodic telemetry refresh while a local job runs: one `with-stats` request per tick
   // (it carries every model's live metrics.csv telemetry), merged into the active model only.
@@ -167,33 +176,23 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     return () => clearInterval(interval);
   }, [localJob.modelKey]);
 
-  // Clear the local job once the sidecar reports a terminal state (completed / failed / cancelled)
-  useEffect(() => {
-    const jobId = localJob.jobId;
-    if (!jobId) return;
-    let isCancelled = false;
-
-    const pollJobStatus = async () => {
-      try {
-        const job = await fetchTrainingJob(jobId);
-        if (isCancelled || !TERMINAL_JOB_STATUSES.has(job.status)) return;
-        setLocalJob({ jobId: null, modelKey: null });
-        if (job.status === "failed") {
-          setStatusError(`Local training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
-        } else {
-          setStatusNotice(`Local training job ${jobId} ${job.status}.`);
-        }
-      } catch (err: unknown) {
-        logger.debug(`Polling status of training job ${jobId} failed; retrying`, err);
-      }
-    };
-
-    const interval = setInterval(pollJobStatus, JOB_STATUS_POLL_MS);
-    return () => {
-      isCancelled = true;
-      clearInterval(interval);
-    };
-  }, [localJob.jobId, setLocalJob]);
+  // Clear the local and remote jobs once the sidecar reports a terminal state (completed / failed / cancelled)
+  useJobStatusPoll(localJob.jobId, (jobId, job) => {
+    setLocalJob({ jobId: null, modelKey: null });
+    if (job.status === "failed") {
+      setStatusError(`Local training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
+    } else {
+      setStatusNotice(`Local training job ${jobId} ${job.status}.`);
+    }
+  });
+  useJobStatusPoll(remoteJob.jobId, (jobId, job) => {
+    setRemoteJob({ jobId: null, modelKey: null });
+    if (job.status === "failed") {
+      setStatusError(`Cloud training job ${jobId} failed${job.error_message ? `: ${job.error_message}` : "."}`);
+    } else {
+      setStatusNotice(`Cloud training job ${jobId} ${job.status}.`);
+    }
+  });
 
   const {
     searchQuery,

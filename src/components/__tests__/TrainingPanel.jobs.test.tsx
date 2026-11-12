@@ -165,6 +165,37 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(container.textContent).toContain("Local training job job-local-1 completed.");
   });
 
+  it("restores a running Kaggle job into the remote job on mount", async () => {
+    mocked.fetchRunningTrainingJobs.mockResolvedValue([
+      { id: "job-kaggle-9", job_type: "kaggle_train", model_key: "upn_v2", status: "running" },
+      { id: "job-push-1", job_type: "kaggle_push", model_key: "upn_v2", status: "running" },
+    ]);
+    await render({ online: true });
+    expect(useStudioStore.getState().remoteJob).toEqual({ jobId: "job-kaggle-9", modelKey: "upn_v2" });
+    expect(useStudioStore.getState().localJob).toEqual({ jobId: null, modelKey: null });
+  });
+
+  it("clears the remote job when the sidecar reports it failed", async () => {
+    vi.useFakeTimers();
+    useStudioStore.setState({ cachedModels: [LIVE_MODEL], remoteJob: { jobId: "job-kaggle-7", modelKey: "upn_v2" } });
+    await render({ online: true });
+
+    mocked.fetchTrainingJob.mockResolvedValue({
+      id: "job-kaggle-7",
+      job_type: "kaggle_train",
+      model_key: "upn_v2",
+      status: "failed",
+      error_message: "kernel error",
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(mocked.fetchTrainingJob).toHaveBeenCalledWith("job-kaggle-7");
+    expect(useStudioStore.getState().remoteJob).toEqual({ jobId: null, modelKey: null });
+    expect(container.textContent).toContain("Cloud training job job-kaggle-7 failed: kernel error");
+  });
+
   it("loads once on mount; caching the fetched models does not re-run the load (D11)", async () => {
     mocked.fetchModels.mockResolvedValue([LIVE_MODEL]);
     await render({ online: true });

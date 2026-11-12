@@ -274,6 +274,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.50 - Remote Job Restore and Status Polling
+
+- **Training Panel (`src/components/TrainingPanel.tsx`)**: on mount, a
+  running cloud job (`job_type` in `REMOTE_TRAINING_JOB_TYPES`, for example
+  `kaggle_train` or `kaggle_monitor`) is restored into `remoteJob`, and
+  `remoteJob` is polled like `localJob`. When the sidecar reports it
+  completed, failed or cancelled, `remoteJob` is cleared and a notice or
+  error is shown (audit GUI-8).
+- **Job Status Poll (`src/components/training/useJobStatusPoll.ts`)**: new
+  hook that polls `GET /api/jobs/{job_id}` until a terminal status and
+  reports it once; used for both jobs.
+- **Tests (`src/components/__tests__/TrainingPanel.jobs.test.tsx`)**: remote
+  job restore on mount and remote job failure.
+
 ### v2.10.49 - Pipeline Step Pills Follow Pipeline Events Only
 
 - **Pipeline Progress (`src/app/pipelineProgress.ts`)**: new
