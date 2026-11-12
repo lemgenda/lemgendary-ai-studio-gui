@@ -274,6 +274,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.47 - Manifest Editor Offline and Load-Failure Guards
+
+- **Config Editor (`src/components/ConfigEditorModal.tsx`)**: an unreachable
+  manifest registry no longer fills the list with six placeholder manifests
+  marked `exists: true`. The list stays empty and the error is passed to the
+  manifest tab, so the offline banner shows (audit GUI-4).
+- **Manifest Editor (`src/components/config/ManifestEditorTab.tsx`)**: a
+  failed `readManifest` keeps the editor empty and sets `loadError` instead
+  of writing `# Error loading manifest` comments into the buffer. An error
+  banner names the failure; **Validate Syntax**, **Save Manifest** and the
+  text area stay disabled while the registry is offline or the read failed.
+- **Tests (`src/components/config/__tests__/ManifestEditorTab.test.tsx`)**:
+  offline registry, failed read and successful read.
+
 ### v2.10.46 - Native Process Socket Termination & Polling Window Hardening
 
 - **Native Stop Service Command (`src-tauri/src/commands.rs`)**:

@@ -8,7 +8,6 @@ import { SecretsEditorTab } from "./config/SecretsEditorTab";
 import { fetchManifestRegistry, fetchSecrets } from "../api/client";
 import { ManifestItem, SecretDraft } from "../api/types";
 import { logger } from "../utils/logger";
-import { ecosystemService, guiProjectFolder } from "../api/ecosystem";
 
 type ConfigTab = "manifests" | "secrets";
 
@@ -35,6 +34,8 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
   // Manifests state
   const [manifests, setManifests] = useState<ManifestItem[]>([]);
   const [selectedName, setSelectedName] = useState<string>("");
+  /** Why the manifest registry could not be loaded; null while the Environment Manager answers. */
+  const [registryError, setRegistryError] = useState<string | null>(null);
 
   // Secrets state
   const [secrets, setSecrets] = useState<SecretDraft[]>([]);
@@ -45,19 +46,16 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
       const items = await fetchManifestRegistry();
       setManifests(items);
       // Keep the current pick when it is still listed; otherwise select the first item.
-      setSelectedName((prev) => (items.some((m) => m.name === prev) ? prev : items[0]?.name ?? prev));
+      setSelectedName((prev) => (items.some((m) => m.name === prev) ? prev : items[0]?.name ?? ""));
     } catch (err: unknown) {
-      logger.warn("Manifest registry is unreachable; showing the offline manifest list", err);
-      setManifests([
-        { name: "unified_data.yaml", project: ecosystemService("dataset-compiler").project, format: "yaml", description: "Authoritative dataset and source repository registry.", exists: true, size_bytes: 0, path: null },
-        { name: "unified_models_v2.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Neural architecture registry and training hyperparameters.", exists: true, size_bytes: 0, path: null },
-        { name: "config.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Global training execution and hardware governor configuration.", exists: true, size_bytes: 0, path: null },
-        { name: "presets.yaml", project: ecosystemService("training-suite").project, format: "yaml", description: "Canonical training and evaluation preset profiles.", exists: true, size_bytes: 0, path: null },
-        { name: "runtime_env.yaml", project: ecosystemService("env-manager").project, format: "yaml", description: "Runtime platform specifications and dependency matrices.", exists: true, size_bytes: 0, path: null },
-        { name: "package.json", project: guiProjectFolder(), format: "json", description: "Desktop GUI Tauri v2 and React package manifest.", exists: true, size_bytes: 0, path: null },
-      ]);
-      setSelectedName((prev) => prev || "unified_data.yaml");
+      // No placeholder list: an empty registry plus the error drives the offline banner and
+      // keeps Validate and Save disabled, so nothing can be written while the sidecar is down.
+      logger.warn("Manifest registry is unreachable", err);
+      setManifests([]);
+      setRegistryError(err instanceof Error ? err.message : "Manifest registry is unreachable");
+      return;
     }
+    setRegistryError(null);
   }, []);
 
   const loadSecretsList = useCallback(async () => {
@@ -149,6 +147,7 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
         {activeTab === "manifests" ? (
           <ManifestEditorTab
             manifests={manifests}
+            registryError={registryError}
             selectedName={selectedName}
             onSelectName={setSelectedName}
             onDirtyChange={setManifestDirty}

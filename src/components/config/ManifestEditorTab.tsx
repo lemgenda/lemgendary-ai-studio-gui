@@ -8,6 +8,8 @@ import { servicePort } from "../../api/config";
 
 interface ManifestEditorTabProps {
   manifests: ManifestItem[];
+  /** Why the manifest registry could not be loaded (Environment Manager offline); null when it loaded. */
+  registryError?: string | null;
   selectedName: string;
   onSelectName: (name: string) => void;
   /** Reports whether the editor holds unsaved edits, so the modal can confirm before discarding them. */
@@ -16,6 +18,7 @@ interface ManifestEditorTabProps {
 
 export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
   manifests,
+  registryError = null,
   selectedName,
   onSelectName,
   onDirtyChange,
@@ -29,20 +32,24 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
   const [validationResult, setValidationResult] = useState<{ valid: boolean; message: string } | null>(null);
   const [showDiff, setShowDiff] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  /** Why the selected manifest could not be read; the editor stays empty and read-only while set. */
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadFileContent = useCallback(async (name: string) => {
     setIsLoading(true);
     setValidationResult(null);
     setSaveSuccessMsg(null);
     setShowDiff(false);
+    setLoadError(null);
     try {
       const res = await readManifest(name);
       setOriginalContent(res.content);
       setCurrentContent(res.content);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load manifest content";
-      setOriginalContent(`# Error loading manifest:\n# ${msg}`);
-      setCurrentContent(`# Error loading manifest:\n# ${msg}`);
+      // Keep the editor empty: error text in the buffer would be valid YAML that Save could write.
+      setOriginalContent("");
+      setCurrentContent("");
+      setLoadError(err instanceof Error ? err.message : "Failed to load manifest content");
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +99,9 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
   };
 
   const isModified = originalContent !== currentContent;
+  const registryOffline = registryError !== null || manifests.length === 0;
+  /** Validate and Save need a reachable registry and a manifest that was read successfully. */
+  const editingBlocked = registryOffline || loadError !== null;
 
   useEffect(() => {
     onDirtyChange?.(isModified);
@@ -145,10 +155,17 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
         }}
       />
       {/* Offline banner */}
-      {manifests.length === 0 && (
+      {registryOffline && (
         <ValidationBanner
           type="error"
-          message={`Manifest registry is unavailable (Port ${servicePort("env-manager")} offline). Manifests can be edited directly in the workspace filesystem when the sidecar is running.`}
+          message={`Manifest registry is unavailable (Port ${servicePort("env-manager")} offline${registryError ? `: ${registryError}` : ""}). Start the Environment Manager to view and edit manifests.`}
+          style={{ marginBottom: "12px" }}
+        />
+      )}
+      {!registryOffline && loadError !== null && (
+        <ValidationBanner
+          type="error"
+          message={`Could not load ${selectedName}: ${loadError}. Validate and Save stay disabled until the manifest loads.`}
           style={{ marginBottom: "12px" }}
         />
       )}
@@ -180,16 +197,16 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
             type="button"
             className="btn btn-secondary"
             onClick={handleValidate}
-            disabled={isLoading || isSaving || manifests.length === 0}
+            disabled={isLoading || isSaving || editingBlocked}
             aria-label="Validate syntax of current document"
-            aria-disabled={manifests.length === 0}
+            aria-disabled={editingBlocked}
           >
             Validate Syntax
           </button>
           <HelpTooltip
             content={
-              manifests.length === 0
-                ? `Validation requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
+              editingBlocked
+                ? `Validation requires Environment Manager (Port ${servicePort("env-manager")}) to be online and the manifest to load.`
                 : "Check syntax in real-time. Parses YAML indentation or JSON structure and alerts if errors exist."
             }
           />
@@ -220,16 +237,16 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
             type="button"
             className="btn btn-primary"
             onClick={handleSaveManifest}
-            disabled={isLoading || isSaving || !isModified || manifests.length === 0}
+            disabled={isLoading || isSaving || !isModified || editingBlocked}
             aria-label="Save changes to disk with atomic backup"
-            aria-disabled={manifests.length === 0}
+            aria-disabled={editingBlocked}
           >
             {isSaving ? "Saving..." : "Save Manifest"}
           </button>
           <HelpTooltip
             content={
-              manifests.length === 0
-                ? `Save requires Environment Manager (Port ${servicePort("env-manager")}) to be online.`
+              editingBlocked
+                ? `Save requires Environment Manager (Port ${servicePort("env-manager")}) to be online and the manifest to load.`
                 : "Commit changes to disk. Creates an automatic .bak snapshot before atomically writing the file."
             }
           />
@@ -270,7 +287,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           className="editor-textarea"
           value={currentContent}
           onChange={(e) => setCurrentContent(e.target.value)}
-          disabled={isLoading || isSaving}
+          disabled={isLoading || isSaving || editingBlocked}
           aria-label={`Editing text content for manifest ${selectedName}`}
           spellCheck={false}
         />
