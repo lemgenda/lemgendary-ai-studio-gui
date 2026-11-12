@@ -51,4 +51,19 @@ describe("CompilerPanel without the Dataset Compiler sidecar", () => {
     expect(container.textContent).not.toContain("upn_v2");
     expect(useStudioStore.getState().cachedDatasets).toEqual([]);
   });
+
+  it("gives the sub-tabs and standard compile overrides their registry IDs", async () => {
+    await act(async () => {
+      root.render(<CompilerPanel datasetCompilerOnline={false} />);
+    });
+    for (const id of [
+      "compiler-subtabs-tab-catalog",
+      "compiler-subtabs-tab-queue",
+      "compiler-subtabs-tab-reduce",
+      "comp-input-max-gb",
+      "comp-input-workers",
+    ]) {
+      expect(document.getElementById(id), id).not.toBeNull();
+    }
+  });
 });

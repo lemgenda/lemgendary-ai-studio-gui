@@ -7,6 +7,7 @@ import { useState } from "react";
 import { downloadKaggleDataset, triggerCustomCompile, triggerQuickCompile } from "../../api/client";
 import { CompilationFormControls } from "./DatasetCompilationForm";
 import { servicePort } from "../../api/config";
+import { parseCompileLimits } from "./compileLimits";
 
 export interface CompilationFormDeps {
   datasetCompilerOnline: boolean;
@@ -25,6 +26,9 @@ export function useCompilationForm({
 }: CompilationFormDeps): CompilationFormControls {
   // "" = omit `preset` so the sidecar applies its own default.
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+  // Optional quick-compile overrides; "" leaves them to the preset / sidecar.
+  const [compileMaxGb, setCompileMaxGb] = useState<string>("");
+  const [compileWorkers, setCompileWorkers] = useState<string>("");
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compileStatus, setCompileStatus] = useState<string | null>(null);
 
@@ -53,12 +57,18 @@ export function useCompilationForm({
       setCompileStatus(`Compilation failed: Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is not reachable.`);
       return;
     }
+    const limits = parseCompileLimits(compileMaxGb, compileWorkers);
+    if (!limits.ok) {
+      setCompileStatus(`Compilation not started: ${limits.error}`);
+      return;
+    }
     setIsCompiling(true);
     setCompileStatus(null);
     try {
       const res = await triggerQuickCompile({
         model: selectedManifold,
         ...(selectedPreset ? { preset: selectedPreset } : {}),
+        ...limits.overrides,
       });
       setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);
       addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.id}]`);
@@ -148,6 +158,10 @@ export function useCompilationForm({
   return {
     selectedPreset,
     onSelectPreset: setSelectedPreset,
+    compileMaxGb,
+    onChangeCompileMaxGb: setCompileMaxGb,
+    compileWorkers,
+    onChangeCompileWorkers: setCompileWorkers,
     isCompiling,
     compileStatus,
     onCompile: handleCompile,

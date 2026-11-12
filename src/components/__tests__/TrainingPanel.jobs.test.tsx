@@ -104,6 +104,13 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(container.querySelectorAll(".card-grid .card")).toHaveLength(0);
   });
 
+  it("gives the telemetry console tabs their registry IDs", async () => {
+    await render({ online: false });
+    for (const id of ["training-telemetry-tabs-tab-local", "training-telemetry-tabs-tab-remote", "training-telemetry-tabs-tab-system"]) {
+      expect(document.getElementById(id), id).not.toBeNull();
+    }
+  });
+
   it("refetches the model registry when the sidecar comes back online", async () => {
     await render({ online: false });
     expect(mocked.fetchModels).toHaveBeenCalledTimes(1);

@@ -94,6 +94,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
       />
 
       <BatchSizeSelector
+        modelKey={m.key}
         value={selectedBatchSize}
         onChange={setSelectedBatchSize}
         disabled={isBusy || isCurrentlyTrainingThis}

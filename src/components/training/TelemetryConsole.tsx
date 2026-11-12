@@ -122,6 +122,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             >
               {/* Tab 1: Local Training */}
               <button
+                id="training-telemetry-tabs-tab-local"
                 type="button"
                 aria-pressed={activeTelemetryTab === "local"}
                 className={`btn ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
@@ -142,6 +143,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
 
               {/* Tab 2: Remote / Cloud Training */}
               <button
+                id="training-telemetry-tabs-tab-remote"
                 type="button"
                 aria-pressed={activeTelemetryTab === "remote"}
                 className={`btn ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
@@ -162,8 +164,9 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                 </span>
               </button>
 
-              {/* Tab 3: Mesh Stream */}
+              {/* Tab 3: Mesh Stream (the ecosystem-wide system log) */}
               <button
+                id="training-telemetry-tabs-tab-system"
                 type="button"
                 aria-pressed={activeTelemetryTab === "mesh"}
                 className={`btn ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}

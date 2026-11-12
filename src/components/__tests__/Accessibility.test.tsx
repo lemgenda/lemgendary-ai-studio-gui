@@ -166,9 +166,9 @@ describe("config editor (D20, D21, D24)", () => {
     expect($<HTMLTextAreaElement>(".editor-textarea")!.value).toBe("edited: true\n");
 
     // Leaving the manifest tab with edits also asks first
-    act(() => $<HTMLButtonElement>("#config-editor-tab-secrets")!.click());
+    act(() => $<HTMLButtonElement>("#config-tabs-tab-secrets")!.click());
     expect($("#config-dialog-discard-edits")).not.toBeNull();
-    expect($("#config-editor-tab-manifests")?.getAttribute("aria-selected")).toBe("true");
+    expect($("#config-tabs-tab-manifests")?.getAttribute("aria-selected")).toBe("true");
   });
 });
 

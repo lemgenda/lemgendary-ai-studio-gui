@@ -274,6 +274,29 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.61 - Audit Control IDs
+
+- **Control IDs (2026-11 audit, DOCS-3)**: `compiler-subtabs-tab-catalog`,
+  `compiler-subtabs-tab-queue`, `compiler-subtabs-tab-reduce` (compiler
+  sub-tabs); `train-btn-docs-{key}`, `train-btn-stage-{key}` (card
+  actions); `train-select-batch-{key}` (batch size select);
+  `training-telemetry-tabs-tab-local`, `-remote` and `-system` (the
+  Ecosystem Mesh tab); `config-tabs-tab-manifests` and
+  `config-tabs-tab-secrets` replace `config-editor-tab-*` (the panel stays
+  `config-editor-panel`).
+- **Standard Compile**: new optional overrides "Max Size (GB)"
+  (`comp-input-max-gb`) and "Workers" (`comp-input-workers`), sent as
+  `max_gb` and `workers` of `POST /api/gui/quick-compile`; empty fields keep
+  the preset and sidecar defaults, invalid values stop the compile with a
+  message (`compileLimits.ts`).
+- **Batch Size**: a "Custom..." choice opens a whole-number input
+  (`train-input-custom-batch-{key}`); a non-preset registry batch size opens
+  on it.
+- Not added: `compiler-btn-validate-schema` (`POST /api/config/validate`
+  needs the compiler's API token, which the GUI does not hold) and
+  `comp-select-shard-ext` (`shard_ext` exists only on
+  `POST /api/jobs/compile`, not on `quick-compile`).
+
 ### v2.10.60 - Blend Soup Donors and Weights
 
 - **Blend Soup Dialog (`SoupBlendDialog.tsx`, `soupRecipe.ts`)**: the

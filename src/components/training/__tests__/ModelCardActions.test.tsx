@@ -69,6 +69,12 @@ describe("ModelCardActions sidecar guard", () => {
     }
   });
 
+  it("gives the docs and staging actions their registry IDs", () => {
+    render(true);
+    expect(document.getElementById(`train-btn-docs-${MODEL.key}`)).not.toBeNull();
+    expect(document.getElementById(`train-btn-stage-${MODEL.key}`)).not.toBeNull();
+  });
+
   it("enables the actions when the Training Suite is online", () => {
     render(true);
     const buttons = Array.from(container.querySelectorAll("button"));

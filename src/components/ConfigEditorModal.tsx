@@ -12,8 +12,18 @@ import { logger } from "../utils/logger";
 type ConfigTab = "manifests" | "secrets";
 
 const CONFIG_TABS: readonly TabItem<ConfigTab>[] = [
-  { id: "manifests", label: "Registry Manifests", ariaLabel: "Switch to Registry Manifests editor" },
-  { id: "secrets", label: "Secrets & Tokens Vault", ariaLabel: "Switch to Ecosystem Secrets & Tokens Vault" },
+  {
+    id: "manifests",
+    label: "Registry Manifests",
+    ariaLabel: "Switch to Registry Manifests editor",
+    domId: "config-tabs-tab-manifests",
+  },
+  {
+    id: "secrets",
+    label: "Secrets & Tokens Vault",
+    ariaLabel: "Switch to Ecosystem Secrets & Tokens Vault",
+    domId: "config-tabs-tab-secrets",
+  },
 ];
 
 interface ConfigEditorModalProps {

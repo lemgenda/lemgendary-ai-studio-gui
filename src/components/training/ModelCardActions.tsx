@@ -247,6 +247,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       />
 
       <CardActionButton
+        id={`train-btn-docs-${m.key}`}
         className="btn btn-secondary"
         onClick={() => onGenerateDocs(m.key)}
         disabled={isBusy || !trainingSuiteOnline}
@@ -264,6 +265,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
       />
 
       <CardActionButton
+        id={`train-btn-stage-${m.key}`}
         className="btn btn-secondary"
         onClick={() => onStageVariations(m.key)}
         disabled={isBusy || !trainingSuiteOnline}

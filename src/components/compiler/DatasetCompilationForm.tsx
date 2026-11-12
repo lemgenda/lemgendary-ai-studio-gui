@@ -18,6 +18,12 @@ export interface DatasetCompilationFormProps {
   onSelectManifold: (key: string) => void;
   selectedPreset: string;
   onSelectPreset: (presetId: string) => void;
+  /** Max size override in GB (`max_gb`); empty = the preset's own limit. */
+  compileMaxGb: string;
+  onChangeCompileMaxGb: (value: string) => void;
+  /** Parallel worker processes (`workers`); empty = the sidecar default. */
+  compileWorkers: string;
+  onChangeCompileWorkers: (value: string) => void;
   isCompiling: boolean;
   compileStatus: string | null;
   onCompile: () => void;
@@ -66,6 +72,10 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onSelectManifold,
   selectedPreset,
   onSelectPreset,
+  compileMaxGb,
+  onChangeCompileMaxGb,
+  compileWorkers,
+  onChangeCompileWorkers,
   isCompiling,
   compileStatus,
   onCompile,
@@ -159,6 +169,10 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onSelectManifold={onSelectManifold}
             selectedPreset={selectedPreset}
             onSelectPreset={onSelectPreset}
+            compileMaxGb={compileMaxGb}
+            onChangeCompileMaxGb={onChangeCompileMaxGb}
+            compileWorkers={compileWorkers}
+            onChangeCompileWorkers={onChangeCompileWorkers}
             isCompiling={isCompiling}
             compileStatus={compileStatus}
             onCompile={onCompile}

@@ -87,6 +87,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
             }}
           >
             <button
+              id="compiler-subtabs-tab-catalog"
               type="button"
               aria-pressed={activeSectionTab === "catalog"}
               className={`btn ${activeSectionTab === "catalog" ? "btn-primary" : "btn-secondary"}`}
@@ -96,6 +97,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               Manifolds Catalog
             </button>
             <button
+              id="compiler-subtabs-tab-queue"
               type="button"
               aria-pressed={activeSectionTab === "modernize"}
               className={`btn ${activeSectionTab === "modernize" ? "btn-primary" : "btn-secondary"}`}
@@ -105,6 +107,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               Modernization Queue
             </button>
             <button
+              id="compiler-subtabs-tab-reduce"
               type="button"
               aria-pressed={activeSectionTab === "reduction"}
               className={`btn ${activeSectionTab === "reduction" ? "btn-primary" : "btn-secondary"}`}
