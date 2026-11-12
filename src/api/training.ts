@@ -112,13 +112,21 @@ export async function triggerModelExport(payload: ModelExportPayload): Promise<{
   return resp.json();
 }
 
-export async function blendModelSoup(modelKey: string): Promise<{ model_key: string; success: boolean; soup_checkpoint: string | null }> {
-  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${modelKey}/soup`, {
+/** Result of `POST /api/models/{model_key}/soup`. */
+export interface BlendSoupResponse {
+  model_key: string;
+  success: boolean;
+  soup_checkpoint: string | null;
+  donors?: string[];
+  weights?: number[];
+}
+
+/** Blend the model's vault checkpoints into one Pareto Model Soup checkpoint (uniform weights). */
+export async function blendModelSoup(modelKey: string): Promise<BlendSoupResponse> {
+  const res = await sidecarFetch(`${TRAINING_BASE}/api/models/${encodeURIComponent(modelKey)}/soup`, {
     method: "POST",
   });
-  if (!res.ok) {
-    throw new Error(`Failed to blend model soup: ${res.statusText}`);
-  }
+  if (!res.ok) return throwSidecarError(res, `Failed to blend model soup: HTTP ${res.status} ${res.statusText}`);
   return res.json();
 }
 

@@ -17,7 +17,7 @@ import { ECOSYSTEM } from "../api/ecosystem";
 import { MeshStatus, PipelineEvent } from "../api/types";
 import { useStudioStore } from "../store/useStudioStore";
 import { errorMessage, logger } from "../utils/logger";
-import { appendLiveEvent, mergeRecentEvents } from "./eventLog";
+import { mergeRecentEvents } from "./eventLog";
 import { startOfflineServices } from "./serviceStartup";
 import { sleep } from "./waitForMesh";
 
@@ -81,6 +81,7 @@ export function useMeshSync(): MeshSync {
   const setHardware = useStudioStore((s) => s.setHardware);
   const setHealth = useStudioStore((s) => s.setHealth);
   const setEvents = useStudioStore((s) => s.setEvents);
+  const addEvent = useStudioStore((s) => s.addEvent);
   const isRunningPipeline = useStudioStore((s) => s.isRunningPipeline);
   const setIsRunningPipeline = useStudioStore((s) => s.setIsRunningPipeline);
   const setWsConnected = useStudioStore((s) => s.setWsConnected);
@@ -171,7 +172,7 @@ export function useMeshSync(): MeshSync {
 
     const cleanupWs = createLogWebSocket(
       (ev) => {
-        setEvents((prev) => appendLiveEvent(prev, ev));
+        addEvent(ev);
         if (isPipelineTerminalEvent(ev, runningSingleStep())) {
           setIsRunningPipeline(false);
           void loadData();
@@ -186,7 +187,7 @@ export function useMeshSync(): MeshSync {
       clearInterval(meshInterval);
       cleanupWs();
     };
-  }, [loadData, refreshMeshStatus, setEvents, setIsRunningPipeline, setWsConnected]);
+  }, [addEvent, loadData, refreshMeshStatus, setIsRunningPipeline, setWsConnected]);
 
   // Safety polling to guarantee UI state termination when pipeline or step finishes
   useEffect(() => {

@@ -44,6 +44,7 @@ describe("ModelCardActions sidecar guard", () => {
           onExportModel={noop}
           onGenerateDocs={noop}
           onStageVariations={noop}
+          onBlendSoup={noop}
         />
       )
     );
@@ -62,7 +63,7 @@ describe("ModelCardActions sidecar guard", () => {
   it("disables every model action while the Training Suite is offline", () => {
     render(false);
     const buttons = Array.from(container.querySelectorAll("button"));
-    expect(buttons).toHaveLength(10);
+    expect(buttons).toHaveLength(11);
     for (const button of buttons) {
       expect(button.disabled).toBe(true);
     }

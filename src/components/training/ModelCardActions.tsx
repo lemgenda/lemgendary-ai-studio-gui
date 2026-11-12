@@ -56,6 +56,7 @@ export interface ModelCardActionHandlers {
   onExportModel: (modelKey: string) => void;
   onGenerateDocs: (modelKey: string) => void;
   onStageVariations: (modelKey: string) => void;
+  onBlendSoup: (modelKey: string) => void;
 }
 
 interface ModelCardActionsProps extends ModelCardActionHandlers {
@@ -88,6 +89,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   onExportModel,
   onGenerateDocs,
   onStageVariations,
+  onBlendSoup,
 }) => {
   const trainingNotebookBusy = generatingNotebookModel === `${m.key}_training`;
   const usageNotebookBusy = generatingNotebookModel === `${m.key}_usage`;
@@ -268,6 +270,21 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
           </CardIcon>
         }
         label={actionBusyKey === `stage_${m.key}` ? "Staging..." : "Stage Variations"}
+      />
+
+      <CardActionButton
+        id={`train-btn-soup-${m.key}`}
+        className="btn btn-secondary"
+        onClick={() => onBlendSoup(m.key)}
+        disabled={isBusy || !trainingSuiteOnline}
+        title="Blends the checkpoints in this model's vault into one Pareto Model Soup checkpoint (uniform weights)"
+        icon={
+          <CardIcon>
+            <path d="M3 11h18a9 9 0 0 1-18 0z" />
+            <line x1="12" y1="3" x2="12" y2="8" />
+          </CardIcon>
+        }
+        label={actionBusyKey === `soup_${m.key}` ? "Blending..." : "Blend Soup"}
       />
     </div>
   );

@@ -34,3 +34,8 @@ export function kaggleRefOwner(ref: string | null | undefined): string | null {
   const owner = ref.replace(/^kaggle:\/\//, "").split("/")[0]?.trim();
   return owner ? owner : null;
 }
+
+/** True for a Kaggle kernel reference of the form `owner/kernel-slug`. */
+export function isKernelSlug(value: string): boolean {
+  return /^[^/\s]+\/[^/\s]+$/.test(value.trim());
+}

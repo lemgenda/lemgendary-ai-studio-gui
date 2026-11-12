@@ -69,4 +69,22 @@ describe("useStudioStore", () => {
     events = useStudioStore.getState().events;
     expect(events.length).toBe(0);
   });
+
+  it("addEvent uses the shared live-event rules: progress ticks of one step collapse", () => {
+    const { addEvent } = useStudioStore.getState();
+    const tick = (message: string) => ({
+      timestamp: new Date().toISOString(),
+      step_number: 2,
+      total_steps: 7,
+      step_name: "Step 2",
+      status: "info" as const,
+      message,
+      is_progress: true,
+    });
+    addEvent(tick("10%"));
+    addEvent(tick("50%"));
+    addEvent({ ...tick("done"), is_progress: false, status: "success" });
+    const messages = useStudioStore.getState().events.map((e) => e.message);
+    expect(messages).toEqual(["50%", "done"]);
+  });
 });

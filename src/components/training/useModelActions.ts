@@ -5,11 +5,13 @@
 
 import { useState } from "react";
 import {
+  blendModelSoup,
   cancelTrainingJob,
   generateAllNotebooks,
   generateModelDocs,
   generateNotebooks,
   launchKaggleTrain,
+  monitorKaggleKernel,
   pullKaggleModelArtifacts,
   pushAllKaggleModels,
   pushKaggleModelArtifacts,
@@ -117,6 +119,38 @@ export function useModelActions({
     } catch (err: unknown) {
       reportFailure("Failed to dispatch Kaggle training", err);
       throw err;
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  /** Attach to a Kaggle kernel that is already running; its job is tracked like a launched one. */
+  const handleMonitorKaggle = async (kernelSlug: string, modelKey: string, autoPull: boolean) => {
+    setActionBusyKey(`cloud_${modelKey}`);
+    clearStatus();
+    try {
+      const res = await monitorKaggleKernel({ kernel_slug: kernelSlug, model: modelKey, auto_pull: autoPull });
+      setRemoteJob({ jobId: res.job_id, modelKey });
+      setActiveTelemetryTab("remote");
+      reportSuccess(`Monitoring Kaggle kernel ${res.kernel_slug} for ${modelKey} (Job ID: ${res.job_id}). Stream attached.`);
+    } catch (err: unknown) {
+      reportFailure(`Failed to monitor Kaggle kernel ${kernelSlug}`, err);
+      throw err;
+    } finally {
+      setActionBusyKey(null);
+    }
+  };
+
+  const handleBlendSoup = async (modelKey: string) => {
+    setActionBusyKey(`soup_${modelKey}`);
+    clearStatus();
+    try {
+      const res = await blendModelSoup(modelKey);
+      const donors = res.donors?.length ? ` from ${res.donors.length} checkpoint(s)` : "";
+      reportSuccess(`Blended model soup for ${modelKey}${donors}: ${res.soup_checkpoint ?? "no checkpoint path reported"}.`);
+      await loadTrainingData();
+    } catch (err: unknown) {
+      reportFailure(`Failed to blend model soup for ${modelKey}`, err);
     } finally {
       setActionBusyKey(null);
     }
@@ -268,6 +302,8 @@ export function useModelActions({
     handleStartLocalTrain,
     handleStopLocalTrain,
     handleLaunchKaggle,
+    handleMonitorKaggle,
+    handleBlendSoup,
     handlePushArtifacts,
     handlePullArtifacts,
     handleGenerateTrainingNotebook,

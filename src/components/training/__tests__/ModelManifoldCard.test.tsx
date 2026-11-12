@@ -58,6 +58,7 @@ describe("ModelManifoldCard", () => {
         onExportModel={noop}
         onGenerateDocs={noop}
         onStageVariations={noop}
+        onBlendSoup={noop}
       />
     );
 
@@ -92,6 +93,7 @@ describe("ModelManifoldCard", () => {
         onExportModel={noop}
         onGenerateDocs={noop}
         onStageVariations={noop}
+        onBlendSoup={noop}
       />
     );
 
@@ -133,6 +135,7 @@ describe("ModelManifoldCard", () => {
         onExportModel={noop}
         onGenerateDocs={noop}
         onStageVariations={noop}
+        onBlendSoup={noop}
       />
     );
     expect(html).toContain("UNKNOWN");

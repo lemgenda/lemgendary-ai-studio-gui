@@ -4,7 +4,7 @@ import { ValidationBanner } from "./common/ValidationBanner";
 import { Modal } from "./common/Modal";
 import { ExternalLink } from "./common/ExternalLink";
 import { TabItem, TabList, TabPanel } from "./common/Tabs";
-import { kaggleModelLinks } from "./training/kaggleLinks";
+import { isKernelSlug, kaggleModelLinks } from "./training/kaggleLinks";
 import { logger } from "../utils/logger";
 import { VariationIsolationChecker } from "./training/VariationIsolationChecker";
 import { ModelItem, KaggleSuiteStatus, ModelValidateIsolationResponse } from "../api/types";
@@ -28,6 +28,8 @@ interface CloudTrainModalProps {
   onClose: () => void;
   model: ModelItem | null;
   onLaunchKaggle: (modelKey: string, gpu: "T4" | "P100", autoPull: boolean) => Promise<void>;
+  /** Attach to an already running Kaggle kernel (`owner/kernel-slug`). */
+  onMonitorKaggle: (kernelSlug: string, modelKey: string, autoPull: boolean) => Promise<void>;
   kaggleAuthStatus: KaggleSuiteStatus | null;
   isBusy: boolean;
 }
@@ -37,6 +39,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   onClose,
   model,
   onLaunchKaggle,
+  onMonitorKaggle,
   kaggleAuthStatus,
   isBusy,
 }) => {
@@ -44,6 +47,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
   const [selectedGpu, setSelectedGpu] = useState<"T4" | "P100">("T4");
   const [autoPull, setAutoPull] = useState<boolean>(true);
   const [launchError, setLaunchError] = useState<string | null>(null);
+  const [monitorSlug, setMonitorSlug] = useState<string>("");
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
 
@@ -91,6 +95,17 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
     setLaunchError(null);
     try {
       await onLaunchKaggle(model.key, selectedGpu, autoPull);
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLaunchError(msg);
+    }
+  };
+
+  const handleMonitor = async () => {
+    setLaunchError(null);
+    try {
+      await onMonitorKaggle(monitorSlug.trim(), model.key, autoPull);
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -285,6 +300,37 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                     </label>
                     <HelpTooltip content="Automatically pulls latest .pth, .onnx, and metrics.csv artifacts down to local LemGendaryModels upon epoch completion." />
                   </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                  <label htmlFor="kaggle-monitor-slug" style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Monitor an already running kernel:
+                  </label>
+                  <HelpTooltip content="Attaches the Remote Cloud console to a Kaggle kernel that is already running (for example one launched from the Kaggle website), using the auto-pull setting above." />
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    id="kaggle-monitor-slug"
+                    type="text"
+                    className="editor-input"
+                    placeholder="owner/kernel-slug"
+                    value={monitorSlug}
+                    onChange={(e) => setMonitorSlug(e.target.value)}
+                    style={{ flex: 1, padding: "8px 12px", fontSize: "13px" }}
+                  />
+                  <button
+                    type="button"
+                    id="kaggle-monitor-btn"
+                    className="btn btn-secondary"
+                    onClick={handleMonitor}
+                    disabled={isBusy || !isKernelSlug(monitorSlug)}
+                    title="Requires a kernel reference in the form owner/kernel-slug"
+                    style={{ padding: "8px 14px", fontSize: "13px" }}
+                  >
+                    Attach Monitor
+                  </button>
                 </div>
               </div>
             </div>

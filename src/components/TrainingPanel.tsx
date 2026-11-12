@@ -216,6 +216,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     handleStartLocalTrain,
     handleStopLocalTrain,
     handleLaunchKaggle,
+    handleMonitorKaggle,
+    handleBlendSoup,
     handlePushArtifacts,
     handlePullArtifacts,
     handleGenerateTrainingNotebook,
@@ -368,6 +370,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             onExportModel={handleExportModel}
             onGenerateDocs={handleGenerateDocs}
             onStageVariations={handleStageVariations}
+            onBlendSoup={handleBlendSoup}
             trainingSuiteOnline={trainingSuiteOnline}
           />
         ))}
@@ -420,6 +423,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         onClose={() => setIsCloudModalOpen(false)}
         model={cloudModalModel}
         onLaunchKaggle={handleLaunchKaggle}
+        onMonitorKaggle={handleMonitorKaggle}
         kaggleAuthStatus={kaggleAuthStatus}
         isBusy={Boolean(actionBusyKey && actionBusyKey.startsWith("cloud_"))}
       />

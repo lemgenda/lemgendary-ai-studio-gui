@@ -12,6 +12,8 @@ vi.mock("../../../api/client", async (importOriginal) => {
     pushKaggleModelArtifacts: vi.fn(),
     generateModelDocs: vi.fn(),
     launchKaggleTrain: vi.fn(),
+    monitorKaggleKernel: vi.fn(),
+    blendModelSoup: vi.fn(),
   };
 });
 
@@ -100,5 +102,45 @@ describe("useModelActions status routing", () => {
     });
     expect(thrown).toBeInstanceOf(Error);
     expect(lastCall(deps.setStatusError)).toBe("Failed to dispatch Kaggle training: no quota");
+  });
+
+  it("tracks a monitored Kaggle kernel as the remote job", async () => {
+    mocked.monitorKaggleKernel.mockResolvedValue({
+      job_id: "job-7",
+      status: "running",
+      message: "attached",
+      kernel_slug: "owner/upn-train",
+    });
+    await act(async () => {
+      await actions?.handleMonitorKaggle("owner/upn-train", "upn_v2", true);
+    });
+    expect(mocked.monitorKaggleKernel).toHaveBeenCalledWith({ kernel_slug: "owner/upn-train", model: "upn_v2", auto_pull: true });
+    expect(deps.setRemoteJob).toHaveBeenCalledWith({ jobId: "job-7", modelKey: "upn_v2" });
+    expect(deps.setActiveTelemetryTab).toHaveBeenCalledWith("remote");
+    expect(lastCall(deps.setStatusNotice)).toContain("Monitoring Kaggle kernel owner/upn-train");
+  });
+
+  it("reports a blended model soup and refreshes the catalog", async () => {
+    mocked.blendModelSoup.mockResolvedValue({
+      model_key: "upn_v2",
+      success: true,
+      soup_checkpoint: "checkpoints/upn_v2_soup.pth",
+      donors: ["a.pth", "b.pth"],
+      weights: [0.5, 0.5],
+    });
+    await act(async () => {
+      await actions?.handleBlendSoup("upn_v2");
+    });
+    expect(lastCall(deps.setStatusNotice)).toBe("Blended model soup for upn_v2 from 2 checkpoint(s): checkpoints/upn_v2_soup.pth.");
+    expect(deps.loadTrainingData).toHaveBeenCalled();
+  });
+
+  it("sends a failed soup blend to the error banner", async () => {
+    mocked.blendModelSoup.mockRejectedValue(new Error("fewer than two checkpoints"));
+    await act(async () => {
+      await actions?.handleBlendSoup("upn_v2");
+    });
+    expect(lastCall(deps.setStatusError)).toBe("Failed to blend model soup for upn_v2: fewer than two checkpoints");
+    expect(lastCall(deps.setStatusNotice)).toBeNull();
   });
 });

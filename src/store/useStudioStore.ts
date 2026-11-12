@@ -8,6 +8,7 @@ import {
   DatasetItem,
 } from "../api/types";
 import { DEFAULT_TAB_ID, isWorkspaceTabId } from "../navigation/workspaceTabs";
+import { EVENT_BUFFER_LIMIT, appendLiveEvent } from "../app/eventLog";
 
 export interface ActiveJobState {
   jobId: string | null;
@@ -83,8 +84,6 @@ export interface StudioState {
   setNotification: (msg: string | null) => void;
 }
 
-const MAX_EVENTS_BUFFER = 200;
-
 const getInitialTab = (): string => {
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search);
@@ -155,21 +154,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       events: typeof events === "function" ? events(state.events) : events,
     })),
 
-  addEvent: (event) =>
-    set((state) => {
-      const prev = state.events;
-      if (prev.length > 0) {
-        const last = prev[prev.length - 1];
-        const isCurrProgress = Boolean(event.is_progress);
-        const wasLastProgress = Boolean(last.is_progress);
-        if (isCurrProgress && wasLastProgress && last.step_name === event.step_name) {
-          const next = [...prev];
-          next[next.length - 1] = event;
-          return { events: next };
-        }
-      }
-      return { events: [...prev.slice(-(MAX_EVENTS_BUFFER - 1)), event] };
-    }),
+  addEvent: (event) => set((state) => ({ events: appendLiveEvent(state.events, event) })),
 
   addTelemetryLog: (message, status = "info") =>
     set((state) => {
@@ -181,7 +166,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         status,
         message,
       };
-      return { events: [...state.events.slice(-(MAX_EVENTS_BUFFER - 1)), event] };
+      return { events: [...state.events.slice(-(EVENT_BUFFER_LIMIT - 1)), event] };
     }),
 
   clearEvents: () => set({ events: [] }),

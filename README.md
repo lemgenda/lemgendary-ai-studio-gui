@@ -274,6 +274,21 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.55 - Model Soup, Kernel Monitor and One Event Buffer
+
+- **Blend Soup (`src/components/training/ModelCardActions.tsx`)**: new model
+  card action that calls `POST /api/models/{model_key}/soup` through
+  `blendModelSoup` and reports the soup checkpoint (audit GUI-13).
+- **Kernel Monitor (`src/components/CloudTrainModal.tsx`)**: the Kaggle tab
+  can attach to an already running kernel (`owner/kernel-slug`) through
+  `monitorKaggleKernel`; the job is tracked as the remote job like a launched
+  one (audit GUI-13).
+- **Event Buffer (`src/store/useStudioStore.ts`, `src/app/eventLog.ts`)**:
+  `addEvent` now uses `appendLiveEvent` and the shared `EVENT_BUFFER_LIMIT`,
+  and the live log socket appends through `addEvent`, so there is one rule
+  for collapsing progress ticks (audit GUI-13).
+- **Tests**: soup and monitor actions, the monitor input and `addEvent`.
+
 ### v2.10.54 - Sidecar Lifecycle Hardening
 
 - **Process Control (`src-tauri/src/process_control.rs`)**: port listener
