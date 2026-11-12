@@ -274,6 +274,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.51 - Per-Format Variation Badges
+
+- **Variation Badges (`src/components/training/VariationBadges.tsx`)**: the
+  PyTorch, ONNX FP32 and ONNX FP16 badges are each bound to their own flag
+  (`pytorch_ready`, `onnx_fp32_ready`, `onnx_fp16_ready`) instead of all three
+  following `checkpoint_exists` (audit GUI-9). A flag the Training Suite does
+  not send shows the badge as not ready, with a "not reported" tooltip.
+- **Contract (`src/api/contracts/training.ts`)**: optional per-format
+  readiness flags on `ModelItem`. The Training Suite `with-stats` response
+  must add them for the badges to turn green.
+- **Tests (`src/components/training/__tests__/VariationBadges.test.tsx`)**.
+
 ### v2.10.50 - Remote Job Restore and Status Polling
 
 - **Training Panel (`src/components/TrainingPanel.tsx`)**: on mount, a

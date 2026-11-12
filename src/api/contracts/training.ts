@@ -32,6 +32,14 @@ export interface ModelItem {
   kaggle_ref?: string;
   kaggle_dataset_urls?: string[];
   checkpoint_exists?: boolean;
+  /**
+   * Per-format artifact readiness: true when that physical file exists
+   * (PyTorch `.pt`, ONNX FP32 `_FP32.onnx`, ONNX FP16 `.onnx`). Absent when the
+   * Training Suite does not report it; the GUI then shows the format as unknown.
+   */
+  pytorch_ready?: boolean;
+  onnx_fp32_ready?: boolean;
+  onnx_fp16_ready?: boolean;
   /** Always sent by the Training Suite; true only when all 4 completion pillars hold. */
   is_fully_trained: boolean;
   preferred_parallel?: "single" | "dp" | "ddp";

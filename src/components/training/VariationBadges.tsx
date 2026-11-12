@@ -1,7 +1,27 @@
 import React from "react";
 import { ModelItem } from "../../api/types";
 
-/** Isolated Kaggle variation badges (PyTorch, ONNX FP32, ONNX FP16) of a model card. */
+/** One isolated Kaggle variation and the `ModelItem` flag that says its artifact exists. */
+interface VariationSpec {
+  label: string;
+  flag: "pytorch_ready" | "onnx_fp32_ready" | "onnx_fp16_ready";
+  location: string;
+}
+
+const VARIATIONS: readonly VariationSpec[] = [
+  { label: "PyTorch (.pt)", flag: "pytorch_ready", location: "PyTorch (.pt) standalone binary in dist/kaggle/pytorch/" },
+  { label: "ONNX FP32", flag: "onnx_fp32_ready", location: "ONNX FP32 + External Tensor Data in dist/kaggle/onnx_fp32/" },
+  { label: "ONNX FP16", flag: "onnx_fp16_ready", location: "ONNX FP16 Embedded in dist/kaggle/onnx_fp16/" },
+];
+
+/** Badge class and tooltip suffix for a readiness flag; `undefined` means the sidecar did not report it. */
+export function variationBadgeState(ready: boolean | undefined): { badge: string; note: string } {
+  if (ready === true) return { badge: "badge-success", note: "artifact present" };
+  if (ready === false) return { badge: "badge-secondary", note: "artifact missing" };
+  return { badge: "badge-secondary", note: "readiness not reported by the Training Suite" };
+}
+
+/** Isolated Kaggle variation badges (PyTorch, ONNX FP32, ONNX FP16) of a model card, each bound to its own artifact. */
 export const VariationBadges: React.FC<{ model: ModelItem }> = ({ model: m }) => (
   <div
     style={{
@@ -16,26 +36,19 @@ export const VariationBadges: React.FC<{ model: ModelItem }> = ({ model: m }) =>
     }}
   >
     <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 600 }}>VARIATIONS:</span>
-    <span
-      className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-secondary"}`}
-      style={{ fontSize: "9px", padding: "2px 6px" }}
-      title="PyTorch (.pt) standalone binary in dist/kaggle/pytorch/"
-    >
-      PyTorch (.pt)
-    </span>
-    <span
-      className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-secondary"}`}
-      style={{ fontSize: "9px", padding: "2px 6px" }}
-      title="ONNX FP32 + External Tensor Data in dist/kaggle/onnx_fp32/"
-    >
-      ONNX FP32
-    </span>
-    <span
-      className={`badge ${m.checkpoint_exists ? "badge-success" : "badge-secondary"}`}
-      style={{ fontSize: "9px", padding: "2px 6px" }}
-      title="ONNX FP16 Embedded in dist/kaggle/onnx_fp16/"
-    >
-      ONNX FP16
-    </span>
+    {VARIATIONS.map((v) => {
+      const state = variationBadgeState(m[v.flag]);
+      return (
+        <span
+          key={v.flag}
+          className={`badge ${state.badge}`}
+          style={{ fontSize: "9px", padding: "2px 6px" }}
+          title={`${v.location} (${state.note})`}
+          data-variation={v.flag}
+        >
+          {v.label}
+        </span>
+      );
+    })}
   </div>
 );
