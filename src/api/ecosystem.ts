@@ -13,6 +13,7 @@ export interface EcosystemIdentity {
   docs_url: string;
   kaggle_owner: string;
   bind_host: string;
+  github_url: string;
 }
 
 export interface EcosystemService {
@@ -48,15 +49,32 @@ export interface EcosystemPipelineStep {
   long_description: string;
 }
 
+export type KaggleAcceleratorKind = "cpu" | "gpu" | "tpu";
+
+export interface EcosystemKaggleAccelerator {
+  id: string;
+  label: string;
+  kind: KaggleAcceleratorKind;
+  machine_shape: string | null;
+}
+
+export interface EcosystemKaggle {
+  collaborators: string[];
+  default_accelerator: string;
+  accelerators: EcosystemKaggleAccelerator[];
+  retired_machine_shapes: string[];
+}
+
 export interface Ecosystem {
   schema_version: number;
   identity: EcosystemIdentity;
   services: EcosystemService[];
   projects: EcosystemProject[];
   pipeline_steps: EcosystemPipelineStep[];
+  kaggle: EcosystemKaggle;
 }
 
-export const ECOSYSTEM: Ecosystem = snapshot;
+export const ECOSYSTEM: Ecosystem = snapshot as Ecosystem;
 
 /** Returns the service entry with this id, failing loudly when the snapshot lacks it. */
 export function ecosystemService(id: string): EcosystemService {

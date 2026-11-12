@@ -18,7 +18,7 @@ const siblingSources = Object.values(
 describe("ecosystem snapshot", () => {
   it("has the schema-v1 shape", () => {
     expect(snapshot.schema_version).toBe(1);
-    expect(Object.keys(snapshot.identity).sort()).toEqual(["bind_host", "docs_url", "kaggle_owner"]);
+    expect(Object.keys(snapshot.identity).sort()).toEqual(["bind_host", "docs_url", "github_url", "kaggle_owner"]);
     for (const service of snapshot.services) {
       expect(Object.keys(service).sort()).toEqual([
         "aliases", "app_import", "health_path", "id", "liveness_path", "log_dir", "port", "project", "websocket_path",
@@ -31,6 +31,11 @@ describe("ecosystem snapshot", () => {
       ]);
     }
     expect(snapshot.pipeline_steps.map((s) => s.number)).toEqual(snapshot.pipeline_steps.map((_, i) => i + 1));
+    expect(Object.keys(snapshot.kaggle).sort()).toEqual([
+      "accelerators", "collaborators", "default_accelerator", "retired_machine_shapes",
+    ]);
+    const acceleratorIds = snapshot.kaggle.accelerators.map((a) => a.id);
+    expect(acceleratorIds).toContain(snapshot.kaggle.default_accelerator);
   });
 
   it("every service points at a known project", () => {

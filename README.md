@@ -274,6 +274,16 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.63 - Ecosystem Snapshot Sync
+
+- **Ecosystem snapshot (`src/generated/ecosystem.json`)**: re-synced with
+  `npm run sync:ecosystem` after Environment Manager v16.9.85 added
+  `identity.github_url` and the `kaggle` section (collaborators, default
+  accelerator, accelerator table, retired machine shapes). No UI change.
+- **Types (`src/api/ecosystem.ts`)**: `EcosystemIdentity.github_url`,
+  `EcosystemKaggle` and `EcosystemKaggleAccelerator`; the snapshot shape
+  test covers the new keys and checks the default accelerator exists.
+
 ### v2.10.62 - Validate Schema and Shard Extension
 
 - **Validate Schema (`compiler-btn-validate-schema`, `useSchemaValidation.ts`)**:
