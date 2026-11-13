@@ -120,6 +120,7 @@ describe("Kaggle launch form", () => {
       autoResume: false,
       maxResumes: null,
       overrideFrozen: false,
+      advanced: {},
     });
     expect(launchSettings({ ...DEFAULT_KAGGLE_LAUNCH_FORM, accelerator: "cpu" }, choices).accelerator).toBe("cpu");
     expect(launchSettings({ ...DEFAULT_KAGGLE_LAUNCH_FORM, overrideFrozen: true }, choices).overrideFrozen).toBe(true);

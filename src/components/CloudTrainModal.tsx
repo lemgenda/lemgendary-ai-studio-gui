@@ -16,6 +16,7 @@ import {
   KaggleMonitorSettings,
   launchSettings,
 } from "./training/KaggleLaunchOptions";
+import { isAdvancedFormValid } from "./training/kaggleAdvancedLaunch";
 import { useKaggleAccelerators } from "./training/useKaggleAccelerators";
 import { useModelKaggleHandles } from "./training/useModelKaggleHandles";
 import { describeKaggleAuth } from "./training/kaggleAuthStatus";
@@ -104,8 +105,12 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
       ? `${model.key}_colab_training.ipynb`
       : `${model.key}_kaggle_training.ipynb`;
 
+  // The Advanced group shows each refused value under its field; nothing is sent until it is fixed.
+  const launchFormValid = isAdvancedFormValid(launchForm.advanced);
+
   const handleLaunch = async () => {
     setLaunchError(null);
+    if (!launchFormValid) return;
     try {
       await onLaunchKaggle(model.key, launchSettings(launchForm, acceleratorChoices));
       onClose();
@@ -409,7 +414,8 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                   type="button"
                   className="btn btn-primary"
                   onClick={handleLaunch}
-                  disabled={isBusy}
+                  disabled={isBusy || !launchFormValid}
+                  title={launchFormValid ? undefined : "Fix the Advanced launch options first"}
                   style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
                 >
                   {isBusy ? "Dispatching..." : "Launch Cloud Training"}

@@ -12,7 +12,14 @@ import {
   triggerQuickTrain,
 } from "../client";
 import { ECOSYSTEM } from "../ecosystem";
-import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS, VARIATION_KEYS } from "../types";
+import {
+  KAGGLE_LIMIT_HOURS_EXCLUSIVE_MIN,
+  KAGGLE_MARGIN_MINUTES_MIN,
+  KAGGLE_MAX_RESUMES_MIN,
+  KAGGLE_POLL_DEFAULT_SECONDS,
+  KAGGLE_POLL_MIN_SECONDS,
+  VARIATION_KEYS,
+} from "../types";
 
 /**
  * Training Suite Kaggle contract: the GUI mirrors these values from
@@ -77,6 +84,47 @@ describe("Training Suite Kaggle contract (R3-K)", () => {
     const fetchMock = stubFetch({ job_id: "job-4", status: "pending", message: "queued", model: "upn_v2" });
     await launchKaggleTrain({ model: "upn_v2", poll_interval: 30, override_frozen: true });
     expect(sentBody(fetchMock)).toMatchObject({ override_frozen: true });
+  });
+
+  it("mirrors the KaggleTrainRequest clone ref and session window fields (optional, nullable)", () => {
+    const props = schemas.KaggleTrainRequest.properties;
+    const required: readonly string[] = schemas.KaggleTrainRequest.required;
+    for (const field of ["git_ref", "env_manager_ref", "limit_hours", "margin_minutes"]) {
+      expect(required).not.toContain(field);
+    }
+    expect(props.git_ref.anyOf.map((t) => t.type)).toEqual(["string", "null"]);
+    expect(props.env_manager_ref.anyOf.map((t) => t.type)).toEqual(["string", "null"]);
+    expect(props.limit_hours.anyOf.map((t) => t.type)).toEqual(["number", "null"]);
+    expect(props.margin_minutes.anyOf.map((t) => t.type)).toEqual(["number", "null"]);
+    expect(props.limit_hours.anyOf.find((t) => t.type === "number")?.exclusiveMinimum).toBe(KAGGLE_LIMIT_HOURS_EXCLUSIVE_MIN);
+    expect(props.margin_minutes.anyOf.find((t) => t.type === "number")?.minimum).toBe(KAGGLE_MARGIN_MINUTES_MIN);
+    const responses: Record<string, unknown> = openapi.paths["/api/training/kaggle/train"].post.responses;
+    expect(Object.keys(responses)).toContain("422");
+  });
+
+  it("launch sends the clone refs and session window as KaggleTrainRequest fields", async () => {
+    const props = schemas.KaggleTrainRequest.properties;
+    const fetchMock = stubFetch({ job_id: "job-6", status: "pending", message: "queued", model: "upn_v2" });
+    await launchKaggleTrain({
+      model: "upn_v2",
+      poll_interval: 30,
+      git_ref: "fix/review-remediation",
+      env_manager_ref: "v1.2.0",
+      limit_hours: 11.5,
+      margin_minutes: 20,
+    });
+    const body = sentBody(fetchMock);
+    expect(Object.keys(body).every((k) => Object.keys(props).includes(k))).toBe(true);
+    expect(body).toMatchObject({ git_ref: "fix/review-remediation", env_manager_ref: "v1.2.0", limit_hours: 11.5, margin_minutes: 20 });
+  });
+
+  it("a 422 for a refused ref or session window rejects with the Training Suite message", async () => {
+    stubFetch({ detail: "Git ref 'bad..ref' is not a valid branch, tag or commit name" }, 422);
+    await expect(launchKaggleTrain({ model: "upn_v2", git_ref: "bad..ref" })).rejects.toThrow(
+      "Git ref 'bad..ref' is not a valid branch, tag or commit name"
+    );
+    stubFetch({ detail: [{ loc: ["body", "limit_hours"], msg: "Input should be greater than 0", type: "greater_than" }] }, 422);
+    await expect(launchKaggleTrain({ model: "upn_v2", limit_hours: 0 })).rejects.toThrow("limit_hours: Input should be greater than 0");
   });
 
   it("quick-train sends the frozen settings override as QuickTrainRequest.override_frozen", async () => {

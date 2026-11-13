@@ -119,6 +119,7 @@ describe("CloudTrainModal Kaggle launch", () => {
       autoResume: false,
       maxResumes: null,
       overrideFrozen: false,
+      advanced: {},
     });
   });
 
@@ -156,6 +157,90 @@ describe("CloudTrainModal Kaggle launch", () => {
       launch?.click();
     });
     expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", expect.objectContaining({ autoResume: true, maxResumes: 2 }));
+  });
+
+  const ADVANCED_IDS = ["kaggle-input-git-ref", "kaggle-input-env-manager-ref", "kaggle-input-limit-hours", "kaggle-input-margin-minutes"];
+
+  async function typeInto(id: string, text: string) {
+    const input = document.getElementById(id) as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    await act(async () => {
+      setValue?.call(input, text);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
+  function launchButton(): HTMLButtonElement | undefined {
+    return Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Launch Cloud Training");
+  }
+
+  it("shows the Advanced group with every field empty; an empty field is not sent", async () => {
+    const onLaunchKaggle = await renderModal(AUTHENTICATED);
+    expect(document.getElementById("kaggle-fieldset-advanced")?.querySelector("legend")?.textContent).toBe("Advanced");
+    for (const id of ADVANCED_IDS) {
+      expect((document.getElementById(id) as HTMLInputElement).value).toBe("");
+    }
+    await act(async () => {
+      launchButton()?.click();
+    });
+    expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", expect.objectContaining({ advanced: {} }));
+  });
+
+  it("forwards the typed refs and session window with the launch", async () => {
+    const onLaunchKaggle = await renderModal(AUTHENTICATED);
+    await typeInto("kaggle-input-git-ref", "fix/review-remediation");
+    await typeInto("kaggle-input-env-manager-ref", "main");
+    await typeInto("kaggle-input-limit-hours", "11.5");
+    await typeInto("kaggle-input-margin-minutes", "20");
+    await act(async () => {
+      launchButton()?.click();
+    });
+    expect(onLaunchKaggle).toHaveBeenCalledWith(
+      "upn_v2",
+      expect.objectContaining({
+        advanced: { git_ref: "fix/review-remediation", env_manager_ref: "main", limit_hours: 11.5, margin_minutes: 20 },
+      })
+    );
+  });
+
+  it("shows the validation message under a refused field and blocks the launch until it is fixed", async () => {
+    const onLaunchKaggle = await renderModal(AUTHENTICATED);
+    await typeInto("kaggle-input-git-ref", "bad..ref");
+    await typeInto("kaggle-input-limit-hours", "0");
+    expect(document.getElementById("kaggle-input-git-ref-error")?.textContent).toBe(
+      "Git ref 'bad..ref' is not a valid branch, tag or commit name"
+    );
+    expect(document.getElementById("kaggle-input-git-ref")?.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById("kaggle-input-limit-hours-error")?.textContent).toBe("Session limit must be greater than 0 hours");
+    expect(launchButton()?.disabled).toBe(true);
+    await act(async () => {
+      launchButton()?.click();
+    });
+    expect(onLaunchKaggle).not.toHaveBeenCalled();
+
+    await typeInto("kaggle-input-git-ref", "main");
+    await typeInto("kaggle-input-limit-hours", "2");
+    await typeInto("kaggle-input-margin-minutes", "120");
+    expect(document.getElementById("kaggle-input-git-ref-error")).toBeNull();
+    expect(document.getElementById("kaggle-input-margin-minutes-error")?.textContent).toBe(
+      "Stop margin must be below the session limit (120 minutes)"
+    );
+    expect(launchButton()?.disabled).toBe(true);
+    await typeInto("kaggle-input-margin-minutes", "15");
+    expect(launchButton()?.disabled).toBe(false);
+  });
+
+  it("shows the Training Suite 422 message when the launch is refused", async () => {
+    const refused = vi.fn(async () => {
+      throw new Error("Session margin_minutes override must be below limit_hours");
+    });
+    await renderModal(AUTHENTICATED, refused);
+    await typeInto("kaggle-input-limit-hours", "1");
+    await act(async () => {
+      launchButton()?.click();
+    });
+    expect(refused).toHaveBeenCalled();
+    expect(container.textContent).toContain("Session margin_minutes override must be below limit_hours");
   });
 
   it("falls back to the ecosystem kaggle_owner when the status gives no username", async () => {

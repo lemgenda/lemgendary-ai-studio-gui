@@ -108,7 +108,7 @@ describe("useModelActions status routing", () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false });
+        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false, advanced: {} });
       } catch (err: unknown) {
         thrown = err;
       }
@@ -125,7 +125,7 @@ describe("useModelActions status routing", () => {
       model: "upn_v2",
     });
     await act(async () => {
-      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45, autoResume: true, maxResumes: 2, overrideFrozen: true });
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45, autoResume: true, maxResumes: 2, overrideFrozen: true, advanced: {} });
     });
     expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
       model: "upn_v2",
@@ -163,7 +163,7 @@ describe("useModelActions status routing", () => {
   it("leaves max_resumes out when the form keeps the config default", async () => {
     mocked.launchKaggleTrain.mockResolvedValue({ job_id: "job-k2", status: "pending", message: "queued", model: "upn_v2" });
     await act(async () => {
-      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false });
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false, advanced: {} });
     });
     expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
       model: "upn_v2",
@@ -174,6 +174,26 @@ describe("useModelActions status routing", () => {
       max_resumes: undefined,
       override_frozen: false,
     });
+  });
+
+  it("forwards the advanced clone refs and session window into the launch payload", async () => {
+    mocked.launchKaggleTrain.mockResolvedValue({ job_id: "job-k3", status: "pending", message: "queued", model: "upn_v2" });
+    const advanced = { git_ref: "fix/review-remediation", env_manager_ref: "main", limit_hours: 11.5, margin_minutes: 20 };
+    await act(async () => {
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false, advanced });
+    });
+    expect(mocked.launchKaggleTrain).toHaveBeenCalledWith(expect.objectContaining(advanced));
+  });
+
+  it("leaves the advanced fields out of the payload when none is set", async () => {
+    mocked.launchKaggleTrain.mockResolvedValue({ job_id: "job-k4", status: "pending", message: "queued", model: "upn_v2" });
+    await act(async () => {
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false, advanced: {} });
+    });
+    const sent = Object.keys(mocked.launchKaggleTrain.mock.calls[0][0]);
+    for (const field of ["git_ref", "env_manager_ref", "limit_hours", "margin_minutes"]) {
+      expect(sent).not.toContain(field);
+    }
   });
 
   it("tracks card Push and Pull jobs so their outcome reaches the banner", async () => {

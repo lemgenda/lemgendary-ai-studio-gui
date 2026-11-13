@@ -139,7 +139,25 @@ export interface KaggleTrainPayload {
   max_resumes?: number;
   /** Pass `--override-frozen` to the kernel trainer (every resume session too); default false. */
   override_frozen?: boolean;
+  /** Branch, tag or full commit SHA the kernel clones the Training Suite at; omitted = `main`. */
+  git_ref?: string;
+  /** Ref the kernel clones the Environment Manager at; omitted = the `git_ref` value. */
+  env_manager_ref?: string;
+  /** Session limit in hours for this kernel (> 0); omitted = `kaggle_session.limit_hours`. */
+  limit_hours?: number;
+  /** Minutes before the limit the trainer stops (>= 0); omitted = `kaggle_session.margin_minutes`. */
+  margin_minutes?: number;
 }
+
+/** `limit_hours` exclusive minimum of `KaggleTrainRequest` (checked against the OpenAPI). */
+export const KAGGLE_LIMIT_HOURS_EXCLUSIVE_MIN = 0;
+/** `margin_minutes` minimum of `KaggleTrainRequest` (checked against the OpenAPI). */
+export const KAGGLE_MARGIN_MINUTES_MIN = 0;
+/**
+ * Longest git ref the Training Suite accepts (`MAX_GIT_REF_LENGTH` of
+ * `training/notebooks/git_ref.py`; the OpenAPI types the field as a plain string).
+ */
+export const KAGGLE_GIT_REF_MAX_LENGTH = 200;
 
 /**
  * One Kaggle session type: `id` is what `KaggleTrainPayload.accelerator` takes.

@@ -125,6 +125,7 @@ export function useModelActions({
         auto_resume: settings.autoResume,
         max_resumes: settings.maxResumes ?? undefined,
         override_frozen: settings.overrideFrozen,
+        ...settings.advanced,
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");

@@ -1,13 +1,21 @@
 /**
  * LemGendary AI Studio - Kaggle cloud launch options: accelerator (from the
  * Training Suite or the ecosystem snapshot), first poll interval, auto-pull and
- * the session auto-resume chain (`auto_resume`, `max_resumes`) and the frozen
- * settings override (`override_frozen`).
+ * the session auto-resume chain (`auto_resume`, `max_resumes`), the frozen
+ * settings override (`override_frozen`) and the Advanced group (clone refs and
+ * session window, see ./kaggleAdvancedLaunch).
  */
 
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { OverrideFrozenToggle } from "./OverrideFrozenToggle";
+import { KaggleAdvancedOptions } from "./KaggleAdvancedOptions";
+import {
+  DEFAULT_KAGGLE_ADVANCED_FORM,
+  KaggleAdvancedFields,
+  KaggleAdvancedForm,
+  advancedLaunchFields,
+} from "./kaggleAdvancedLaunch";
 import { KaggleAcceleratorChoices } from "../../api/client";
 import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS } from "../../api/types";
 
@@ -24,6 +32,8 @@ export interface KaggleLaunchSettings {
   maxResumes: number | null;
   /** Resume although a frozen run setting changed (every resume session of the job too). */
   overrideFrozen: boolean;
+  /** Clone refs and session window; only the fields the user set (empty = not sent). */
+  advanced: KaggleAdvancedFields;
 }
 
 /** What attaching to a running kernel sends (no accelerator, no resume chain). */
@@ -38,6 +48,7 @@ export interface KaggleLaunchForm {
   /** "" = the Training Suite config default. */
   maxResumesText: string;
   overrideFrozen: boolean;
+  advanced: KaggleAdvancedForm;
 }
 
 export const DEFAULT_KAGGLE_LAUNCH_FORM: KaggleLaunchForm = {
@@ -47,6 +58,7 @@ export const DEFAULT_KAGGLE_LAUNCH_FORM: KaggleLaunchForm = {
   autoResume: false,
   maxResumesText: "",
   overrideFrozen: false,
+  advanced: DEFAULT_KAGGLE_ADVANCED_FORM,
 };
 
 /** Poll interval typed by the user, clamped to the backend minimum; default when not a number. */
@@ -72,6 +84,7 @@ export function launchSettings(form: KaggleLaunchForm, choices: KaggleAccelerato
     autoResume: form.autoResume,
     maxResumes: form.autoResume ? parseMaxResumes(form.maxResumesText) : null,
     overrideFrozen: form.overrideFrozen,
+    advanced: advancedLaunchFields(form.advanced),
   };
 }
 
@@ -195,6 +208,8 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
         onChange={(overrideFrozen) => onChange({ ...form, overrideFrozen })}
         style={{ alignSelf: "center" }}
       />
+
+      <KaggleAdvancedOptions form={form.advanced} onChange={(advanced) => onChange({ ...form, advanced })} />
     </div>
   );
 };

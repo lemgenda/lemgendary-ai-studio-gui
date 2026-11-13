@@ -277,6 +277,35 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.68 - Kaggle Launch Clone Refs And Session Window
+
+Matches Training Suite v16.9.210 (`openapi.json`).
+
+- **Advanced group (`KaggleAdvancedOptions.tsx`, `kaggle-fieldset-advanced`)**
+  in the Kaggle launch options, four optional fields, empty by default:
+  Training Suite ref (`kaggle-input-git-ref`, sent as `git_ref`; empty clones
+  `main`), Env Manager ref (`kaggle-input-env-manager-ref`, sent as
+  `env_manager_ref`; empty uses the Training Suite ref), session limit in
+  hours (`kaggle-input-limit-hours`, sent as `limit_hours`) and stop margin
+  in minutes (`kaggle-input-margin-minutes`, sent as `margin_minutes`); empty
+  session fields keep `kaggle_session` of the Training Suite `config.yaml`.
+  An empty field is not sent.
+- **Client validation (`kaggleAdvancedLaunch.ts`)** with the Training Suite
+  rules: a ref uses letters, digits, `.`, `_`, `/` and `-` only, starts with
+  a letter or digit, has at most 200 characters and none of `..`, `//`, `@{`,
+  `/.` or a trailing `/`, `.` or `.lock`; the session limit is above 0 hours,
+  the margin 0 minutes or more and below the limit. A refused value shows its
+  message under the field (`kaggle-input-{field}-error`) and disables
+  "Launch Cloud Training" until it is fixed. A 422 from the Training Suite
+  shows its message in the dialog's error banner.
+- `KaggleTrainPayload` gains `git_ref`, `env_manager_ref`, `limit_hours` and
+  `margin_minutes`; `KaggleLaunchSettings.advanced` carries only the set
+  fields into the payload.
+- Tests: contract tests of the four fields, their minimums and the 422
+  message against `../lemgendary-training-suite/openapi.json`; ref and number
+  rules, forwarding, omission when empty, inline messages and launch
+  blocking.
+
 ### v2.10.67 - Override Frozen Settings Toggle, Resume Refusal Display
 
 Matches Training Suite v16.9.187 and v16.9.198 (`openapi.json`).
