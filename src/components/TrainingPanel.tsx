@@ -17,6 +17,10 @@ import { useModelFilters } from "./training/useModelFilters";
 import { TelemetryTab, useModelActions } from "./training/useModelActions";
 import { useJobStatusPoll } from "./training/useJobStatusPoll";
 import { TRANSFER_JOB_LABELS, describeJobOutcome, transferJobLabel } from "./training/jobOutcome";
+import { findFrozenRefusal } from "./training/frozenRefusal";
+import { FrozenRefusalLaunch, FrozenRefusalNotice, FrozenRefusalReport } from "./training/FrozenRefusalNotice";
+import { LocalTrainSettings } from "./training/localTrainSettings";
+import { KaggleLaunchSettings } from "./training/KaggleLaunchOptions";
 
 /** Model key of a sidecar job record (top-level field, or the `model` launch parameter). */
 function jobModelKey(job: TrainingJobInfo): string | null {
@@ -57,6 +61,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   // Status banners
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  // A training job refused to resume because frozen run settings changed (until dismissed or relaunched)
+  const [frozenRefusal, setFrozenRefusal] = useState<FrozenRefusalReport | null>(null);
 
   // Pinned SOTA target details
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
@@ -196,13 +202,19 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     if (outcome.kind === "error") setStatusError(outcome.message);
     else setStatusNotice(outcome.message);
   };
+  /** A frozen settings refusal gets its own region (changes and hint); any other outcome the banners. */
+  const showTrainingJobOutcome = (label: string, launch: FrozenRefusalLaunch, jobId: string, job: TrainingJobInfo) => {
+    const refusal = findFrozenRefusal(job, useStudioStore.getState().events);
+    if (refusal) setFrozenRefusal({ ...refusal, launch, jobLabel: `${label} ${jobId}` });
+    else showJobOutcome(label, jobId, job);
+  };
   useJobStatusPoll(localJob.jobId, (jobId, job) => {
     setLocalJob({ jobId: null, modelKey: null });
-    showJobOutcome("Local training job", jobId, job);
+    showTrainingJobOutcome("Local training job", "local", jobId, job);
   });
   useJobStatusPoll(remoteJob.jobId, (jobId, job) => {
     setRemoteJob({ jobId: null, modelKey: null });
-    showJobOutcome("Cloud training job", jobId, job);
+    showTrainingJobOutcome("Cloud training job", "kaggle", jobId, job);
   });
   useJobStatusPoll(transferJob.jobId, (jobId, job) => {
     setTransferJob(NO_TRANSFER_JOB);
@@ -254,6 +266,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     loadTrainingData,
     loadKaggleData,
   });
+
+  // A new launch replaces an earlier refusal.
+  const startLocalTrain = (m: ModelItem, settings: LocalTrainSettings) => {
+    setFrozenRefusal(null);
+    return handleStartLocalTrain(m, settings);
+  };
+  const launchKaggle = (modelKey: string, settings: KaggleLaunchSettings) => {
+    setFrozenRefusal(null);
+    return handleLaunchKaggle(modelKey, settings);
+  };
 
   const handleOpenCloudModal = (m: ModelItem) => {
     setCloudModalModel(m);
@@ -343,6 +365,8 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         </div>
       )}
 
+      {frozenRefusal && <FrozenRefusalNotice report={frozenRefusal} onDismiss={() => setFrozenRefusal(null)} />}
+
       {statusError && (
         <ValidationBanner
           type="error"
@@ -379,7 +403,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             isTargetPinned={pinnedTargetModel === m.key}
             onToggleTargetPin={() => setPinnedTargetModel((prev) => (prev === m.key ? null : m.key))}
             generatingNotebookModel={generatingNotebookModel}
-            onStartLocalTrain={handleStartLocalTrain}
+            onStartLocalTrain={startLocalTrain}
             onStopLocalTrain={handleStopLocalTrain}
             onOpenCloudModal={handleOpenCloudModal}
             onPushArtifacts={handlePushArtifacts}
@@ -442,7 +466,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         isOpen={isCloudModalOpen}
         onClose={() => setIsCloudModalOpen(false)}
         model={cloudModalModel}
-        onLaunchKaggle={handleLaunchKaggle}
+        onLaunchKaggle={launchKaggle}
         onMonitorKaggle={handleMonitorKaggle}
         kaggleAuthStatus={kaggleAuthStatus}
         isBusy={Boolean(actionBusyKey && actionBusyKey.startsWith("cloud_"))}

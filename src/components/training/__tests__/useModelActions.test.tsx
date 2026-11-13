@@ -108,7 +108,7 @@ describe("useModelActions status routing", () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30, autoResume: false, maxResumes: null });
+        await actions?.handleLaunchKaggle("upn_v2", { accelerator: "gpu-t4x2", autoPull: false, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false });
       } catch (err: unknown) {
         thrown = err;
       }
@@ -125,7 +125,7 @@ describe("useModelActions status routing", () => {
       model: "upn_v2",
     });
     await act(async () => {
-      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45, autoResume: true, maxResumes: 2 });
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "tpu-v5e8", autoPull: true, pollInterval: 45, autoResume: true, maxResumes: 2, overrideFrozen: true });
     });
     expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
       model: "upn_v2",
@@ -134,6 +134,7 @@ describe("useModelActions status routing", () => {
       poll_interval: 45,
       auto_resume: true,
       max_resumes: 2,
+      override_frozen: true,
     });
     expect(lastCall(deps.setStatusNotice)).toContain("accelerator: TPU v5e-8");
   });
@@ -162,7 +163,7 @@ describe("useModelActions status routing", () => {
   it("leaves max_resumes out when the form keeps the config default", async () => {
     mocked.launchKaggleTrain.mockResolvedValue({ job_id: "job-k2", status: "pending", message: "queued", model: "upn_v2" });
     await act(async () => {
-      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null });
+      await actions?.handleLaunchKaggle("upn_v2", { accelerator: "cpu", autoPull: true, pollInterval: 30, autoResume: false, maxResumes: null, overrideFrozen: false });
     });
     expect(mocked.launchKaggleTrain).toHaveBeenCalledWith({
       model: "upn_v2",
@@ -171,6 +172,7 @@ describe("useModelActions status routing", () => {
       poll_interval: 30,
       auto_resume: false,
       max_resumes: undefined,
+      override_frozen: false,
     });
   });
 
@@ -219,7 +221,7 @@ describe("useModelActions status routing", () => {
     const llm = { key: "ai_helper_lemgend", display_name: "AI Helper", architecture: "LLM", task_type: "llm", is_llm: true, is_fully_trained: false, training_status: "initializing" as const };
     const vision = { ...llm, key: "upn_v2", display_name: "UPN v2", is_llm: false };
     await act(async () => {
-      await actions?.handleStartLocalTrain(llm, 2);
+      await actions?.handleStartLocalTrain(llm, { batchSize: 2, overrideFrozen: true });
     });
     expect(mocked.trainLLM).toHaveBeenCalledWith({ model: "ai_helper_lemgend", batch_size: 2, env: "local" });
     expect(mocked.triggerQuickTrain).not.toHaveBeenCalled();
@@ -227,9 +229,18 @@ describe("useModelActions status routing", () => {
     expect(lastCall(deps.setStatusNotice)).toContain("QLoRA instruction tuning initialized");
 
     await act(async () => {
-      await actions?.handleStartLocalTrain(vision, 8);
+      await actions?.handleStartLocalTrain(vision, { batchSize: 8, overrideFrozen: false });
     });
-    expect(mocked.triggerQuickTrain).toHaveBeenCalledWith({ model_key: "upn_v2", batch_size: 8 });
+    expect(mocked.triggerQuickTrain).toHaveBeenCalledWith({ model_key: "upn_v2", batch_size: 8, override_frozen: false });
     expect(mocked.trainLLM).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards the frozen settings override of a local launch to quick-train", async () => {
+    mocked.triggerQuickTrain.mockResolvedValue({ status: "pending", job_id: "job-q2" });
+    const vision = { key: "upn_v2", display_name: "UPN v2", architecture: "MobileNetV3", task_type: "enhance", is_fully_trained: false, training_status: "partially_trained" as const };
+    await act(async () => {
+      await actions?.handleStartLocalTrain(vision, { batchSize: 16, overrideFrozen: true });
+    });
+    expect(mocked.triggerQuickTrain).toHaveBeenCalledWith({ model_key: "upn_v2", batch_size: 16, override_frozen: true });
   });
 });

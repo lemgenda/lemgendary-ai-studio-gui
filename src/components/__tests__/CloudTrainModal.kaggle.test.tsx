@@ -118,7 +118,22 @@ describe("CloudTrainModal Kaggle launch", () => {
       pollInterval: 5,
       autoResume: false,
       maxResumes: null,
+      overrideFrozen: false,
     });
+  });
+
+  it("offers the frozen settings override unchecked; checked it is sent with the launch", async () => {
+    const onLaunchKaggle = await renderModal(AUTHENTICATED);
+    const override = document.getElementById("kaggle-override-frozen-checkbox") as HTMLInputElement;
+    expect(override.checked).toBe(false);
+    await act(async () => {
+      override.click();
+    });
+    const launch = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Launch Cloud Training");
+    await act(async () => {
+      launch?.click();
+    });
+    expect(onLaunchKaggle).toHaveBeenCalledWith("upn_v2", expect.objectContaining({ overrideFrozen: true }));
   });
 
   it("offers auto-resume unchecked; checked it sends the typed resume limit", async () => {

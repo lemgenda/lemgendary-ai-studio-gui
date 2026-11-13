@@ -25,6 +25,7 @@ import { ModelItem } from "../../api/types";
 import { SoupRecipe } from "./soupRecipe";
 import { ActiveJobState, TransferJobState } from "../../store/useStudioStore";
 import { KaggleLaunchSettings, KaggleMonitorSettings } from "./KaggleLaunchOptions";
+import { LocalTrainSettings } from "./localTrainSettings";
 
 export type TelemetryTab = "local" | "remote" | "mesh";
 
@@ -74,14 +75,15 @@ export function useModelActions({
     setStatusError(`${context}: ${msg}`);
   };
 
-  const handleStartLocalTrain = async (m: ModelItem, batchSize?: number) => {
+  const handleStartLocalTrain = async (m: ModelItem, settings: LocalTrainSettings) => {
+    const { batchSize, overrideFrozen } = settings;
     setActionBusyKey(`local_${m.key}`);
     clearStatus();
     try {
-      // Assistant LLMs train through the dedicated QLoRA instruction-tuning route.
+      // Assistant LLMs train through the dedicated QLoRA instruction-tuning route (no frozen override field).
       const res = m.is_llm
         ? await trainLLM({ model: m.key, batch_size: batchSize, env: "local" })
-        : await triggerQuickTrain({ model_key: m.key, batch_size: batchSize });
+        : await triggerQuickTrain({ model_key: m.key, batch_size: batchSize, override_frozen: overrideFrozen });
       const mode = m.is_llm ? "QLoRA instruction tuning" : "Local training";
       setLocalJob({ jobId: res.job_id || null, modelKey: m.key });
       setActiveTelemetryTab("local");
@@ -122,6 +124,7 @@ export function useModelActions({
         poll_interval: settings.pollInterval,
         auto_resume: settings.autoResume,
         max_resumes: settings.maxResumes ?? undefined,
+        override_frozen: settings.overrideFrozen,
       });
       setRemoteJob({ jobId: res.job_id, modelKey });
       setActiveTelemetryTab("remote");

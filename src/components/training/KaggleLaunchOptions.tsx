@@ -1,11 +1,13 @@
 /**
  * LemGendary AI Studio - Kaggle cloud launch options: accelerator (from the
  * Training Suite or the ecosystem snapshot), first poll interval, auto-pull and
- * the session auto-resume chain (`auto_resume`, `max_resumes`).
+ * the session auto-resume chain (`auto_resume`, `max_resumes`) and the frozen
+ * settings override (`override_frozen`).
  */
 
 import React from "react";
 import { HelpTooltip } from "../HelpTooltip";
+import { OverrideFrozenToggle } from "./OverrideFrozenToggle";
 import { KaggleAcceleratorChoices } from "../../api/client";
 import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS } from "../../api/types";
 
@@ -20,6 +22,8 @@ export interface KaggleLaunchSettings {
   autoResume: boolean;
   /** Resume limit of this job; null = `kaggle_session.max_resumes` of the Training Suite config. */
   maxResumes: number | null;
+  /** Resume although a frozen run setting changed (every resume session of the job too). */
+  overrideFrozen: boolean;
 }
 
 /** What attaching to a running kernel sends (no accelerator, no resume chain). */
@@ -33,6 +37,7 @@ export interface KaggleLaunchForm {
   autoResume: boolean;
   /** "" = the Training Suite config default. */
   maxResumesText: string;
+  overrideFrozen: boolean;
 }
 
 export const DEFAULT_KAGGLE_LAUNCH_FORM: KaggleLaunchForm = {
@@ -41,6 +46,7 @@ export const DEFAULT_KAGGLE_LAUNCH_FORM: KaggleLaunchForm = {
   pollIntervalText: String(KAGGLE_POLL_DEFAULT_SECONDS),
   autoResume: false,
   maxResumesText: "",
+  overrideFrozen: false,
 };
 
 /** Poll interval typed by the user, clamped to the backend minimum; default when not a number. */
@@ -65,6 +71,7 @@ export function launchSettings(form: KaggleLaunchForm, choices: KaggleAccelerato
     pollInterval: parsePollInterval(form.pollIntervalText),
     autoResume: form.autoResume,
     maxResumes: form.autoResume ? parseMaxResumes(form.maxResumesText) : null,
+    overrideFrozen: form.overrideFrozen,
   };
 }
 
@@ -181,6 +188,13 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
           style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
         />
       </div>
+
+      <OverrideFrozenToggle
+        id="kaggle-override-frozen-checkbox"
+        checked={form.overrideFrozen}
+        onChange={(overrideFrozen) => onChange({ ...form, overrideFrozen })}
+        style={{ alignSelf: "center" }}
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { VariationBadges } from "./VariationBadges";
 import { ModelMetricsSection } from "./ModelMetricsSection";
 import { BatchSizeSelector } from "./BatchSizeSelector";
 import { ModelCardActionHandlers, ModelCardActions } from "./ModelCardActions";
+import { OverrideFrozenToggle } from "./OverrideFrozenToggle";
 
 export interface ModelManifoldCardProps extends ModelCardActionHandlers {
   model: ModelItem;
@@ -30,6 +31,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
   ...actionHandlers
 }) => {
   const [selectedBatchSize, setSelectedBatchSize] = React.useState<number>(m.batch_size ?? 256);
+  // Off by default: a resume with changed frozen settings is refused unless the user opts in.
+  const [overrideFrozen, setOverrideFrozen] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     if (m.batch_size) {
@@ -101,6 +104,18 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         modelName={m.display_name}
       />
 
+      {/* The QLoRA route of assistant LLMs has no frozen settings guard. */}
+      {!m.is_llm && (
+        <OverrideFrozenToggle
+          id={`train-input-override-frozen-${m.key}`}
+          checked={overrideFrozen}
+          onChange={setOverrideFrozen}
+          disabled={isBusy || isCurrentlyTrainingThis}
+          context={m.display_name}
+          style={{ padding: "0 10px" }}
+        />
+      )}
+
       {/* 4. Action Buttons Toolbar on each card */}
       <ModelCardActions
         model={m}
@@ -109,7 +124,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         actionBusyKey={actionBusyKey}
         generatingNotebookModel={generatingNotebookModel}
         trainingSuiteOnline={trainingSuiteOnline}
-        selectedBatchSize={selectedBatchSize}
+        localTrainSettings={{ batchSize: selectedBatchSize, overrideFrozen: !m.is_llm && overrideFrozen }}
         {...actionHandlers}
       />
     </div>

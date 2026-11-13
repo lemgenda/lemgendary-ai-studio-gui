@@ -9,6 +9,7 @@ import {
   monitorKaggleKernel,
   pushKaggleModelVariation,
   snapshotKaggleAccelerators,
+  triggerQuickTrain,
 } from "../client";
 import { ECOSYSTEM } from "../ecosystem";
 import { KAGGLE_MAX_RESUMES_MIN, KAGGLE_POLL_DEFAULT_SECONDS, KAGGLE_POLL_MIN_SECONDS, VARIATION_KEYS } from "../types";
@@ -67,6 +68,27 @@ describe("Training Suite Kaggle contract (R3-K)", () => {
     const body = sentBody(fetchMock);
     expect(Object.keys(body).every((k) => Object.keys(props).includes(k))).toBe(true);
     expect(body).toMatchObject({ auto_resume: true, max_resumes: 2 });
+  });
+
+  it("launch sends the frozen settings override as KaggleTrainRequest.override_frozen", async () => {
+    const field = schemas.KaggleTrainRequest.properties.override_frozen;
+    expect(field.type).toBe("boolean");
+    expect(field.default).toBe(false);
+    const fetchMock = stubFetch({ job_id: "job-4", status: "pending", message: "queued", model: "upn_v2" });
+    await launchKaggleTrain({ model: "upn_v2", poll_interval: 30, override_frozen: true });
+    expect(sentBody(fetchMock)).toMatchObject({ override_frozen: true });
+  });
+
+  it("quick-train sends the frozen settings override as QuickTrainRequest.override_frozen", async () => {
+    const props = schemas.QuickTrainRequest.properties;
+    expect(props.override_frozen.type).toBe("boolean");
+    expect(props.override_frozen.default).toBe(false);
+    const fetchMock = stubFetch({ status: "pending", job_id: "job-5" });
+    await triggerQuickTrain({ model_key: "upn_v2", batch_size: 8, override_frozen: true });
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/api/gui/quick-train`);
+    const body = sentBody(fetchMock);
+    expect(Object.keys(body).every((k) => Object.keys(props).includes(k))).toBe(true);
+    expect(body).toEqual({ model_key: "upn_v2", batch_size: 8, override_frozen: true });
   });
 
   it("monitor sends only KaggleMonitorRequest fields, poll interval included", async () => {

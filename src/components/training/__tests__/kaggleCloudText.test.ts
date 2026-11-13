@@ -119,8 +119,10 @@ describe("Kaggle launch form", () => {
       pollInterval: 30,
       autoResume: false,
       maxResumes: null,
+      overrideFrozen: false,
     });
     expect(launchSettings({ ...DEFAULT_KAGGLE_LAUNCH_FORM, accelerator: "cpu" }, choices).accelerator).toBe("cpu");
+    expect(launchSettings({ ...DEFAULT_KAGGLE_LAUNCH_FORM, overrideFrozen: true }, choices).overrideFrozen).toBe(true);
   });
 
   it("parses the resume limit; empty keeps the config default and unchecked sends none", () => {

@@ -89,6 +89,8 @@ export interface QuickTrainPayload {
   model_key: string;
   preset?: string;
   clean?: boolean;
+  /** Resume although a frozen run setting changed (logged and recorded); default false. */
+  override_frozen?: boolean;
   epochs?: number;
   batch_size?: number;
   learning_rate?: number;
@@ -135,6 +137,8 @@ export interface KaggleTrainPayload {
   auto_resume?: boolean;
   /** Most resume sessions of this job; omitted = `kaggle_session.max_resumes` of config.yaml. */
   max_resumes?: number;
+  /** Pass `--override-frozen` to the kernel trainer (every resume session too); default false. */
+  override_frozen?: boolean;
 }
 
 /**

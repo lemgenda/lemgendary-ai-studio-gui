@@ -7,6 +7,7 @@ import { NO_TRANSFER_JOB, useStudioStore } from "../../store/useStudioStore";
 import { ModelItem, PipelineEvent, TrainingJobInfo } from "../../api/types";
 import { servicePort } from "../../api/config";
 import * as client from "../../api/client";
+import { FROZEN_REFUSAL_MARKER } from "../training/frozenRefusal";
 
 vi.mock("../../api/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/client")>();
@@ -35,6 +36,11 @@ const LIVE_MODEL: ModelItem = {
   target_res: 640,
   active_res: 384,
 };
+
+/** `FrozenSettingsChanged` text of the Training Suite (`training/run_settings/policy.py`). */
+const FROZEN_REFUSAL =
+  `${FROZEN_REFUSAL_MARKER}model.class "UPNv2" -> "UPNv3". ` +
+  "Start a fresh run with --clean, or accept the change with --override-frozen.";
 
 function runningJob(status: string): TrainingJobInfo {
   return { id: "job-local-1", job_type: "train", model_key: "upn_v2", status };
@@ -202,6 +208,54 @@ describe("TrainingPanel job lifecycle and telemetry routing", () => {
     expect(mocked.fetchTrainingJob).toHaveBeenCalledWith("job-kaggle-7");
     expect(useStudioStore.getState().remoteJob).toEqual({ jobId: null, modelKey: null });
     expect(container.textContent).toContain("Cloud training job job-kaggle-7 failed: kernel error");
+  });
+
+  it("shows a local frozen settings refusal with the changed settings and the toggle hint", async () => {
+    vi.useFakeTimers();
+    useStudioStore.setState({ cachedModels: [LIVE_MODEL], localJob: { jobId: "job-local-1", modelKey: "upn_v2" } });
+    await render({ online: true });
+
+    mocked.fetchTrainingJob.mockResolvedValue({ ...runningJob("failed"), error_message: FROZEN_REFUSAL });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    const region = document.getElementById("train-frozen-refusal");
+    expect(region?.getAttribute("role")).toBe("alert");
+    expect(region?.textContent).toContain("Local training job job-local-1 failed: resume refused because frozen run settings changed.");
+    expect(document.getElementById("train-frozen-refusal-message")?.textContent).toBe(FROZEN_REFUSAL);
+    const rows = Array.from(document.querySelectorAll("#train-frozen-refusal-changes tbody tr")).map((tr) =>
+      Array.from(tr.querySelectorAll("td")).map((td) => td.textContent)
+    );
+    expect(rows).toEqual([["model.class", '"UPNv2"', '"UPNv3"']]);
+    expect(document.getElementById("train-frozen-refusal-hint")?.textContent).toContain('"Override frozen settings" on the model card');
+    // The refusal replaces the generic failure banner.
+    expect(container.textContent).not.toContain("Local training job job-local-1 failed: Resume refused");
+
+    await act(async () => {
+      document.getElementById("train-btn-frozen-refusal-dismiss")?.click();
+    });
+    expect(document.getElementById("train-frozen-refusal")).toBeNull();
+  });
+
+  it("finds a Kaggle frozen settings refusal in the job log and points at the launch options", async () => {
+    vi.useFakeTimers();
+    useStudioStore.setState({ cachedModels: [LIVE_MODEL], remoteJob: { jobId: "job-kaggle-8", modelKey: "upn_v2" } });
+    await render({ online: true, events: [trainingEvent("job-kaggle-8", "kaggle_train", `[SETTINGS] ${FROZEN_REFUSAL}`)] });
+
+    mocked.fetchTrainingJob.mockResolvedValue({
+      id: "job-kaggle-8",
+      job_type: "kaggle_train",
+      model_key: "upn_v2",
+      status: "failed",
+      error_message: "Kaggle kernel ended with status error",
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(document.getElementById("train-frozen-refusal")?.textContent).toContain("Cloud training job job-kaggle-8 failed");
+    expect(document.getElementById("train-frozen-refusal-hint")?.textContent).toContain("Cloud Training dialog");
   });
 
   it("restores a running card Push / Pull job into the transfer job on mount", async () => {

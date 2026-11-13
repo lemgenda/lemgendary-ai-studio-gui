@@ -277,6 +277,34 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.67 - Override Frozen Settings Toggle, Resume Refusal Display
+
+Matches Training Suite v16.9.187 and v16.9.198 (`openapi.json`).
+
+- **Toggle (`OverrideFrozenToggle.tsx`)**: one "Override frozen settings"
+  checkbox, unchecked by default, with one label and help text. On the model
+  card (`train-input-override-frozen-{model_key}`, not on assistant LLM cards:
+  the QLoRA route has no frozen guard) the local launch sends
+  `override_frozen` to `POST /api/gui/quick-train`; in the Kaggle launch
+  options (`kaggle-override-frozen-checkbox`) the launch sends
+  `override_frozen` to `POST /api/training/kaggle/train`, which also applies
+  it to the auto-resume sessions.
+- **Card launch settings**: `onStartLocalTrain(model, settings)` takes
+  `LocalTrainSettings` (batch size and override) instead of a bare batch
+  size.
+- **Resume refusal (`frozenRefusal.ts`, `FrozenRefusalNotice.tsx`)**: when a
+  local or cloud training job fails with the Training Suite
+  `FrozenSettingsChanged` message (job `error_message`, else a log line of
+  that job), the panel shows the region `train-frozen-refusal` instead of the
+  generic error banner: the message (`train-frozen-refusal-message`), a table
+  of the changed settings with the old and new canonical JSON values
+  (`train-frozen-refusal-changes`) and a hint naming the toggle of that launch
+  (`train-frozen-refusal-hint`). `train-btn-frozen-refusal-dismiss` closes it;
+  a new local or Kaggle launch replaces it.
+- Tests: contract tests of `override_frozen` on `KaggleTrainRequest` and
+  `QuickTrainRequest` against `../lemgendary-training-suite/openapi.json`;
+  parser, card, modal, action and panel tests.
+
 ### v2.10.66 - Kaggle Auto-Resume Options, Card Job Outcomes, Owner Fallback
 
 Matches Training Suite v16.9.182 (`openapi.json`).

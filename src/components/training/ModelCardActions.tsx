@@ -1,5 +1,6 @@
 import React from "react";
 import { ModelItem } from "../../api/types";
+import { LocalTrainSettings } from "./localTrainSettings";
 
 const BUTTON_STYLE: React.CSSProperties = { fontSize: "11px", padding: "6px 8px", fontWeight: 600 };
 const ICON_STYLE: React.CSSProperties = { flexShrink: 0 };
@@ -45,7 +46,7 @@ const CardActionButton: React.FC<CardActionButtonProps> = ({ id, className, onCl
 );
 
 export interface ModelCardActionHandlers {
-  onStartLocalTrain: (model: ModelItem, batchSize?: number) => void;
+  onStartLocalTrain: (model: ModelItem, settings: LocalTrainSettings) => void;
   onStopLocalTrain: () => void;
   onOpenCloudModal: (model: ModelItem) => void;
   onPushArtifacts: (modelKey: string) => void;
@@ -67,7 +68,8 @@ interface ModelCardActionsProps extends ModelCardActionHandlers {
   actionBusyKey: string | null;
   generatingNotebookModel: string | null;
   trainingSuiteOnline: boolean;
-  selectedBatchSize: number;
+  /** Batch size and frozen override picked on the card. */
+  localTrainSettings: LocalTrainSettings;
 }
 
 /** Action button grid of a model card: training, Kaggle sync, notebooks, evaluation, export and staging. */
@@ -78,7 +80,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   actionBusyKey,
   generatingNotebookModel,
   trainingSuiteOnline,
-  selectedBatchSize,
+  localTrainSettings,
   onStartLocalTrain,
   onStopLocalTrain,
   onOpenCloudModal,
@@ -122,7 +124,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
         <CardActionButton
           id={`train-btn-start-${m.key}`}
           className="btn btn-primary"
-          onClick={() => onStartLocalTrain(m, selectedBatchSize)}
+          onClick={() => onStartLocalTrain(m, localTrainSettings)}
           disabled={isBusy || !trainingSuiteOnline}
           title={
             m.is_llm
