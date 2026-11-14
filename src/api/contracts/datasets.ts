@@ -32,6 +32,7 @@ export interface DatasetItem {
   task?: string;
   sources?: DatasetSourceItem[];
   kaggle_ref?: string;
+  recommended_preset?: string;
 }
 
 export interface BackendDatasetStats {
@@ -52,6 +53,7 @@ export interface BackendDatasetStats {
   hardlink_ratio?: number;
   sources?: DatasetSourceItem[];
   kaggle_ref?: string;
+  recommended_preset?: string;
 }
 
 /** One preset from `presets.yaml` (`CompilerPresetModel`). */
@@ -85,6 +87,10 @@ export interface QuickCompilePayload {
   workers?: number | null;
   /** WebDataset shard file extension without dot; omit for the compiler default (`data`). */
   shard_ext?: string;
+  start_date?: string;
+  end_date?: string;
+  target_samples?: number | null;
+  label_strategy?: string;
 }
 
 /**

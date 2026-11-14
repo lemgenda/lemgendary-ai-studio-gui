@@ -3,8 +3,9 @@
  * form: standard preset compile, custom multi-source compile and direct Kaggle ingestion.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { downloadKaggleDataset, triggerCustomCompile, triggerQuickCompile } from "../../api/client";
+import type { DatasetItem } from "../../api/contracts/datasets";
 import { CompilationFormControls } from "./DatasetCompilationForm";
 import { servicePort } from "../../api/config";
 import { parseCompileLimits } from "./compileLimits";
@@ -13,6 +14,8 @@ export interface CompilationFormDeps {
   datasetCompilerOnline: boolean;
   /** Manifold the standard compile targets. */
   selectedManifold: string;
+  datasets?: DatasetItem[];
+  recommendedWorkers?: number;
   addTelemetryLog: (message: string) => void;
   /** Reload the catalog after a job that adds or changes a manifold. */
   reloadCatalog: () => void;
@@ -21,6 +24,8 @@ export interface CompilationFormDeps {
 export function useCompilationForm({
   datasetCompilerOnline,
   selectedManifold,
+  datasets = [],
+  recommendedWorkers,
   addTelemetryLog,
   reloadCatalog,
 }: CompilationFormDeps): CompilationFormControls {
@@ -28,11 +33,47 @@ export function useCompilationForm({
   const [selectedPreset, setSelectedPreset] = useState<string>("");
   // Optional quick-compile overrides; "" leaves them to the preset / sidecar.
   const [compileMaxGb, setCompileMaxGb] = useState<string>("");
-  const [compileWorkers, setCompileWorkers] = useState<string>("");
+  const [compileWorkers, setCompileWorkers] = useState<string>(
+    recommendedWorkers ? String(recommendedWorkers) : "",
+  );
   // "" = omit `shard_ext` so the compiler writes its default `.data` shards.
   const [compileShardExt, setCompileShardExt] = useState<string>("");
+  const [compileStartDate, setCompileStartDate] = useState<string>("2019-01-01");
+  const [compileEndDate, setCompileEndDate] = useState<string>(
+    () => new Date().toISOString().slice(0, 10),
+  );
+  const [compileTargetSamples, setCompileTargetSamples] = useState<string>("");
+  const [compileLabelStrategy, setCompileLabelStrategy] = useState<string>("");
   const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [compileStatus, setCompileStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (recommendedWorkers && !compileWorkers) {
+      setCompileWorkers(String(recommendedWorkers));
+    }
+  }, [recommendedWorkers, compileWorkers]);
+
+  useEffect(() => {
+    const match = datasets.find((d) => d.key === selectedManifold);
+    if (!match) return;
+    if (match.recommended_preset) {
+      setSelectedPreset(match.recommended_preset);
+      return;
+    }
+    const t = (match.task || "").toLowerCase();
+    const fmt = (match.canonical_format || match.format || "").toLowerCase();
+    if (t === "forex" || fmt === "parquet") {
+      setSelectedPreset("forex-timeseries");
+    } else if (t === "ai_helper" || t === "llm" || t === "nlp" || fmt === "jsonl") {
+      setSelectedPreset("llm-instruction");
+    } else if (t === "detection" || t === "pose") {
+      setSelectedPreset("detection-variable");
+    } else if (t === "restoration" || t === "super-resolution" || t === "segmentation") {
+      setSelectedPreset("restoration-hardlinked");
+    } else {
+      setSelectedPreset("quality-vision");
+    }
+  }, [selectedManifold, datasets]);
 
   // Compilation Mode (Standard vs Custom Multi-Source)
   const [compileMode, setCompileMode] = useState<"standard" | "custom">("standard");
@@ -67,11 +108,23 @@ export function useCompilationForm({
     setIsCompiling(true);
     setCompileStatus(null);
     try {
+      const activeDataset = datasets.find((d) => d.key === selectedManifold);
+      const activeTask = (activeDataset?.task || "").toLowerCase();
+      const activeFormat = (activeDataset?.canonical_format || activeDataset?.format || "webdataset").toLowerCase();
+      const isForex = activeTask === "forex" || activeFormat === "parquet";
+      const isLlm = activeTask === "ai_helper" || activeFormat === "jsonl";
+      const isDetection = activeTask === "detection" || activeTask === "pose";
+
+      const parsedSamples = compileTargetSamples.trim() ? Number(compileTargetSamples) : undefined;
       const res = await triggerQuickCompile({
         model: selectedManifold,
         ...(selectedPreset ? { preset: selectedPreset } : {}),
         ...limits.overrides,
         ...(compileShardExt ? { shard_ext: compileShardExt } : {}),
+        ...(isForex && compileStartDate ? { start_date: compileStartDate } : {}),
+        ...(isForex && compileEndDate ? { end_date: compileEndDate } : {}),
+        ...(isLlm && parsedSamples && Number.isFinite(parsedSamples) ? { target_samples: parsedSamples } : {}),
+        ...(isDetection && compileLabelStrategy ? { label_strategy: compileLabelStrategy } : {}),
       });
       setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);
       addTelemetryLog(`Initiated compilation for manifold '${selectedManifold}' [Job: ${res.id}]`);
@@ -167,6 +220,14 @@ export function useCompilationForm({
     onChangeCompileWorkers: setCompileWorkers,
     compileShardExt,
     onChangeCompileShardExt: setCompileShardExt,
+    compileStartDate,
+    onChangeCompileStartDate: setCompileStartDate,
+    compileEndDate,
+    onChangeCompileEndDate: setCompileEndDate,
+    compileTargetSamples,
+    onChangeCompileTargetSamples: setCompileTargetSamples,
+    compileLabelStrategy,
+    onChangeCompileLabelStrategy: setCompileLabelStrategy,
     isCompiling,
     compileStatus,
     onCompile: handleCompile,

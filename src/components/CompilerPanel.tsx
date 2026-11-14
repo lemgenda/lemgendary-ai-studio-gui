@@ -130,6 +130,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const compilationForm = useCompilationForm({
     datasetCompilerOnline,
     selectedManifold,
+    datasets,
+    recommendedWorkers: Math.max(
+      1,
+      Math.round((typeof navigator !== "undefined" && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4) * 0.7),
+    ),
     addTelemetryLog,
     reloadCatalog: loadCompilerData,
   });

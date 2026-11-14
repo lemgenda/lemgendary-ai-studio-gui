@@ -27,6 +27,14 @@ export interface DatasetCompilationFormProps {
   /** WebDataset shard extension (`shard_ext`); empty = the compiler default. */
   compileShardExt: string;
   onChangeCompileShardExt: (value: string) => void;
+  compileStartDate?: string;
+  onChangeCompileStartDate?: (value: string) => void;
+  compileEndDate?: string;
+  onChangeCompileEndDate?: (value: string) => void;
+  compileTargetSamples?: string;
+  onChangeCompileTargetSamples?: (value: string) => void;
+  compileLabelStrategy?: string;
+  onChangeCompileLabelStrategy?: (value: string) => void;
   isCompiling: boolean;
   compileStatus: string | null;
   onCompile: () => void;
@@ -81,6 +89,14 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onChangeCompileWorkers,
   compileShardExt,
   onChangeCompileShardExt,
+  compileStartDate,
+  onChangeCompileStartDate,
+  compileEndDate,
+  onChangeCompileEndDate,
+  compileTargetSamples,
+  onChangeCompileTargetSamples,
+  compileLabelStrategy,
+  onChangeCompileLabelStrategy,
   isCompiling,
   compileStatus,
   onCompile,
@@ -180,6 +196,14 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onChangeCompileWorkers={onChangeCompileWorkers}
             compileShardExt={compileShardExt}
             onChangeCompileShardExt={onChangeCompileShardExt}
+            compileStartDate={compileStartDate}
+            onChangeCompileStartDate={onChangeCompileStartDate}
+            compileEndDate={compileEndDate}
+            onChangeCompileEndDate={onChangeCompileEndDate}
+            compileTargetSamples={compileTargetSamples}
+            onChangeCompileTargetSamples={onChangeCompileTargetSamples}
+            compileLabelStrategy={compileLabelStrategy}
+            onChangeCompileLabelStrategy={onChangeCompileLabelStrategy}
             isCompiling={isCompiling}
             compileStatus={compileStatus}
             onCompile={onCompile}

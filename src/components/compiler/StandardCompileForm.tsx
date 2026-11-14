@@ -20,6 +20,14 @@ type StandardCompileFormProps = Pick<
   | "onChangeCompileWorkers"
   | "compileShardExt"
   | "onChangeCompileShardExt"
+  | "compileStartDate"
+  | "onChangeCompileStartDate"
+  | "compileEndDate"
+  | "onChangeCompileEndDate"
+  | "compileTargetSamples"
+  | "onChangeCompileTargetSamples"
+  | "compileLabelStrategy"
+  | "onChangeCompileLabelStrategy"
   | "isCompiling"
   | "compileStatus"
   | "onCompile"
@@ -50,6 +58,14 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   onChangeCompileWorkers,
   compileShardExt,
   onChangeCompileShardExt,
+  compileStartDate = "2019-01-01",
+  onChangeCompileStartDate,
+  compileEndDate = "",
+  onChangeCompileEndDate,
+  compileTargetSamples = "",
+  onChangeCompileTargetSamples,
+  compileLabelStrategy = "",
+  onChangeCompileLabelStrategy,
   isCompiling,
   compileStatus,
   onCompile,
@@ -157,26 +173,115 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="comp-select-shard-ext" style={FIELD_LABEL_STYLE}>
-          Shard Extension:
-        </label>
-        <select
-          id="comp-select-shard-ext"
-          className="editor-select"
-          value={compileShardExt}
-          onChange={(e) => onChangeCompileShardExt(e.target.value)}
-          disabled={isCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
-        >
-          <option value="">Compiler default</option>
-          {WEBDATASET_SHARD_EXTENSIONS.map((ext) => (
-            <option key={ext} value={ext}>
-              .{ext}
-            </option>
-          ))}
-        </select>
-      </div>
+      {(() => {
+        const activeDataset = datasets.find((d) => d.key === selectedManifold);
+        const activeTask = (activeDataset?.task || "").toLowerCase();
+        const activeFormat = (activeDataset?.canonical_format || activeDataset?.format || "webdataset").toLowerCase();
+        const isForex = activeTask === "forex" || activeFormat === "parquet";
+        const isLlm = activeTask === "ai_helper" || activeFormat === "jsonl";
+        const isDetection = activeTask === "detection" || activeTask === "pose";
+        const isWebDataset = activeFormat === "webdataset";
+
+        if (isForex) {
+          return (
+            <>
+              <div className="form-group">
+                <label htmlFor="comp-input-start-date" style={FIELD_LABEL_STYLE}>
+                  Start Date:
+                </label>
+                <input
+                  id="comp-input-start-date"
+                  type="date"
+                  className="editor-input"
+                  value={compileStartDate}
+                  onChange={(e) => onChangeCompileStartDate?.(e.target.value)}
+                  disabled={isCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="comp-input-end-date" style={FIELD_LABEL_STYLE}>
+                  End Date:
+                </label>
+                <input
+                  id="comp-input-end-date"
+                  type="date"
+                  className="editor-input"
+                  value={compileEndDate}
+                  onChange={(e) => onChangeCompileEndDate?.(e.target.value)}
+                  disabled={isCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
+                />
+              </div>
+            </>
+          );
+        }
+        if (isLlm) {
+          return (
+            <div className="form-group">
+              <label htmlFor="comp-input-target-samples" style={FIELD_LABEL_STYLE}>
+                Target Samples:
+              </label>
+              <input
+                id="comp-input-target-samples"
+                type="number"
+                min={1}
+                step={1}
+                placeholder="525 (Manifest default)"
+                className="editor-input"
+                value={compileTargetSamples}
+                onChange={(e) => onChangeCompileTargetSamples?.(e.target.value)}
+                disabled={isCompiling}
+                style={{ fontSize: "12px", padding: "6px 8px" }}
+              />
+            </div>
+          );
+        }
+        return (
+          <>
+            {isDetection && (
+              <div className="form-group">
+                <label htmlFor="comp-select-label-strategy" style={FIELD_LABEL_STYLE}>
+                  Label Strategy:
+                </label>
+                <select
+                  id="comp-select-label-strategy"
+                  className="editor-select"
+                  value={compileLabelStrategy}
+                  onChange={(e) => onChangeCompileLabelStrategy?.(e.target.value)}
+                  disabled={isCompiling}
+                  style={{ fontSize: "12px", padding: "6px 8px" }}
+                >
+                  <option value="">Manifest default</option>
+                  <option value="yolov8">YOLOv8</option>
+                  <option value="coco">COCO</option>
+                  <option value="retinaface">RetinaFace</option>
+                </select>
+              </div>
+            )}
+            <div className="form-group">
+              <label htmlFor="comp-select-shard-ext" style={FIELD_LABEL_STYLE}>
+                Shard Extension:
+              </label>
+              <select
+                id="comp-select-shard-ext"
+                className="editor-select"
+                value={compileShardExt}
+                onChange={(e) => onChangeCompileShardExt(e.target.value)}
+                disabled={isCompiling || !isWebDataset}
+                style={{ fontSize: "12px", padding: "6px 8px" }}
+              >
+                <option value="">Compiler default</option>
+                {WEBDATASET_SHARD_EXTENSIONS.map((ext) => (
+                  <option key={ext} value={ext}>
+                    .{ext}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        );
+      })()}
     </div>
 
     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>

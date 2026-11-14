@@ -116,7 +116,11 @@ describe("CompilerPanel schema validation and shard extension", () => {
     expect(select.value).toBe("");
     expect(Array.from(select.options).map((o) => o.value)).toEqual(["", "data", "tar"]);
     await click("comp-btn-compile");
-    expect(mocked.triggerQuickCompile).toHaveBeenCalledWith({ model: "upn_v2" });
+    expect(mocked.triggerQuickCompile).toHaveBeenCalledWith({
+      model: "upn_v2",
+      preset: "quality-vision",
+      workers: expect.any(Number),
+    });
   });
 
   it("sends the chosen shard extension as shard_ext", async () => {
@@ -127,6 +131,11 @@ describe("CompilerPanel schema validation and shard extension", () => {
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
     await click("comp-btn-compile");
-    expect(mocked.triggerQuickCompile).toHaveBeenCalledWith({ model: "upn_v2", shard_ext: "tar" });
+    expect(mocked.triggerQuickCompile).toHaveBeenCalledWith({
+      model: "upn_v2",
+      preset: "quality-vision",
+      shard_ext: "tar",
+      workers: expect.any(Number),
+    });
   });
 });

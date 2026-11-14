@@ -64,6 +64,7 @@ export async function fetchDatasets(): Promise<DatasetItem[]> {
         task: item.task || "vision",
         sources: item.sources || [],
         kaggle_ref: item.kaggle_ref,
+        recommended_preset: item.recommended_preset,
       };
     });
   } catch (err: unknown) {
