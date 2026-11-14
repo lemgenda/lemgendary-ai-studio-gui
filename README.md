@@ -277,6 +277,24 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.69 - Smart Presets, 70% Worker Default And Task-Specific Compile Controls
+
+Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
+
+- **Smart Preset Auto-Selection (`useCompilationForm.ts`, `CompilerPanel.tsx`)**:
+  Selecting a dataset manifold automatically selects its `recommended_preset`
+  (`forex-timeseries`, `llm-instruction`, `restoration-pair`, `detection-pose`,
+  `classification`, or `quality-vision`).
+- **Hardware-Proportional Worker Default (`CompilerPanel.tsx`)**: Defaults
+  parallel compilation workers to `hardware.recommended_workers` (`70%` of
+  logical CPU cores) instead of a fixed static count.
+- **Task-Specific Compilation Controls (`StandardCompileForm.tsx`,
+  `DatasetCompilationForm.tsx`, `datasets.ts`)**: Exposes `start_date` and
+  `end_date` for `forex-timeseries`, `target_samples` for `llm-instruction`,
+  and `label_strategy` for `detection-pose`.
+- **Tests (`CompilerPanel.schemaAndShards.test.tsx`)**: Verifies smart preset
+  auto-selection, 70% worker default, and task-specific payload forwarding.
+
 ### v2.10.68 - Kaggle Launch Clone Refs And Session Window
 
 Matches Training Suite v16.9.210 (`openapi.json`).
