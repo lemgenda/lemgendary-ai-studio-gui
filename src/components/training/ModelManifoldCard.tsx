@@ -17,6 +17,7 @@ export interface ModelManifoldCardProps extends ModelCardActionHandlers {
   onToggleTargetPin: () => void;
   generatingNotebookModel: string | null;
   trainingSuiteOnline: boolean;
+  defaultExpanded?: boolean;
 }
 
 export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
@@ -28,6 +29,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
   onToggleTargetPin,
   generatingNotebookModel,
   trainingSuiteOnline,
+  defaultExpanded = false,
   ...actionHandlers
 }) => {
   const [selectedBatchSize, setSelectedBatchSize] = React.useState<number>(m.batch_size ?? 256);
@@ -42,7 +44,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
   // The sidecar could not compute this model's stats: metrics are unknown, never fabricated.
   const statusUnknown = m.training_status === "unknown";
-  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(defaultExpanded);
 
   return (
     <div

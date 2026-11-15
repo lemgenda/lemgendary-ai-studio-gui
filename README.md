@@ -277,11 +277,12 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
-### v2.10.69 - Smart Presets, 70% Worker Default And Task-Specific Compile Controls
+### v2.10.69 - Smart Presets, 70% Workers And Task-Specific Compile Controls
 
 Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
 
-- **Smart Preset Auto-Selection (`useCompilationForm.ts`, `CompilerPanel.tsx`)**:
+- **Smart Preset Auto-Selection (`useCompilationForm.ts`,
+  `CompilerPanel.tsx`)**:
   Selecting a dataset manifold automatically selects its `recommended_preset`
   (`forex-timeseries`, `llm-instruction`, `restoration-pair`, `detection-pose`,
   `classification`, or `quality-vision`).
@@ -290,7 +291,8 @@ Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
   logical CPU cores) instead of a fixed static count.
 - **Uncompiled Registry Manifolds in Compiler Dropdown (`datasets.ts`,
   `CompilerPanel.tsx`)**: Populates `Target Manifold` in
-  `DatasetCompilationForm` via `fetchDatasets(true)` (`?include_uncompiled=true`)
+  `DatasetCompilationForm` via `fetchDatasets(true)`
+  (`?include_uncompiled=true`)
   so all `unified_data.yaml` entries are selectable even when not yet compiled
   on disk, while keeping `Manifolds Catalog` cards on-disk only.
 - **Collapsible Manifold & Model Cards (`DatasetManifoldCard.tsx`,
@@ -303,8 +305,13 @@ Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
   `DatasetCompilationForm.tsx`, `datasets.ts`)**: Exposes `start_date` and
   `end_date` for `forex-timeseries`, `target_samples` for `llm-instruction`,
   and `label_strategy` for `detection-pose`.
-- **Tests (`CompilerPanel.schemaAndShards.test.tsx`)**: Verifies smart preset
-  auto-selection, 70% worker default, and task-specific payload forwarding.
+- **Tests (`CompilerPanel.schemaAndShards.test.tsx`,
+  `ModelManifoldCard.test.tsx`)**:
+  Verifies smart preset auto-selection, 70% worker default, task-specific
+  payload forwarding, and default collapsed card layout with expand controls.
+- **Mandatory Changelog Gate**: Pre-commit hooks across the ecosystem enforce
+  that any commit modifying functional source files must update `README.md` with
+  a changelog entry, or the commit will fail and be blocked.
 
 ### v2.10.68 - Kaggle Launch Clone Refs And Session Window
 
@@ -456,7 +463,8 @@ Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).
 
 ### v2.10.62 - Validate Schema and Shard Extension
 
-- **Validate Schema (`compiler-btn-validate-schema`, `useSchemaValidation.ts`)**:
+- **Validate Schema (`compiler-btn-validate-schema`,
+  `useSchemaValidation.ts`)**:
   a compiler toolbar button calls `POST /api/config/validate`
   (`validateCompilerConfig`). The route needs no API token; the compiler's
   origin guard admits it with the `X-LemGendary-Client: ai-studio-gui`
@@ -588,7 +596,8 @@ Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).
   scrolled (audit GUI-11).
 - **Scroll Hook (`src/utils/useScrollToBottom.ts`)**: new shared hook, also
   used by `LogPanel.tsx` in place of its own effect.
-- **Tests (`src/components/training/__tests__/TelemetryConsole.scroll.test.tsx`)**.
+- **Tests
+  (`src/components/training/__tests__/TelemetryConsole.scroll.test.tsx`)**.
 
 ### v2.10.52 - Model Card Buttons Need the Training Suite
 
@@ -705,7 +714,8 @@ Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).
 - **Tauri Package Synchronization**:
   - Aligned `@tauri-apps/api` (`~2.12.0`) and `@tauri-apps/cli` (`~2.12.0`) with
     underlying `tauri` crate version `2.12.5`.
-  - Aligned `@tauri-apps/plugin-shell` (`~2.6.0`) with `tauri-plugin-shell` crate
+  - Aligned `@tauri-apps/plugin-shell` (`~2.6.0`) with `tauri-plugin-shell`
+    crate
     version `2.6.0`.
   - Updated `src-tauri/Cargo.toml` dependencies to match `tauri = 2.12` and
     `tauri-plugin-shell = 2.6`, keeping `tauri-build = 2.0.0`, eliminating
@@ -717,7 +727,8 @@ Matches Training Suite v16.9.170 to v16.9.181 (`openapi.json`).
 - **Dashboard Sync Resiliency (`useMeshSync.ts`)**:
   - Probes `env-manager` reachability during dashboard synchronization.
   - When the ecosystem mesh or Environment Manager is offline on cold start,
-    suppresses redundant transient "Refresh incomplete: Failed to fetch" warnings,
+    suppresses redundant transient "Refresh incomplete: Failed to fetch"
+    warnings,
     delegating clearly and cleanly to the top-level `MeshOfflineBanner`.
 
 ### v2.10.42 - Fixed Viewport Overscroll & Confined Status Bar Footer

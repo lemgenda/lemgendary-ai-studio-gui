@@ -33,6 +33,7 @@ describe("ModelManifoldCard frozen settings override", () => {
           isBusy={false}
           actionBusyKey={null}
           trainingSuiteOnline
+          defaultExpanded={true}
           isTargetPinned={false}
           onToggleTargetPin={noop}
           generatingNotebookModel={null}

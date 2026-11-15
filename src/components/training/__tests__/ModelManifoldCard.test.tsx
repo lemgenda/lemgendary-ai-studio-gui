@@ -36,6 +36,36 @@ const FOREX_MODEL: ModelItem = {
 describe("ModelManifoldCard", () => {
   const noop = vi.fn();
 
+  it("renders collapsed header by default when defaultExpanded is false", () => {
+    const html = renderToStaticMarkup(
+      <ModelManifoldCard
+        model={LLM_MODEL}
+        isCurrentlyTrainingThis={false}
+        isBusy={false}
+        actionBusyKey={null}
+        trainingSuiteOnline={true}
+        isTargetPinned={false}
+        onToggleTargetPin={noop}
+        generatingNotebookModel={null}
+        onStartLocalTrain={noop}
+        onStopLocalTrain={noop}
+        onOpenCloudModal={noop}
+        onPushArtifacts={noop}
+        onPullArtifacts={noop}
+        onGenerateTrainingNotebook={noop}
+        onGenerateUsageNotebook={noop}
+        onEvaluateModel={noop}
+        onExportModel={noop}
+        onGenerateDocs={noop}
+        onStageVariations={noop}
+        onOpenSoupDialog={noop}
+      />
+    );
+
+    expect(html).toContain("LemGendary AI Studio Assistant (Causal LLM)");
+    expect(html).not.toContain("QLoRA Instruction Tuning Matrix");
+  });
+
   it("renders LLM / Causal Assistant card with Context Window and LemGendizedAIHelperLemGend telemetry", () => {
     const html = renderToStaticMarkup(
       <ModelManifoldCard
@@ -47,6 +77,7 @@ describe("ModelManifoldCard", () => {
         isTargetPinned={false}
         onToggleTargetPin={noop}
         generatingNotebookModel={null}
+        defaultExpanded={true}
         onStartLocalTrain={noop}
         onStopLocalTrain={noop}
         onOpenCloudModal={noop}
@@ -82,6 +113,7 @@ describe("ModelManifoldCard", () => {
         isTargetPinned={false}
         onToggleTargetPin={noop}
         generatingNotebookModel={null}
+        defaultExpanded={true}
         onStartLocalTrain={noop}
         onStopLocalTrain={noop}
         onOpenCloudModal={noop}
@@ -124,6 +156,7 @@ describe("ModelManifoldCard", () => {
         isTargetPinned={false}
         onToggleTargetPin={noop}
         generatingNotebookModel={null}
+        defaultExpanded={true}
         onStartLocalTrain={noop}
         onStopLocalTrain={noop}
         onOpenCloudModal={noop}
