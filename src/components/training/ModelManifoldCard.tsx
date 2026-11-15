@@ -54,6 +54,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         padding: isExpanded ? "16px" : "12px 16px",
         border: isCurrentlyTrainingThis ? "1px solid var(--accent-emerald)" : undefined,
         background: isCurrentlyTrainingThis ? "rgba(16, 185, 129, 0.03)" : undefined,
+        alignSelf: "start",
       }}
     >
       {/* 1. Model Name: Full-width collapsible header at the very top */}

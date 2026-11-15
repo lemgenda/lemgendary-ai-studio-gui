@@ -41,6 +41,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         flexDirection: "column",
         gap: isExpanded ? "10px" : "0px",
         padding: isExpanded ? "16px" : "12px 16px",
+        alignSelf: "start",
       }}
     >
       {/* 1. Manifold Name: Full-width collapsible header at the very top */}

@@ -295,7 +295,8 @@ Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
   on disk, while keeping `Manifolds Catalog` cards on-disk only.
 - **Collapsible Manifold & Model Cards (`DatasetManifoldCard.tsx`,
   `ModelManifoldCard.tsx`)**: Both card components now default to collapsed
-  headers showing the title and expand on click.
+  headers showing the title and expand on click, with `align-self: start` to
+  prevent unexpanded neighboring cards from stretching in CSS Grid rows.
 - **Task-Specific Compilation Controls (`StandardCompileForm.tsx`,
   `DatasetCompilationForm.tsx`, `datasets.ts`)**: Exposes `start_date` and
   `end_date` for `forex-timeseries`, `target_samples` for `llm-instruction`,
