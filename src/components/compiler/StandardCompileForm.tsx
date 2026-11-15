@@ -141,7 +141,11 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           disabled={isCompiling}
           style={{ fontSize: "12px", padding: "6px 8px" }}
         >
-          <PresetOptions presets={presets} presetsError={presetsError} />
+          <PresetOptions
+            presets={presets}
+            presetsError={presetsError}
+            selectedPreset={selectedPreset}
+          />
         </select>
       </div>
 

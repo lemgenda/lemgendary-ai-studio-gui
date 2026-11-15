@@ -16,12 +16,17 @@ export function findDatasetByManifold(
 ): DatasetItem | undefined {
   if (!manifoldKey) return undefined;
   const lower = manifoldKey.trim().toLowerCase();
+  const normalized = lower.replace(/[_\-\s]/g, "");
   return datasets.find(
     (d) =>
       d.key === manifoldKey ||
       d.key.toLowerCase() === lower ||
       d.display_name.toLowerCase() === lower ||
-      (Boolean(d.modernized_folder) && d.modernized_folder?.toLowerCase() === lower)
+      (Boolean(d.modernized_folder) && d.modernized_folder?.toLowerCase() === lower) ||
+      d.key.toLowerCase().replace(/[_\-\s]/g, "") === normalized ||
+      d.display_name.toLowerCase().replace(/[_\-\s]/g, "") === normalized ||
+      (Boolean(d.modernized_folder) &&
+        d.modernized_folder?.toLowerCase().replace(/[_\-\s]/g, "") === normalized)
   );
 }
 

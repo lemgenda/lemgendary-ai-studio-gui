@@ -279,6 +279,10 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ### v2.10.70 - Compilation Preset Auto-Sync On Manifold Change
 
+- **Preset Options Resilience (`PresetOptions.tsx`)**: Enhanced
+  `<PresetOptions>` with `selectedPreset` awareness so that selected or
+  recommended presets render reliably without collapsing to "Server default"
+  during cold-start sidecar queries. Added delimiter-normalized slug matching.
 - **Compilation Preset Auto-Sync (`presetHelpers.ts`, `useCompilationForm.ts`,
   `StandardCompileForm.tsx`, `CompilerPanel.tsx`)**: Resolved defect where
   selecting an uncompiled dataset manifold (such as `LemGendizedForexUniverse`)
