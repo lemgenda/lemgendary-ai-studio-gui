@@ -277,6 +277,24 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.70 - Compilation Preset Auto-Sync On Manifold Change
+
+- **Compilation Preset Auto-Sync (`presetHelpers.ts`, `useCompilationForm.ts`,
+  `StandardCompileForm.tsx`, `CompilerPanel.tsx`)**: Resolved defect where
+  selecting an uncompiled dataset manifold (such as `LemGendizedForexUniverse`)
+  failed to update the compilation preset dropdown. Fixed `CompilerPanel` to
+  supply `compilableCatalog` (including uncompiled manifolds) into
+  `useCompilationForm`. Extracted canonical preset resolution and
+  case-insensitive manifold lookup into `presetHelpers.ts` (SSOT), and wired
+  synchronous preset updating upon manifold selection in
+  `StandardCompileForm`.
+- **Unit & Integration Tests (`presetHelpers.test.ts`,
+  `useCompilationForm.test.tsx`, `StandardCompileForm.test.tsx`)**: Validated
+  case-insensitive manifold resolution, automatic selection of
+  `forex-timeseries` for Forex parquet manifolds, `llm-instruction` for NLP
+  JSONL, and immediate preset synchronization when changing the target
+  manifold dropdown.
+
 ### v2.10.69 - Smart Presets, 70% Workers And Task-Specific Compile Controls
 
 Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).

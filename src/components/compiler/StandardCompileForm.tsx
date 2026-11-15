@@ -4,6 +4,7 @@ import { ValidationBanner } from "../common/ValidationBanner";
 import { PresetOptions } from "./PresetOptions";
 import { DatasetCompilationFormProps } from "./DatasetCompilationForm";
 import { WEBDATASET_SHARD_EXTENSIONS } from "../../api/types";
+import { findDatasetByManifold, getRecommendedPreset } from "./presetHelpers";
 
 type StandardCompileFormProps = Pick<
   DatasetCompilationFormProps,
@@ -99,7 +100,14 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           id="comp-select-manifold"
           className="editor-select"
           value={selectedManifold}
-          onChange={(e) => onSelectManifold(e.target.value)}
+          onChange={(e) => {
+            const nextKey = e.target.value;
+            onSelectManifold(nextKey);
+            const nextDs = findDatasetByManifold(datasets, nextKey);
+            if (nextDs) {
+              onSelectPreset(getRecommendedPreset(nextDs));
+            }
+          }}
           disabled={isCompiling}
           style={{ fontSize: "12px", padding: "6px 8px" }}
         >
@@ -174,7 +182,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
       </div>
 
       {(() => {
-        const activeDataset = datasets.find((d) => d.key === selectedManifold);
+        const activeDataset = findDatasetByManifold(datasets, selectedManifold);
         const activeTask = (activeDataset?.task || "").toLowerCase();
         const activeFormat = (activeDataset?.canonical_format || activeDataset?.format || "webdataset").toLowerCase();
         const isForex = activeTask === "forex" || activeFormat === "parquet";

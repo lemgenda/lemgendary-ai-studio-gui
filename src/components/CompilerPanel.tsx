@@ -96,12 +96,17 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         ),
       ]);
 
-      setCompilableDatasets(compilableList.length > 0 ? compilableList : dsList);
+      const effectiveCompilable = compilableList.length > 0 ? compilableList : dsList;
+      setCompilableDatasets(effectiveCompilable);
       if (dsList.length > 0) {
         setDatasets(dsList);
         setCachedDatasets(dsList);
-        setSelectedManifold((prev) => prev || dsList[0].key);
+        setSelectedManifold((prev) => prev || effectiveCompilable[0]?.key || dsList[0].key);
         showRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
+      } else if (effectiveCompilable.length > 0) {
+        setDatasets([]);
+        setSelectedManifold((prev) => prev || effectiveCompilable[0].key);
+        showRefreshFeedback(`Catalog refreshed: ${effectiveCompilable.length} uncompiled manifolds loaded.`);
       } else {
         // Empty or unreachable sidecar: show the empty/offline state, never a hand-written catalog.
         setDatasets([]);
@@ -130,10 +135,15 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     loadCompilerData();
   }, [loadCompilerData]);
 
+  const compilableCatalog = useMemo(
+    () => (compilableDatasets.length > 0 ? compilableDatasets : datasets),
+    [compilableDatasets, datasets],
+  );
+
   const compilationForm = useCompilationForm({
     datasetCompilerOnline,
     selectedManifold,
-    datasets,
+    datasets: compilableCatalog,
     recommendedWorkers: Math.max(
       1,
       Math.round((typeof navigator !== "undefined" && navigator.hardwareConcurrency ? navigator.hardwareConcurrency : 4) * 0.7),
@@ -357,7 +367,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     <div className="panel-container">
       {/* ─── SECTION 1: DATASET COMPILER FORM ─────────────────────────────── */}
       <DatasetCompilationForm
-        datasets={compilableDatasets.length > 0 ? compilableDatasets : datasets}
+        datasets={compilableCatalog}
         presets={presets}
         selectedManifold={selectedManifold}
         onSelectManifold={setSelectedManifold}

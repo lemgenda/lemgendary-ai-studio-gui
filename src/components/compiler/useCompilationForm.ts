@@ -9,6 +9,7 @@ import type { DatasetItem } from "../../api/contracts/datasets";
 import { CompilationFormControls } from "./DatasetCompilationForm";
 import { servicePort } from "../../api/config";
 import { parseCompileLimits } from "./compileLimits";
+import { findDatasetByManifold, getRecommendedPreset } from "./presetHelpers";
 
 export interface CompilationFormDeps {
   datasetCompilerOnline: boolean;
@@ -54,25 +55,10 @@ export function useCompilationForm({
   }, [recommendedWorkers, compileWorkers]);
 
   useEffect(() => {
-    const match = datasets.find((d) => d.key === selectedManifold);
+    if (!selectedManifold) return;
+    const match = findDatasetByManifold(datasets, selectedManifold);
     if (!match) return;
-    if (match.recommended_preset) {
-      setSelectedPreset(match.recommended_preset);
-      return;
-    }
-    const t = (match.task || "").toLowerCase();
-    const fmt = (match.canonical_format || match.format || "").toLowerCase();
-    if (t === "forex" || fmt === "parquet") {
-      setSelectedPreset("forex-timeseries");
-    } else if (t === "ai_helper" || t === "llm" || t === "nlp" || fmt === "jsonl") {
-      setSelectedPreset("llm-instruction");
-    } else if (t === "detection" || t === "pose") {
-      setSelectedPreset("detection-variable");
-    } else if (t === "restoration" || t === "super-resolution" || t === "segmentation") {
-      setSelectedPreset("restoration-hardlinked");
-    } else {
-      setSelectedPreset("quality-vision");
-    }
+    setSelectedPreset(getRecommendedPreset(match));
   }, [selectedManifold, datasets]);
 
   // Compilation Mode (Standard vs Custom Multi-Source)
@@ -108,7 +94,7 @@ export function useCompilationForm({
     setIsCompiling(true);
     setCompileStatus(null);
     try {
-      const activeDataset = datasets.find((d) => d.key === selectedManifold);
+      const activeDataset = findDatasetByManifold(datasets, selectedManifold);
       const activeTask = (activeDataset?.task || "").toLowerCase();
       const activeFormat = (activeDataset?.canonical_format || activeDataset?.format || "webdataset").toLowerCase();
       const isForex = activeTask === "forex" || activeFormat === "parquet";
