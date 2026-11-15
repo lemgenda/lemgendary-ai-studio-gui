@@ -21,9 +21,10 @@ import {
   RegenerateManifoldsResponse,
 } from "./types";
 
-export async function fetchDatasets(): Promise<DatasetItem[]> {
+export async function fetchDatasets(includeUncompiled = false): Promise<DatasetItem[]> {
   try {
-    const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/datasets/with-stats`);
+    const query = includeUncompiled ? "?include_uncompiled=true" : "";
+    const res = await sidecarFetch(`${DATASETS_BASE}/api/gui/datasets/with-stats${query}`);
     if (!res.ok) {
       logger.warn(`Dataset catalog request failed: HTTP ${res.status} ${res.statusText}`);
       return [];

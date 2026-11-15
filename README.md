@@ -288,6 +288,14 @@ Matches Dataset Compiler v16.9.111 (`api/models.py`, `api/gui_compile.py`).
 - **Hardware-Proportional Worker Default (`CompilerPanel.tsx`)**: Defaults
   parallel compilation workers to `hardware.recommended_workers` (`70%` of
   logical CPU cores) instead of a fixed static count.
+- **Uncompiled Registry Manifolds in Compiler Dropdown (`datasets.ts`,
+  `CompilerPanel.tsx`)**: Populates `Target Manifold` in
+  `DatasetCompilationForm` via `fetchDatasets(true)` (`?include_uncompiled=true`)
+  so all `unified_data.yaml` entries are selectable even when not yet compiled
+  on disk, while keeping `Manifolds Catalog` cards on-disk only.
+- **Collapsible Manifold & Model Cards (`DatasetManifoldCard.tsx`,
+  `ModelManifoldCard.tsx`)**: Both card components now default to collapsed
+  headers showing the title and expand on click.
 - **Task-Specific Compilation Controls (`StandardCompileForm.tsx`,
   `DatasetCompilationForm.tsx`, `datasets.ts`)**: Exposes `start_date` and
   `end_date` for `forex-timeseries`, `target_samples` for `llm-instruction`,

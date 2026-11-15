@@ -42,6 +42,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
   // Production Datasets & Presets
   const [datasets, setDatasets] = useState<DatasetItem[]>(cachedDatasets);
+  const [compilableDatasets, setCompilableDatasets] = useState<DatasetItem[]>(cachedDatasets);
   const [presets, setPresets] = useState<CompilerPreset[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [selectedManifold, setSelectedManifold] = useState<string>("");
@@ -86,14 +87,16 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setIsRefreshing(true);
     showRefreshFeedback(null);
     try {
-      const [dsList, presetResult] = await Promise.all([
+      const [dsList, compilableList, presetResult] = await Promise.all([
         fetchDatasets(),
+        fetchDatasets(true),
         fetchCompilerPresets().then(
           (list) => ({ list, error: null }),
           (err: unknown) => ({ list: [] as CompilerPreset[], error: err instanceof Error ? err.message : String(err) })
         ),
       ]);
 
+      setCompilableDatasets(compilableList.length > 0 ? compilableList : dsList);
       if (dsList.length > 0) {
         setDatasets(dsList);
         setCachedDatasets(dsList);
@@ -354,7 +357,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     <div className="panel-container">
       {/* ─── SECTION 1: DATASET COMPILER FORM ─────────────────────────────── */}
       <DatasetCompilationForm
-        datasets={datasets}
+        datasets={compilableDatasets.length > 0 ? compilableDatasets : datasets}
         presets={presets}
         selectedManifold={selectedManifold}
         onSelectManifold={setSelectedManifold}

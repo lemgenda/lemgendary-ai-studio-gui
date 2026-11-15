@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { HelpTooltip } from "../HelpTooltip";
 import { HoverPinPopover } from "../common/HoverPinPopover";
 import { DatasetItem } from "../../api/types";
@@ -31,6 +31,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
   // Kaggle owner of this manifold (from its kaggle_ref); no link when unknown.
   const auditOwner = kaggleRefOwner(d.kaggle_ref);
   const isDirectoryFormat = d.canonical_format === "directory" || d.format === "directory";
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div
@@ -38,21 +39,60 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
-        padding: "16px",
+        gap: isExpanded ? "10px" : "0px",
+        padding: isExpanded ? "16px" : "12px 16px",
       }}
     >
-      {/* 1. Manifold Name: Full-width at the very top */}
-      <div style={{ width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3, flex: 1 }}>
-          {d.display_name}
-        </h4>
+      {/* 1. Manifold Name: Full-width collapsible header at the very top */}
+      <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-expanded={isExpanded}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            flex: 1,
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "left",
+            color: "var(--text-primary)",
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              flexShrink: 0,
+              color: "var(--text-muted)",
+              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.15s ease",
+            }}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3 }}>
+            {d.display_name}
+          </h4>
+        </button>
         <HelpTooltip
           content={`Authoritative key: ${d.key}. Local directory: ${d.modernized_folder || d.key}. Canonical format: ${
             d.canonical_format || d.format
           }.`}
         />
       </div>
+
+      {isExpanded && (
+        <>
 
       {/* 2. Compilation Status / Format Badge: Full-width directly below name */}
       <div
@@ -321,6 +361,8 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
           <span>{actionBusyKey === `ul_${d.key}` ? "Uploading..." : "Upload"}</span>
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 };

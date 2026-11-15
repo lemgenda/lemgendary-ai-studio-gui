@@ -42,6 +42,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
   // The sidecar could not compute this model's stats: metrics are unknown, never fabricated.
   const statusUnknown = m.training_status === "unknown";
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
 
   return (
     <div
@@ -49,21 +50,60 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "10px",
-        padding: "16px",
+        gap: isExpanded ? "10px" : "0px",
+        padding: isExpanded ? "16px" : "12px 16px",
         border: isCurrentlyTrainingThis ? "1px solid var(--accent-emerald)" : undefined,
         background: isCurrentlyTrainingThis ? "rgba(16, 185, 129, 0.03)" : undefined,
       }}
     >
-      {/* 1. Model Name: Full-width at the very top */}
-      <div style={{ width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
-        <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3, flex: 1 }}>
-          {m.display_name}
-        </h4>
+      {/* 1. Model Name: Full-width collapsible header at the very top */}
+      <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          aria-expanded={isExpanded}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            flex: 1,
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "left",
+            color: "var(--text-primary)",
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              flexShrink: 0,
+              color: "var(--text-muted)",
+              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.15s ease",
+            }}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3 }}>
+            {m.display_name}
+          </h4>
+        </button>
         <HelpTooltip
           content={`Authoritative model key: ${m.key}. Parallel execution mode: ${m.preferred_parallel?.toUpperCase() || "SINGLE"}.`}
         />
       </div>
+
+      {isExpanded && (
+        <>
 
       {/* 2. Training Progress / Status: Full-width directly below Model Name */}
       <div
@@ -127,6 +167,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         localTrainSettings={{ batchSize: selectedBatchSize, overrideFrozen: !m.is_llm && overrideFrozen }}
         {...actionHandlers}
       />
+        </>
+      )}
     </div>
   );
 };
