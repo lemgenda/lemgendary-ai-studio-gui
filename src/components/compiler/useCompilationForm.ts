@@ -98,10 +98,8 @@ export function useCompilationForm({
       const activeTask = (activeDataset?.task || "").toLowerCase();
       const activeFormat = (activeDataset?.canonical_format || activeDataset?.format || "webdataset").toLowerCase();
       const isForex = activeTask === "forex" || activeFormat === "parquet";
-      const isLlm = activeTask === "ai_helper" || activeFormat === "jsonl";
       const isDetection = activeTask === "detection" || activeTask === "pose";
 
-      const parsedSamples = compileTargetSamples.trim() ? Number(compileTargetSamples) : undefined;
       const res = await triggerQuickCompile({
         model: selectedManifold,
         ...(selectedPreset ? { preset: selectedPreset } : {}),
@@ -109,7 +107,6 @@ export function useCompilationForm({
         ...(compileShardExt ? { shard_ext: compileShardExt } : {}),
         ...(isForex && compileStartDate ? { start_date: compileStartDate } : {}),
         ...(isForex && compileEndDate ? { end_date: compileEndDate } : {}),
-        ...(isLlm && parsedSamples && Number.isFinite(parsedSamples) ? { target_samples: parsedSamples } : {}),
         ...(isDetection && compileLabelStrategy ? { label_strategy: compileLabelStrategy } : {}),
       });
       setCompileStatus(`Compilation initiated successfully (Job ID: ${res.id}). Telemetry streaming to monitor below.`);

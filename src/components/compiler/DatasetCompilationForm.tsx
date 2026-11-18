@@ -93,8 +93,6 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onChangeCompileStartDate,
   compileEndDate,
   onChangeCompileEndDate,
-  compileTargetSamples,
-  onChangeCompileTargetSamples,
   compileLabelStrategy,
   onChangeCompileLabelStrategy,
   isCompiling,
@@ -200,8 +198,6 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onChangeCompileStartDate={onChangeCompileStartDate}
             compileEndDate={compileEndDate}
             onChangeCompileEndDate={onChangeCompileEndDate}
-            compileTargetSamples={compileTargetSamples}
-            onChangeCompileTargetSamples={onChangeCompileTargetSamples}
             compileLabelStrategy={compileLabelStrategy}
             onChangeCompileLabelStrategy={onChangeCompileLabelStrategy}
             isCompiling={isCompiling}

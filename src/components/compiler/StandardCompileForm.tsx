@@ -25,8 +25,6 @@ type StandardCompileFormProps = Pick<
   | "onChangeCompileStartDate"
   | "compileEndDate"
   | "onChangeCompileEndDate"
-  | "compileTargetSamples"
-  | "onChangeCompileTargetSamples"
   | "compileLabelStrategy"
   | "onChangeCompileLabelStrategy"
   | "isCompiling"
@@ -63,8 +61,6 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   onChangeCompileStartDate,
   compileEndDate = "",
   onChangeCompileEndDate,
-  compileTargetSamples = "",
-  onChangeCompileTargetSamples,
   compileLabelStrategy = "",
   onChangeCompileLabelStrategy,
   isCompiling,
@@ -231,20 +227,16 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
         if (isLlm) {
           return (
             <div className="form-group">
-              <label htmlFor="comp-input-target-samples" style={FIELD_LABEL_STYLE}>
-                Target Samples:
+              <label htmlFor="comp-yield-mode" style={FIELD_LABEL_STYLE}>
+                Yield Strategy:
               </label>
               <input
-                id="comp-input-target-samples"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="525 (Manifest default)"
+                id="comp-yield-mode"
+                type="text"
+                readOnly
                 className="editor-input"
-                value={compileTargetSamples}
-                onChange={(e) => onChangeCompileTargetSamples?.(e.target.value)}
-                disabled={isCompiling}
-                style={{ fontSize: "12px", padding: "6px 8px" }}
+                value="Autonomous Source Analysis"
+                style={{ fontSize: "12px", padding: "6px 8px", opacity: 0.85 }}
               />
             </div>
           );

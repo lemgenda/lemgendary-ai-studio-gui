@@ -89,7 +89,6 @@ export interface QuickCompilePayload {
   shard_ext?: string;
   start_date?: string;
   end_date?: string;
-  target_samples?: number | null;
   label_strategy?: string;
 }
 

@@ -277,6 +277,14 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.71 - Autonomous LLM Yield Strategy Indicator
+
+- **Dataset Compilation Form (`StandardCompileForm.tsx`,
+  `DatasetCompilationForm.tsx`, `useCompilationForm.ts`, `datasets.ts`)**:
+  Replaced the manual `Target Samples` numeric input for LLM manifolds with a
+  read-only `Yield Strategy: Autonomous Source Analysis` indicator and removed
+  `target_samples` from `QuickCompilePayload`.
+
 ### v2.10.70 - Compilation Preset Auto-Sync On Manifold Change
 
 - **Preset Options Resilience (`PresetOptions.tsx`)**: Enhanced
