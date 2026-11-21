@@ -2185,16 +2185,23 @@ Also: Service Termination.
 - **`src/api/client.ts` â€” Full Client Support** â€” Bound `stopService`
   cleanly with error handling, status reporting, and typed parameters.
 
-### v3.7.0 â€” Training Panel State Collision Isolation & Fleet Job Filtering
+### v3.7.0 — Training Panel State Collision Isolation & Fleet Job Filtering
 
-- **`src/components/TrainingPanel.tsx` â€” Local Training State Isolation** â€”
+- **`src/components/TrainingPanel.tsx` — Local Training State Isolation** —
   Resolved state collision where clicking **"Push Model"**, **"Pull Model"**, or
   **"Push Fleet to Kaggle"** clobbered the active `localJob` in Zustand
   (`useStudioStore`). Preserved `localJob` exclusively for active local PyTorch
   training sessions, preventing remote/background tasks from hijacking model
   card indicators, "Stop Training" buttons, or the local telemetry stream.
-- **`src/components/TrainingPanel.tsx` â€” Active Training Job Filtering** â€”
+- **`src/components/TrainingPanel.tsx` — Active Training Job Filtering** —
   Hardened the startup running-job query to filter specifically for `j.job_type
   === "train"`, ensuring that concurrent background tasks (such as Kaggle
   pushes, pulls, or exports) registered in the persistent database do not
   falsely trigger local training UI state on panel load.
+
+### v3.8.0 — Dev Store Window Export for Automation and Screen Capture
+
+- **`src/main.tsx` — Window Store Export** — Expose `useStudioStore` on
+  `window.__studioStore` in DEV mode to allow automated UI driving, synthetic
+  state injection, and screen capture workflows without affecting production
+  builds.
