@@ -277,6 +277,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.72 - Model Registry Compact Masonry Grid & Single-Card Accordion
+
+- **Grid Alignment (`TrainingPanel.tsx`, `layout.css`)**: Switched Model
+  Cards Grid from generic `.card-grid` to `.card-grid-models` with
+  `alignSelf: "start"` across both `ModelManifoldCard` and
+  `DatasetManifoldCard`, guaranteeing identical compact 3-column masonry
+  grid styling with clean vertical reflow.
+- **Single-Card Accordion Expansion (`CompilerPanel.tsx`,
+  `DatasetManifoldCard.tsx`, `TrainingPanel.tsx`, `ModelManifoldCard.tsx`)**:
+  Replaced uncoordinated local card expansion states with controlled
+  single-card accordion mechanics. At most one card can be expanded at any
+  time; clicking to expand a card automatically collapses any previously open
+  card, allowing all sibling cards to smoothly realign in the masonry grid.
+
 ### v2.10.71 - Autonomous LLM Yield Strategy Indicator
 
 - **Dataset Compilation Form (`StandardCompileForm.tsx`,

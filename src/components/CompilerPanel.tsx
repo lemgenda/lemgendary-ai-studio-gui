@@ -62,6 +62,9 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [actionBusyKey, setActionBusyKey] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
 
+  // Accordion state: at most one manifold card open at a time
+  const [expandedManifoldKey, setExpandedManifoldKey] = useState<string | null>(null);
+
   // Section Tab State (Catalog vs Modernization Queue vs Scale Reduction)
   const [activeSectionTab, setActiveSectionTab] = useState<"catalog" | "modernize" | "reduction">("catalog");
   const [queueItems, setQueueItems] = useState<ModernizationQueueItem[]>([]);
@@ -464,6 +467,10 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   onDownloadManifold={handleDownloadManifold}
                   onUploadManifold={handleUploadManifold}
                   datasetCompilerOnline={datasetCompilerOnline}
+                  isExpanded={expandedManifoldKey === d.key}
+                  onToggleExpand={() =>
+                    setExpandedManifoldKey((prev) => (prev === d.key ? null : d.key))
+                  }
                 />
               ))
             )}

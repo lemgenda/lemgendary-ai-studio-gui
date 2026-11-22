@@ -67,6 +67,9 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
   // Pinned SOTA target details
   const [pinnedTargetModel, setPinnedTargetModel] = useState<string | null>(null);
 
+  // Accordion state: at most one model card open at a time
+  const [expandedModelKey, setExpandedModelKey] = useState<string | null>(null);
+
   // Cloud modal state
   const [cloudModalModel, setCloudModalModel] = useState<ModelItem | null>(null);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
@@ -387,7 +390,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
       )}
 
       {/* 2. Model Cards Grid */}
-      <div className="card-grid" style={{ marginBottom: "24px" }}>
+      <div className="card-grid card-grid-models" style={{ marginBottom: "24px" }}>
         {filteredModels.map((m) => (
           <ModelManifoldCard
             key={m.key}
@@ -416,6 +419,10 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
             onStageVariations={handleStageVariations}
             onOpenSoupDialog={setSoupModel}
             trainingSuiteOnline={trainingSuiteOnline}
+            isExpanded={expandedModelKey === m.key}
+            onToggleExpand={() =>
+              setExpandedModelKey((prev) => (prev === m.key ? null : m.key))
+            }
           />
         ))}
       </div>

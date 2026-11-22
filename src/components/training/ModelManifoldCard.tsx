@@ -18,6 +18,8 @@ export interface ModelManifoldCardProps extends ModelCardActionHandlers {
   generatingNotebookModel: string | null;
   trainingSuiteOnline: boolean;
   defaultExpanded?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
@@ -30,6 +32,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
   generatingNotebookModel,
   trainingSuiteOnline,
   defaultExpanded = false,
+  isExpanded: controlledExpanded,
+  onToggleExpand,
   ...actionHandlers
 }) => {
   const [selectedBatchSize, setSelectedBatchSize] = React.useState<number>(m.batch_size ?? 256);
@@ -44,7 +48,15 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
   // The sidecar could not compute this model's stats: metrics are unknown, never fabricated.
   const statusUnknown = m.training_status === "unknown";
-  const [isExpanded, setIsExpanded] = React.useState<boolean>(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = React.useState<boolean>(defaultExpanded);
+  const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  const handleToggleExpand = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setInternalExpanded((v) => !v);
+    }
+  };
 
   return (
     <div
@@ -63,7 +75,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
       <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
         <button
           type="button"
-          onClick={() => setIsExpanded((v) => !v)}
+          onClick={handleToggleExpand}
           aria-expanded={isExpanded}
           style={{
             display: "flex",

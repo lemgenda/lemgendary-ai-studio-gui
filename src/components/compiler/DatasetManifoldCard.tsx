@@ -15,6 +15,8 @@ export interface DatasetManifoldCardProps {
   onDownloadManifold: (dataset: DatasetItem) => void;
   onUploadManifold: (dataset: DatasetItem) => void;
   datasetCompilerOnline: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
@@ -27,11 +29,21 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
   onDownloadManifold,
   onUploadManifold,
   datasetCompilerOnline,
+  isExpanded: controlledExpanded,
+  onToggleExpand,
 }) => {
   // Kaggle owner of this manifold (from its kaggle_ref); no link when unknown.
   const auditOwner = kaggleRefOwner(d.kaggle_ref);
   const isDirectoryFormat = d.canonical_format === "directory" || d.format === "directory";
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+  const handleToggleExpand = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
+    } else {
+      setInternalExpanded((v) => !v);
+    }
+  };
 
   return (
     <div
@@ -48,7 +60,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
       <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
         <button
           type="button"
-          onClick={() => setIsExpanded((v) => !v)}
+          onClick={handleToggleExpand}
           aria-expanded={isExpanded}
           style={{
             display: "flex",
