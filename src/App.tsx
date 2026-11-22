@@ -33,7 +33,7 @@ export const App: React.FC = () => {
   const openModal = useStudioStore((s) => s.openModal);
   const closeModal = useStudioStore((s) => s.closeModal);
 
-  const { loadData, refreshMeshStatus, isRefreshing, lastUpdated, refreshError, setRefreshError } = useMeshSync();
+  const { loadData, refreshMeshStatus, lastUpdated, refreshError, setRefreshError } = useMeshSync();
   const { startingServiceId, stoppingServiceId, handleStartService, handleStopService, handleStartAllServices } =
     useServiceControls({ refreshMeshStatus, loadData, setRefreshError });
   const { handleRunPipeline, handleReconcileProject, handleRunPipelineStep } = usePipelineControls({ setRefreshError });
@@ -50,17 +50,14 @@ export const App: React.FC = () => {
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
         meshStatus={meshStatus}
+        onOpenConfigEditor={() => openModal("config")}
+        onOpenTestModal={() => openModal("tests")}
+        onOpenBugReport={() => openModal("bug-report")}
       />
 
       <div className="main-content">
         <Header
           title={workspaceTabTitle(currentTab)}
-          onRefresh={loadData}
-          isRefreshing={isRefreshing}
-          onOpenConfigEditor={() => openModal("config")}
-          onOpenTestModal={() => openModal("tests")}
-          onOpenBugReport={() => openModal("bug-report")}
-          envManagerOnline={meshStatus.envManager}
         />
 
         <main

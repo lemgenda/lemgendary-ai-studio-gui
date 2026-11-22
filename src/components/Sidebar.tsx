@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ExternalLink } from "./common/ExternalLink";
 import { MeshStatus } from "../api/types";
 import { WORKSPACE_TABS } from "../navigation/workspaceTabs";
+import { fetchDocsStatus, openExternalUrl } from "../api/client";
+import { logger } from "../utils/logger";
 import lemgendaIcon from "../branding/lemgenda-icon.svg";
 import lemgendaLogo from "../branding/lemgenda-logo.svg";
 
@@ -10,12 +12,18 @@ interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
   meshStatus: MeshStatus;
+  onOpenConfigEditor?: () => void;
+  onOpenTestModal?: () => void;
+  onOpenBugReport?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   meshStatus,
+  onOpenConfigEditor,
+  onOpenTestModal,
+  onOpenBugReport,
 }) => {
   // Map each tab to the sidecar port it depends on for online/offline dot.
   const tabSidecarOnline: Record<string, boolean> = {
@@ -27,6 +35,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const navItems = WORKSPACE_TABS;
+
+  // The offline hub is served by the Environment Manager at `local_url`.
+  const [docsUrl, setDocsUrl] = useState<string | null>(null);
+  const [docsOpenError, setDocsOpenError] = useState<string | null>(null);
+  const [docsUnavailableReason, setDocsUnavailableReason] = useState<string>(
+    "Checking the Environment Manager for the offline documentation hub..."
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!meshStatus.envManager) {
+      setDocsUrl(null);
+      setDocsUnavailableReason(
+        "Unavailable: the Environment Manager (which serves the offline documentation hub) is offline."
+      );
+      return;
+    }
+    fetchDocsStatus()
+      .then((status) => {
+        if (cancelled) return;
+        if (status.offline_available) {
+          setDocsUrl(status.local_url);
+        } else {
+          setDocsUrl(null);
+          setDocsUnavailableReason(
+            "Unavailable: the Environment Manager reports no local lemgendary-docs checkout."
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.warn("Documentation hub status check failed", err);
+        setDocsUrl(null);
+        setDocsUnavailableReason(`Unavailable: ${msg}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meshStatus.envManager]);
+
+  const handleOpenDocs = () => {
+    if (!docsUrl) return;
+    setDocsOpenError(null);
+    openExternalUrl(docsUrl).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("Opening the documentation hub failed", err);
+      setDocsOpenError(`Could not open the documentation hub: ${msg}`);
+    });
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = -1;
@@ -102,6 +160,96 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
+
+      <div className="sidebar-actions" role="region" aria-label="Tools and System Actions">
+        {onOpenConfigEditor && (
+          <div className="nav-item-wrapper">
+            <button
+              id="sidebar-btn-config"
+              type="button"
+              className="btn btn-secondary sidebar-action-btn"
+              style={{ flex: 1, paddingRight: "36px" }}
+              onClick={onOpenConfigEditor}
+              aria-label="Open Universal Configuration, Registry Editor & Secrets Vault Modal"
+            >
+              Config &amp; Secrets
+            </button>
+            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+              <HelpTooltip
+                content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens."
+                position="right"
+              />
+            </div>
+          </div>
+        )}
+
+        {onOpenBugReport && (
+          <div className="nav-item-wrapper">
+            <button
+              id="header-btn-report-issue"
+              type="button"
+              className="btn btn-secondary sidebar-action-btn"
+              style={{ flex: 1, paddingRight: "36px" }}
+              onClick={onOpenBugReport}
+              aria-label="Open the Report Issue form"
+            >
+              Report Issue
+            </button>
+            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+              <HelpTooltip
+                content="Report Issue: describe a problem, attach annotated screenshots and recent telemetry. The Environment Manager saves a ZIP report and opens your mail client to send it."
+                position="right"
+              />
+            </div>
+          </div>
+        )}
+
+        {onOpenTestModal && (
+          <div className="nav-item-wrapper">
+            <button
+              id="header-btn-test-modal"
+              type="button"
+              className="btn btn-secondary sidebar-action-btn"
+              style={{ flex: 1, paddingRight: "36px" }}
+              onClick={onOpenTestModal}
+              aria-label="Open Test & Diagnostic Orchestrator modal"
+            >
+              Tests &amp; Diagnostics
+            </button>
+            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+              <HelpTooltip
+                content="Test & Diagnostic Orchestrator: dispatch the fleet 1-epoch smoke test, or run the Training Suite and Dataset Compiler unit test suites in-process on their sidecars."
+                position="right"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="nav-item-wrapper">
+          <button
+            id="sidebar-btn-docs-hub"
+            type="button"
+            className="btn btn-secondary sidebar-action-btn"
+            style={{ flex: 1, paddingRight: "36px" }}
+            onClick={handleOpenDocs}
+            disabled={!docsUrl}
+            title={docsUrl ? undefined : docsUnavailableReason}
+            aria-label="Open local offline LemGendary AI Documentation Hub"
+          >
+            LemGendary AI Documentation Hub
+          </button>
+          <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+            <HelpTooltip
+              content={
+                docsUrl
+                  ? docsOpenError ?? "Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served by the Environment Manager with zero internet connection required."
+                  : docsUnavailableReason
+              }
+              position="right"
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="sidebar-brand-footer">
         <ExternalLink

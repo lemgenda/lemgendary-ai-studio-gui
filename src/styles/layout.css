@@ -101,6 +101,21 @@
   flex: 1;
 }
 
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.sidebar-action-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

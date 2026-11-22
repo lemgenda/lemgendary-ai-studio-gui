@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Header } from "../Header";
+import { Sidebar } from "../Sidebar";
 import { BugReportModal } from "../bugReport/BugReportModal";
 import { useStudioStore } from "../../store/useStudioStore";
 import { BugReportResponse } from "../../api/types";
@@ -40,12 +40,11 @@ const Shell: React.FC<ShellProps> = ({ submit, capture, recorderBackend }) => {
   const closeModal = useStudioStore((s) => s.closeModal);
   return (
     <>
-      <Header
-        title="Dashboard"
-        onRefresh={() => undefined}
-        isRefreshing={false}
+      <Sidebar
+        currentTab="dashboard"
+        onSelectTab={() => undefined}
+        meshStatus={{ envManager: false, datasetCompiler: false, trainingSuite: false }}
         onOpenBugReport={() => openModal("bug-report")}
-        envManagerOnline={false}
       />
       <BugReportModal
         isOpen={activeModal === "bug-report"}

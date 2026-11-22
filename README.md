@@ -277,6 +277,20 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.73 - Navigation Menu Rearrangement & Control Modernization
+
+- **Header Simplification (`Header.tsx`)**: Removed action buttons and the
+  Refresh Audit button and its help tooltip from the top header entirely. The
+  top header now strictly renders the view title and view help tooltip.
+- **Sidebar Action Relocation (`Sidebar.tsx`, `App.tsx`, `layout.css`)**:
+  Relocated `Config & Secrets` (`sidebar-btn-config`), `Report Issue`
+  (`header-btn-report-issue`), `Tests & Diagnostics` (`header-btn-test-modal`),
+  and `LemGendary AI Documentation Hub` (`sidebar-btn-docs-hub`) into a
+  dedicated actions group within the left sidebar menu.
+- **Component Tests (`BugReportModal.test.tsx`, `TestModal.test.tsx`)**:
+  Updated test shells to wire the action triggers through `Sidebar` rather than
+  `Header`. All 52 Vitest test files pass with 338 passing tests.
+
 ### v2.10.72 - Model Registry Compact Masonry Grid & Single-Card Accordion
 
 - **Grid Alignment (`TrainingPanel.tsx`, `layout.css`)**: Switched Model

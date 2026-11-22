@@ -2,7 +2,7 @@
 import React, { act, useState } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Header } from "../Header";
+import { Sidebar } from "../Sidebar";
 import { TestModal } from "../TestModal";
 import testModalSource from "../TestModal.tsx?raw";
 import { MESH_SERVICES } from "../../api/client";
@@ -15,12 +15,11 @@ const Shell: React.FC = () => {
   const [isTestModalOpen, setIsTestModalOpen] = useState<boolean>(false);
   return (
     <>
-      <Header
-        title="Dashboard"
-        onRefresh={() => undefined}
-        isRefreshing={false}
+      <Sidebar
+        currentTab="dashboard"
+        onSelectTab={() => undefined}
+        meshStatus={{ envManager: true, datasetCompiler: true, trainingSuite: true }}
         onOpenTestModal={() => setIsTestModalOpen(true)}
-        envManagerOnline={true}
       />
       <TestModal
         isOpen={isTestModalOpen}
