@@ -14,7 +14,6 @@ interface SidebarProps {
   meshStatus: MeshStatus;
   onOpenConfigEditor?: () => void;
   onOpenTestModal?: () => void;
-  onOpenBugReport?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -23,7 +22,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   meshStatus,
   onOpenConfigEditor,
   onOpenTestModal,
-  onOpenBugReport,
 }) => {
   // Map each tab to the sidecar port it depends on for online/offline dot.
   const tabSidecarOnline: Record<string, boolean> = {
@@ -135,28 +133,63 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const isSelected = currentTab === item.id;
           const isOnline = tabSidecarOnline[item.id] ?? false;
           return (
-            <div key={item.id} className="nav-item-wrapper">
-              <button
-                id={`tab-${item.id}`}
-                type="button"
-                aria-current={isSelected ? "page" : undefined}
-                aria-controls="main-content"
-                className={`nav-item ${isSelected ? "active" : ""}`}
-                style={{ flex: 1, paddingRight: "36px" }}
-                onClick={() => onSelectTab(item.id)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-              >
-                <span
-                  className={`status-indicator ${isOnline ? "status-online" : "status-offline"}`}
-                  aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
-                  style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
-                />
-                {item.label}
-              </button>
-              <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
-                <HelpTooltip content={item.tooltip} position="right" />
+            <React.Fragment key={item.id}>
+              <div className="nav-item-wrapper">
+                <button
+                  id={`tab-${item.id}`}
+                  type="button"
+                  aria-current={isSelected ? "page" : undefined}
+                  aria-controls="main-content"
+                  className={`nav-item ${isSelected ? "active" : ""}`}
+                  style={{ flex: 1, paddingRight: "36px" }}
+                  onClick={() => onSelectTab(item.id)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                >
+                  <span
+                    className={`status-indicator ${isOnline ? "status-online" : "status-offline"}`}
+                    aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
+                    style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
+                  />
+                  {item.label}
+                </button>
+                <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+                  <HelpTooltip content={item.tooltip} position="right" />
+                </div>
               </div>
-            </div>
+
+              {/* Documentation Hub placed directly below Training Suite and above Clean Install Pipeline */}
+              {item.id === "training" && (
+                <div className="nav-item-wrapper">
+                  <button
+                    id="sidebar-btn-docs-hub"
+                    type="button"
+                    className="nav-item"
+                    style={{ flex: 1, paddingRight: "36px" }}
+                    onClick={handleOpenDocs}
+                    disabled={!docsUrl}
+                    title={docsUrl ? undefined : docsUnavailableReason}
+                    aria-label="Open local offline LemGendary AI Documentation Hub"
+                  >
+                    <span
+                      className={`status-indicator ${docsUrl ? "status-online" : "status-offline"}`}
+                      aria-label={docsUrl ? "Documentation Hub online" : "Documentation Hub offline"}
+                      style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
+                    />
+                    LemGendary AI Documentation Hub
+                  </button>
+                  <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+                    <HelpTooltip
+                      content={
+                        docsUrl
+                          ? docsOpenError ?? "Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served by the Environment Manager with zero internet connection required."
+                          : docsUnavailableReason
+                      }
+                      position="right"
+                    />
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
           );
         })}
       </nav>
@@ -183,27 +216,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        {onOpenBugReport && (
-          <div className="nav-item-wrapper">
-            <button
-              id="header-btn-report-issue"
-              type="button"
-              className="btn btn-secondary sidebar-action-btn"
-              style={{ flex: 1, paddingRight: "36px" }}
-              onClick={onOpenBugReport}
-              aria-label="Open the Report Issue form"
-            >
-              Report Issue
-            </button>
-            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
-              <HelpTooltip
-                content="Report Issue: describe a problem, attach annotated screenshots and recent telemetry. The Environment Manager saves a ZIP report and opens your mail client to send it."
-                position="right"
-              />
-            </div>
-          </div>
-        )}
-
         {onOpenTestModal && (
           <div className="nav-item-wrapper">
             <button
@@ -224,31 +236,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         )}
-
-        <div className="nav-item-wrapper">
-          <button
-            id="sidebar-btn-docs-hub"
-            type="button"
-            className="btn btn-secondary sidebar-action-btn"
-            style={{ flex: 1, paddingRight: "36px" }}
-            onClick={handleOpenDocs}
-            disabled={!docsUrl}
-            title={docsUrl ? undefined : docsUnavailableReason}
-            aria-label="Open local offline LemGendary AI Documentation Hub"
-          >
-            LemGendary AI Documentation Hub
-          </button>
-          <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
-            <HelpTooltip
-              content={
-                docsUrl
-                  ? docsOpenError ?? "Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served by the Environment Manager with zero internet connection required."
-                  : docsUnavailableReason
-              }
-              position="right"
-            />
-          </div>
-        </div>
       </div>
 
       <div className="sidebar-brand-footer">

@@ -46,34 +46,14 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
   };
 
   return (
-    <div
-      className="card"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: isExpanded ? "10px" : "0px",
-        padding: isExpanded ? "16px" : "12px 16px",
-        alignSelf: "start",
-      }}
-    >
+    <div className={`card card-compact ${isExpanded ? "expanded" : ""}`}>
       {/* 1. Manifold Name: Full-width collapsible header at the very top */}
-      <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+      <div className="card-compact-header">
         <button
           type="button"
           onClick={handleToggleExpand}
           aria-expanded={isExpanded}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flex: 1,
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            cursor: "pointer",
-            textAlign: "left",
-            color: "var(--text-primary)",
-          }}
+          className="card-compact-toggle"
         >
           <svg
             width="14"
@@ -84,18 +64,12 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{
-              flexShrink: 0,
-              color: "var(--text-muted)",
-              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.15s ease",
-            }}
+            className={`card-compact-chevron ${isExpanded ? "expanded" : ""}`}
+            aria-hidden="true"
           >
             <polyline points="9 18 15 12 9 6" />
           </svg>
-          <h4 style={{ fontSize: "15px", fontWeight: 700, margin: 0, color: "var(--text-primary)", lineHeight: 1.3 }}>
-            {d.display_name}
-          </h4>
+          <h4 className="card-compact-title">{d.display_name}</h4>
         </button>
         <HelpTooltip
           content={`Authoritative key: ${d.key}. Local directory: ${d.modernized_folder || d.key}. Canonical format: ${

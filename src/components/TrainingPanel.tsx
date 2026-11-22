@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { CloudTrainModal } from "./CloudTrainModal";
 import { SoupBlendDialog } from "./training/SoupBlendDialog";
 import { SoupRecipe } from "./training/soupRecipe";
@@ -290,37 +290,16 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     if (await handleBlendSoup(modelKey, recipe)) setSoupModel(null);
   };
 
-  return (
-    <div style={{ padding: "20px 24px" }}>
-      {/* 1. Toolbar */}
-      <TrainingToolbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        categoryFilter={categoryFilter}
-        onCategoryFilterChange={setCategoryFilter}
-        archFilter={archFilter}
-        onArchFilterChange={setArchFilter}
-        uniqueCategories={uniqueCategories}
-        uniqueArchitectures={uniqueArchitectures}
-        onResetFilters={() => {
-          setSearchQuery("");
-          setStatusFilter("ALL");
-          setCategoryFilter("ALL");
-          setArchFilter("ALL");
-        }}
-        trainingSuiteOnline={trainingSuiteOnline}
-        isGeneratingAllNotebooks={isGeneratingAllNotebooks}
-        onGenerateAllNotebooks={handleGenerateAllNotebooks}
-        isPushingAllKaggle={isPushingAllKaggle}
-        onPushAllKaggle={handlePushAllKaggle}
-        isRefreshing={isRefreshing}
-        onRefreshModels={loadTrainingData}
-        totalModelsCount={models.length}
-        filteredModelsCount={filteredModels.length}
-      />
+  const modelColumns = useMemo(() => {
+    const cols: [ModelItem[], ModelItem[], ModelItem[]] = [[], [], []];
+    filteredModels.forEach((m, idx) => {
+      cols[idx % 3].push(m);
+    });
+    return cols;
+  }, [filteredModels]);
 
+  return (
+    <div className="panel-container">
       {/* Notifications and Banners */}
       {refreshFeedback && (
         <ValidationBanner
@@ -389,75 +368,113 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         />
       )}
 
-      {/* 2. Model Cards Grid */}
-      <div className="card-grid card-grid-models" style={{ marginBottom: "24px" }}>
-        {filteredModels.map((m) => (
-          <ModelManifoldCard
-            key={m.key}
-            model={m}
-            isCurrentlyTrainingThis={localJob.modelKey === m.key}
-            isBusy={
-              actionBusyKey === `local_${m.key}` ||
-              actionBusyKey === `cloud_${m.key}` ||
-              actionBusyKey === `pull_${m.key}` ||
-              actionBusyKey === `push_${m.key}`
-            }
-            actionBusyKey={actionBusyKey}
-            isTargetPinned={pinnedTargetModel === m.key}
-            onToggleTargetPin={() => setPinnedTargetModel((prev) => (prev === m.key ? null : m.key))}
-            generatingNotebookModel={generatingNotebookModel}
-            onStartLocalTrain={startLocalTrain}
-            onStopLocalTrain={handleStopLocalTrain}
-            onOpenCloudModal={handleOpenCloudModal}
-            onPushArtifacts={handlePushArtifacts}
-            onPullArtifacts={handlePullArtifacts}
-            onGenerateTrainingNotebook={handleGenerateTrainingNotebook}
-            onGenerateUsageNotebook={handleGenerateUsageNotebook}
-            onEvaluateModel={handleEvaluateModel}
-            onExportModel={handleExportModel}
-            onGenerateDocs={handleGenerateDocs}
-            onStageVariations={handleStageVariations}
-            onOpenSoupDialog={setSoupModel}
-            trainingSuiteOnline={trainingSuiteOnline}
-            isExpanded={expandedModelKey === m.key}
-            onToggleExpand={() =>
-              setExpandedModelKey((prev) => (prev === m.key ? null : m.key))
-            }
-          />
-        ))}
+      {/* ─── UNIFIED CARD: TOOLBAR + MODEL REGISTRY MASONRY ────────── */}
+      <div className="card panel-section-card">
+        {/* 1. Toolbar */}
+        <TrainingToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          archFilter={archFilter}
+          onArchFilterChange={setArchFilter}
+          uniqueCategories={uniqueCategories}
+          uniqueArchitectures={uniqueArchitectures}
+          onResetFilters={() => {
+            setSearchQuery("");
+            setStatusFilter("ALL");
+            setCategoryFilter("ALL");
+            setArchFilter("ALL");
+          }}
+          trainingSuiteOnline={trainingSuiteOnline}
+          isGeneratingAllNotebooks={isGeneratingAllNotebooks}
+          onGenerateAllNotebooks={handleGenerateAllNotebooks}
+          isPushingAllKaggle={isPushingAllKaggle}
+          onPushAllKaggle={handlePushAllKaggle}
+          isRefreshing={isRefreshing}
+          onRefreshModels={loadTrainingData}
+          totalModelsCount={models.length}
+          filteredModelsCount={filteredModels.length}
+        />
+
+        {/* 2. Model Cards Masonry Grid */}
+        <div className="card-grid card-grid-models masonry-grid" style={{ marginBottom: "24px" }}>
+          {filteredModels.length === 0 ? (
+            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
+              {models.length > 0 ? (
+                <>
+                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>No architectures matched your search or filter criteria.</p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStatusFilter("ALL");
+                      setCategoryFilter("ALL");
+                      setArchFilter("ALL");
+                    }}
+                    style={{ fontSize: "12px" }}
+                  >
+                    Clear All Filters
+                  </button>
+                </>
+              ) : (
+                <div data-testid="models-empty-state">
+                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>
+                    {trainingSuiteOnline
+                      ? "The Training Suite returned no models."
+                      : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
+                  </p>
+                  <button type="button" className="btn btn-secondary" onClick={() => void loadTrainingData()} style={{ fontSize: "12px" }}>
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            modelColumns.map((col, colIdx) => (
+              <div key={colIdx} className="masonry-column">
+                {col.map((m) => (
+                  <ModelManifoldCard
+                    key={m.key}
+                    model={m}
+                    isCurrentlyTrainingThis={localJob.modelKey === m.key}
+                    isBusy={
+                      actionBusyKey === `local_${m.key}` ||
+                      actionBusyKey === `cloud_${m.key}` ||
+                      actionBusyKey === `pull_${m.key}` ||
+                      actionBusyKey === `push_${m.key}`
+                    }
+                    actionBusyKey={actionBusyKey}
+                    isTargetPinned={pinnedTargetModel === m.key}
+                    onToggleTargetPin={() => setPinnedTargetModel((prev) => (prev === m.key ? null : m.key))}
+                    generatingNotebookModel={generatingNotebookModel}
+                    onStartLocalTrain={startLocalTrain}
+                    onStopLocalTrain={handleStopLocalTrain}
+                    onOpenCloudModal={handleOpenCloudModal}
+                    onPushArtifacts={handlePushArtifacts}
+                    onPullArtifacts={handlePullArtifacts}
+                    onGenerateTrainingNotebook={handleGenerateTrainingNotebook}
+                    onGenerateUsageNotebook={handleGenerateUsageNotebook}
+                    onEvaluateModel={handleEvaluateModel}
+                    onExportModel={handleExportModel}
+                    onGenerateDocs={handleGenerateDocs}
+                    onStageVariations={handleStageVariations}
+                    onOpenSoupDialog={setSoupModel}
+                    trainingSuiteOnline={trainingSuiteOnline}
+                    isExpanded={expandedModelKey === m.key}
+                    onToggleExpand={() =>
+                      setExpandedModelKey((prev) => (prev === m.key ? null : m.key))
+                    }
+                  />
+                ))}
+              </div>
+            ))
+          )}
+        </div>
       </div>
-
-      {models.length === 0 && (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }} data-testid="models-empty-state">
-          <p style={{ fontSize: "14px", marginBottom: "8px" }}>
-            {trainingSuiteOnline
-              ? "The Training Suite returned no models."
-              : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
-          </p>
-          <button type="button" className="btn btn-secondary" onClick={() => void loadTrainingData()} style={{ fontSize: "12px" }}>
-            Retry
-          </button>
-        </div>
-      )}
-
-      {models.length > 0 && filteredModels.length === 0 && (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
-          <p style={{ fontSize: "14px", marginBottom: "8px" }}>No architectures matched your search or filter criteria.</p>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              setSearchQuery("");
-              setStatusFilter("ALL");
-              setCategoryFilter("ALL");
-              setArchFilter("ALL");
-            }}
-            style={{ fontSize: "12px" }}
-          >
-            Clear All Filters
-          </button>
-        </div>
-      )}
 
       {/* 3. Real-Time Telemetry & Multi-Execution Console */}
       <TrainingTelemetry

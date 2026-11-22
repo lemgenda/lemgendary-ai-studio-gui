@@ -277,6 +277,25 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.74 - Unified Card Containers, True Masonry Layout & Nav Polish
+
+- **Unified Card Containers (`TrainingPanel.tsx`, `layout.css`)**: Standardized
+  the Model Training panel to wrap both the training toolbar and model grid
+  inside a unified `.card.panel-section-card` matching the Dataset Compiler
+  panel structure. Replaced all inline layout styles with external CSS classes.
+- **True Masonry Layout (`CompilerPanel.tsx`, `TrainingPanel.tsx`,
+  `layout.css`)**: Implemented responsive flex masonry columns
+  (`.masonry-grid` and `.masonry-column`) across both compiler manifolds and
+  training model cards. Cards reflow naturally so closed cards realign
+  smoothly when another card expands.
+- **Top Header Icon Button (`Header.tsx`, `layout.css`)**: Restored `Report
+  Issue` (`#header-btn-report-issue`) to the top header as an accessible icon
+  button using the Iconify Lucide bug inline SVG with accessible tooltip and
+  `aria-label`.
+- **Navigation Placement (`Sidebar.tsx`)**: Relocated `LemGendary AI
+  Documentation Hub` (`#sidebar-btn-docs-hub`) into the left sidebar navigation
+  menu directly between `tab-training` and `tab-pipeline`.
+
 ### v2.10.73 - Navigation Menu Rearrangement & Control Modernization
 
 - **Header Simplification (`Header.tsx`)**: Removed action buttons and the

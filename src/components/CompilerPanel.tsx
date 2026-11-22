@@ -366,6 +366,14 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setPinnedSourcesManifold((prev) => (prev === datasetKey ? null : datasetKey));
   };
 
+  const datasetColumns = useMemo(() => {
+    const cols: [DatasetItem[], DatasetItem[], DatasetItem[]] = [[], [], []];
+    filteredDatasets.forEach((d, idx) => {
+      cols[idx % 3].push(d);
+    });
+    return cols;
+  }, [filteredDatasets]);
+
   return (
     <div className="panel-container">
       {/* ─── SECTION 1: DATASET COMPILER FORM ─────────────────────────────── */}
@@ -380,7 +388,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       />
 
       {/* ─── SECTION 2: PRODUCTION MANIFOLDS CATALOG & CONTROLS ────────────── */}
-      <div className="card" style={{ marginTop: "20px", padding: "20px" }}>
+      <div className="card panel-section-card">
         <CompilerToolbar
           activeSectionTab={activeSectionTab}
           onTabChange={setActiveSectionTab}
@@ -441,7 +449,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
         {/* ─── TAB 1: MANIFOLDS CATALOG ─── */}
         {activeSectionTab === "catalog" && (
-          <div className="card-grid card-grid-models">
+          <div className="card-grid card-grid-models masonry-grid">
             {filteredDatasets.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
                 {datasets.length > 0
@@ -451,27 +459,31 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
                   : "No manifolds to show: the Dataset Compiler sidecar is offline. Start it to load the catalog."}
               </div>
             ) : (
-              filteredDatasets.map((d) => (
-                <DatasetManifoldCard
-                  key={d.key}
-                  dataset={d}
-                  isBusy={
-                    actionBusyKey === `dl_${d.key}` ||
-                    actionBusyKey === `ul_${d.key}` ||
-                    actionBusyKey === `meta_${d.key}`
-                  }
-                  actionBusyKey={actionBusyKey}
-                  isSourcesPinned={pinnedSourcesManifold === d.key}
-                  onToggleSourcesPin={() => toggleSourcesPin(d.key)}
-                  onUpdateMetadataSingle={handleUpdateMetadataSingle}
-                  onDownloadManifold={handleDownloadManifold}
-                  onUploadManifold={handleUploadManifold}
-                  datasetCompilerOnline={datasetCompilerOnline}
-                  isExpanded={expandedManifoldKey === d.key}
-                  onToggleExpand={() =>
-                    setExpandedManifoldKey((prev) => (prev === d.key ? null : d.key))
-                  }
-                />
+              datasetColumns.map((col, colIdx) => (
+                <div key={colIdx} className="masonry-column">
+                  {col.map((d) => (
+                    <DatasetManifoldCard
+                      key={d.key}
+                      dataset={d}
+                      isBusy={
+                        actionBusyKey === `dl_${d.key}` ||
+                        actionBusyKey === `ul_${d.key}` ||
+                        actionBusyKey === `meta_${d.key}`
+                      }
+                      actionBusyKey={actionBusyKey}
+                      isSourcesPinned={pinnedSourcesManifold === d.key}
+                      onToggleSourcesPin={() => toggleSourcesPin(d.key)}
+                      onUpdateMetadataSingle={handleUpdateMetadataSingle}
+                      onDownloadManifold={handleDownloadManifold}
+                      onUploadManifold={handleUploadManifold}
+                      datasetCompilerOnline={datasetCompilerOnline}
+                      isExpanded={expandedManifoldKey === d.key}
+                      onToggleExpand={() =>
+                        setExpandedManifoldKey((prev) => (prev === d.key ? null : d.key))
+                      }
+                    />
+                  ))}
+                </div>
               ))
             )}
           </div>

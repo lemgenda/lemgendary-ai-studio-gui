@@ -52,12 +52,12 @@ export const App: React.FC = () => {
         meshStatus={meshStatus}
         onOpenConfigEditor={() => openModal("config")}
         onOpenTestModal={() => openModal("tests")}
-        onOpenBugReport={() => openModal("bug-report")}
       />
 
       <div className="main-content">
         <Header
           title={workspaceTabTitle(currentTab)}
+          onOpenBugReport={() => openModal("bug-report")}
         />
 
         <main
