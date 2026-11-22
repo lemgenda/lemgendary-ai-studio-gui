@@ -17,6 +17,12 @@ vi.mock("../../../api/client", async (importOriginal) => {
     blendModelSoup: vi.fn(),
     trainLLM: vi.fn(),
     triggerQuickTrain: vi.fn(),
+    generateNotebooks: vi.fn(),
+    generateAllNotebooks: vi.fn(),
+    triggerModelEvaluate: vi.fn(),
+    triggerModelExport: vi.fn(),
+    stageModelVariations: vi.fn(),
+    pushAllKaggleModels: vi.fn(),
   };
 });
 
@@ -262,5 +268,78 @@ describe("useModelActions status routing", () => {
       await actions?.handleStartLocalTrain(vision, { batchSize: 16, overrideFrozen: true });
     });
     expect(mocked.triggerQuickTrain).toHaveBeenCalledWith({ model_key: "upn_v2", batch_size: 16, override_frozen: true });
+  });
+
+  it("handles notebook generation for training and usage notebooks across local/colab/kaggle", async () => {
+    mocked.generateNotebooks.mockResolvedValue({
+      success: true,
+      model_key: "upn_v2",
+      platform: "all",
+      generated: { "training_kaggle": "upn_v2_training.ipynb" },
+    });
+    await act(async () => {
+      await actions?.handleGenerateTrainingNotebook("upn_v2");
+    });
+    expect(mocked.generateNotebooks).toHaveBeenCalledWith({ model_key: "upn_v2", kinds: ["training"] });
+    expect(lastCall(deps.setStatusNotice)).toContain("Successfully regenerated training notebooks for upn_v2");
+
+    await act(async () => {
+      await actions?.handleGenerateUsageNotebook("upn_v2");
+    });
+    expect(mocked.generateNotebooks).toHaveBeenCalledWith({ model_key: "upn_v2", kinds: ["usage"] });
+    expect(lastCall(deps.setStatusNotice)).toContain("Successfully regenerated standalone usage guide notebook for upn_v2");
+  });
+
+  it("handles batch notebook generation for all models", async () => {
+    mocked.generateAllNotebooks.mockResolvedValue({ success: true, total_models: 24, total_files: 48 });
+    await act(async () => {
+      await actions?.handleGenerateAllNotebooks();
+    });
+    expect(mocked.generateAllNotebooks).toHaveBeenCalledWith("all");
+    expect(lastCall(deps.setStatusNotice)).toContain("Regenerated notebooks across all 24 models (48 files created)");
+  });
+
+  it("handles model evaluation and export dispatch", async () => {
+    mocked.triggerModelEvaluate.mockResolvedValue({ job_id: "job-eval-1", status: "pending", message: "dispatched" });
+    mocked.triggerModelExport.mockResolvedValue({ job_id: "job-export-1", status: "pending", message: "dispatched" });
+    await act(async () => {
+      await actions?.handleEvaluateModel("upn_v2");
+    });
+    expect(mocked.triggerModelEvaluate).toHaveBeenCalledWith({ model: "upn_v2", env: "local" });
+    expect(lastCall(deps.setStatusNotice)).toContain("Evaluation dispatched for upn_v2 (Job ID: job-eval-1)");
+
+    await act(async () => {
+      await actions?.handleExportModel("upn_v2");
+    });
+    expect(mocked.triggerModelExport).toHaveBeenCalledWith({ model: "upn_v2", targets: ["onnx_fp32", "onnx_fp16", "torch_pt"] });
+    expect(lastCall(deps.setStatusNotice)).toContain("Export dispatched for upn_v2 (Job ID: job-export-1)");
+  });
+
+  it("handles staging variations and batch pushing all models to Kaggle", async () => {
+    mocked.stageModelVariations.mockResolvedValue({
+      status: "success",
+      model_key: "upn_v2",
+      staged_files: { "dist/kaggle/pytorch": "m.pt" },
+      is_valid: true,
+      errors: [],
+      message: "staged",
+    });
+    mocked.pushAllKaggleModels.mockResolvedValue({
+      status: "success",
+      count: 24,
+      results: [],
+      job_id: "fleet-job-1",
+    } as unknown as Awaited<ReturnType<typeof client.pushAllKaggleModels>>);
+    await act(async () => {
+      await actions?.handleStageVariations("upn_v2");
+    });
+    expect(mocked.stageModelVariations).toHaveBeenCalledWith("upn_v2");
+    expect(lastCall(deps.setStatusNotice)).toContain("Staged 1 isolated variation binaries for upn_v2.");
+
+    await act(async () => {
+      await actions?.handlePushAllKaggle();
+    });
+    expect(mocked.pushAllKaggleModels).toHaveBeenCalled();
+    expect(lastCall(deps.setStatusNotice)).toContain("Fleet Kaggle push enqueued for all models");
   });
 });
