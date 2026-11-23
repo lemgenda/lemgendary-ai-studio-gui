@@ -95,8 +95,13 @@ export function rollupTelemetryEvents(events: PipelineEvent[]): PipelineEvent[] 
   return result;
 }
 
-/** Messages that mark the end of a whole pipeline run. */
-const PIPELINE_DONE_MARKERS = ["pipeline execution completed", "ecosystem healthy status"];
+/** Messages that mark the end of a whole pipeline run or cloud push job. */
+const PIPELINE_DONE_MARKERS = [
+  "pipeline execution completed",
+  "ecosystem healthy status",
+  "pushed successfully to kaggle",
+  "pulled successfully from kaggle",
+];
 
 /**
  * True when an event ends its step or run: an error, a non-progress success

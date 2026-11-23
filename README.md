@@ -278,6 +278,21 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.76 - Terminal Upload Completion & Active Progress Dismissal
+
+- **Cloud Upload & Sync Terminal Detection (`src/api/telemetry.ts`)**: Added
+  `pushed successfully to kaggle` and `pulled successfully from kaggle` to
+  `PIPELINE_DONE_MARKERS` in `isTerminalEvent()`, ensuring that cloud model
+  push/pull completion milestones are recognized as terminal run events.
+- **Active Progress Bar Teardown (`src/components/LogPanel.tsx`)**: Guarded
+  `activeProgress` computation in `LogPanel` so that whenever the latest event
+  is a non-progress success milestone (such as a model push completion notice),
+  stale prior progress events (e.g. step start lines frozen at 75%) are
+  dismissed immediately rather than persisting on screen.
+- **Unit Testing (`PipelineLifecycle.test.tsx`)**: Added comprehensive
+  regression test confirming the active Radix progress bar is removed from the
+  DOM when a model upload completes successfully.
+
 ### v2.10.75 - Complete Elimination Of Inline CSS & Modular Stylesheets
 
 - **Zero Inline Styles (`src/components/`, `src/utils/clipboard.ts`)**:

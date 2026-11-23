@@ -22,9 +22,11 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
     if (events.length === 0) return null;
     const lastEv = events[events.length - 1];
     // A step or run that has ended shows no stale progress bar
-    const isTerminal = isTerminalEvent(lastEv);
-
-    if (isTerminal) {
+    if (isTerminalEvent(lastEv)) {
+      return null;
+    }
+    // If the latest event is a non-progress success/milestone, do not keep showing prior progress
+    if (lastEv.status === "success" && !lastEv.is_progress && !isProgressLine(lastEv.message)) {
       return null;
     }
     for (let i = events.length - 1; i >= Math.max(0, events.length - 6); i--) {

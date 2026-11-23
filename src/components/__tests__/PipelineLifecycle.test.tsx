@@ -116,4 +116,36 @@ describe("PipelineLifecycle & Step Completion Rendering", () => {
     expect(html).not.toContain("RUNNING");
     expect(html).not.toContain('aria-label="Step 7 execution progress"');
   });
+
+  it("hides progress bar in LogPanel when cloud model push completes with success", () => {
+    const events: PipelineEvent[] = [
+      {
+        timestamp: "2026-11-23T02:42:08Z",
+        step_number: 0,
+        total_steps: 1,
+        step_name: "Cloud Training",
+        status: "info",
+        message:
+          "[UPLOAD] [Step 4/4] PUSHING model [onnx/fp32] -> user/model/onnx/fp32 (75%)",
+        is_progress: true,
+      },
+      {
+        timestamp: "2026-11-23T02:42:57Z",
+        step_number: 0,
+        total_steps: 1,
+        step_name: "Cloud Training",
+        status: "success",
+        message:
+          "[SUCCESS] Model model pushed successfully to Kaggle (4 variations)",
+        is_progress: false,
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <LogPanel events={events} onClear={() => {}} isConnected={true} />
+    );
+
+    expect(html).not.toContain('role="progressbar"');
+    expect(html).toContain("pushed successfully to Kaggle");
+  });
 });
