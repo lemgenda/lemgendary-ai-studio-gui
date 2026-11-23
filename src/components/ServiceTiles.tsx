@@ -52,15 +52,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   return (
     <article
-      className="card"
+      className={`card ${online ? "" : "service-card-offline"}`}
       aria-labelledby={headingId}
-      style={{
-        borderColor: online ? "var(--border-color)" : "rgba(244, 63, 94, 0.3)",
-      }}
     >
       <div className="card-title">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <h3 id={headingId} style={{ fontSize: "14px", fontWeight: 600 }}>
+        <div className="row-gap-sm">
+          <h3 id={headingId} className="service-card-title">
             {name}
           </h3>
           <HelpTooltip content={helpContent} />
@@ -80,31 +77,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
       <div className="metric-row">
         <span className="metric-label">URL</span>
-        <span
-          className="metric-value"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-muted)" }}
-        >
+        <span className="metric-value metric-value-mono-muted">
           {url}
         </span>
       </div>
 
-      <p
-        style={{
-          fontSize: "12px",
-          color: "var(--text-muted)",
-          marginTop: "10px",
-          marginBottom: "14px",
-          lineHeight: "1.5",
-        }}
-      >
+      <p className="service-desc">
         {description}
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div className="service-actions">
         <button
           type="button"
-          className="btn btn-secondary"
-          style={{ width: "100%", fontSize: "12px" }}
+          className="btn btn-secondary btn-full"
           disabled={!online}
           aria-disabled={!online}
           aria-label={online ? quickActionAriaLabel : `${quickActionAriaLabel} (sidecar offline)`}
@@ -116,8 +101,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         {!online ? (
           <button
             type="button"
-            className="btn btn-primary"
-            style={{ width: "100%", fontSize: "12px" }}
+            className="btn btn-primary btn-full"
             aria-label={`Start ${name} background daemon`}
             disabled={isStarting}
             onClick={() => onStartService(id)}
@@ -127,8 +111,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         ) : (
           <button
             type="button"
-            className="btn btn-danger"
-            style={{ width: "100%", fontSize: "12px" }}
+            className="btn btn-danger btn-full"
             aria-label={`Stop ${name} background daemon`}
             disabled={isStopping}
             onClick={() => onStopService(id)}
@@ -198,15 +181,15 @@ export const ServiceTiles: React.FC<ServiceTilesProps> = ({
   ];
 
   return (
-    <section aria-labelledby="service-tiles-heading" style={{ marginBottom: "24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-        <h3 id="service-tiles-heading" style={{ fontSize: "16px", fontWeight: 600 }}>
+    <section aria-labelledby="service-tiles-heading" className="service-section">
+      <div className="section-header-bar">
+        <h3 id="service-tiles-heading" className="card-heading">
           Ecosystem Sidecar Services
         </h3>
         <HelpTooltip content="Live status of all three local microservices. Each sidecar must be running to enable its respective GUI panel. Click 'Start Service' on any card to launch its background daemon." />
       </div>
 
-      <div className="card-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+      <div className="card-grid service-grid-3">
         {services.map((svc) => (
           <ServiceCard
             key={svc.id}

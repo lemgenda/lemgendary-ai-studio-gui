@@ -38,19 +38,19 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
   onRunModernize,
 }) => {
   return (
-    <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+    <div className="compiler-subpanel">
+      <div className="modernize-header">
         <div>
-          <h4 style={{ fontSize: "14px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+          <h4 className="card-section-title">
             Container Modernization &amp; Publication Queue
           </h4>
-          <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "4px 0 0 0" }}>
+          <p className="modernize-desc">
             Automated streaming transcode into WebDataset (.data), MosaicML (.mds), or Parquet shards with Kaggle publication.
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+        <div className="row-gap-lg row-wrap">
+          <label className="modernize-workers-label">
             <span>Workers:</span>
             <input
               type="number"
@@ -58,12 +58,11 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
               max={16}
               value={modernizeWorkers}
               onChange={(e) => setModernizeWorkers(Number(e.target.value))}
-              className="editor-input"
-              style={{ width: "60px", padding: "4px 8px", fontSize: "12px" }}
+              className="editor-input form-control-narrow"
             />
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+          <label className="checkbox-label-compact">
             <input
               type="checkbox"
               checked={modernizePushKaggle}
@@ -72,7 +71,7 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
             <span>Push Kaggle</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+          <label className="checkbox-label-compact">
             <input
               type="checkbox"
               checked={modernizeForce}
@@ -81,7 +80,7 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
             <span>Force</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer" }}>
+          <label className="checkbox-label-compact">
             <input
               type="checkbox"
               checked={modernizeDryRun}
@@ -92,20 +91,18 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
 
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-toolbar-sm"
             onClick={onScanQueue}
             disabled={isLoadingQueue}
-            style={{ fontSize: "12px", padding: "5px 12px" }}
           >
             {isLoadingQueue ? "Scanning..." : "Scan Queue"}
           </button>
 
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary btn-toolbar-bold"
             onClick={() => onRunModernize()}
             disabled={isModernizing || !datasetCompilerOnline}
-            style={{ fontSize: "12px", padding: "5px 12px", fontWeight: 600 }}
           >
             {isModernizing ? "Processing Queue..." : "Batch Modernize All"}
           </button>
@@ -115,61 +112,59 @@ export const ModernizationQueueTable: React.FC<ModernizationQueueTableProps> = (
       {modernizeStatus && (
         <ValidationBanner
           message={modernizeStatus}
-          style={{ marginBottom: "16px", fontSize: "12px" }}
+          className="banner-space-bottom banner-text-sm"
         />
       )}
 
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", textAlign: "left" }}>
+      <div className="data-table-scroll">
+        <table className="data-table">
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--border-color)", color: "var(--text-muted)", fontSize: "11px", textTransform: "uppercase" }}>
-              <th style={{ padding: "8px 10px" }}>Dataset Key</th>
-              <th style={{ padding: "8px 10px" }}>Target Folder</th>
-              <th style={{ padding: "8px 10px" }}>Canonical Format</th>
-              <th style={{ padding: "8px 10px" }}>Queue Status</th>
-              <th style={{ padding: "8px 10px" }}>Diagnostic Details</th>
-              <th style={{ padding: "8px 10px", textAlign: "right" }}>Actions</th>
+            <tr className="data-table-head-row-upper">
+              <th className="data-table-cell-sm">Dataset Key</th>
+              <th className="data-table-cell-sm">Target Folder</th>
+              <th className="data-table-cell-sm">Canonical Format</th>
+              <th className="data-table-cell-sm">Queue Status</th>
+              <th className="data-table-cell-sm">Diagnostic Details</th>
+              <th className="data-table-cell-sm-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {queueItems.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: "20px", textAlign: "center", color: "var(--text-muted)" }}>
+                <td colSpan={6} className="data-table-empty">
                   {isLoadingQueue ? "Scanning modernization queue..." : "No items in queue or catalog is up to date."}
                 </td>
               </tr>
             ) : (
               queueItems.map((item) => (
-                <tr key={item.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                  <td style={{ padding: "8px 10px", fontWeight: 600, color: "var(--text-primary)" }}>
+                <tr key={item.key} className="data-table-row">
+                  <td className="data-table-cell-sm-bold">
                     {item.key}
                   </td>
-                  <td style={{ padding: "8px 10px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+                  <td className="data-table-cell-sm-mono">
                     {item.modernized_folder}
                   </td>
-                  <td style={{ padding: "8px 10px" }}>
-                    <span className="badge badge-secondary" style={{ fontSize: "10px", textTransform: "uppercase" }}>
+                  <td className="data-table-cell-sm">
+                    <span className="badge badge-secondary badge-inline-10 badge-upper">
                       {item.canonical_format}
                     </span>
                   </td>
-                  <td style={{ padding: "8px 10px" }}>
+                  <td className="data-table-cell-sm">
                     <span
-                      className={`badge ${queueBadgeClass(item)}`}
-                      style={{ fontSize: "10px" }}
+                      className={`badge ${queueBadgeClass(item)} badge-inline-10`}
                     >
                       {item.status_label}
                     </span>
                   </td>
-                  <td style={{ padding: "8px 10px", color: "var(--text-muted)", fontSize: "11px" }}>
+                  <td className="data-table-cell-sm-muted">
                     {item.source_label}
                   </td>
-                  <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                  <td className="data-table-cell-sm-right">
                     <button
                       type="button"
-                      className="btn btn-secondary"
+                      className="btn btn-secondary btn-2xs"
                       onClick={() => onRunModernize(item.key)}
                       disabled={isModernizing || !datasetCompilerOnline}
-                      style={{ fontSize: "11px", padding: "3px 8px" }}
                     >
                       Modernize
                     </button>

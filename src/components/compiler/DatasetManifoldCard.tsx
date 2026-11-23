@@ -82,29 +82,17 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         <>
 
       {/* 2. Compilation Status / Format Badge: Full-width directly below name */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "8px",
-          background: "rgba(255,255,255,0.03)",
-          padding: "6px 10px",
-          borderRadius: "6px",
-          border: "1px solid var(--border-color)",
-        }}
-      >
-        <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+      <div className="card-status-strip">
+        <span className="card-status-label">
           Manifold Status:
         </span>
         <div>
           {d.is_compiled ? (
-            <span className="badge badge-success" style={{ fontWeight: 700 }}>
+            <span className="badge badge-success badge-bold">
               COMPILED
             </span>
           ) : (
-            <span className="badge badge-warning" style={{ fontWeight: 700 }}>
+            <span className="badge badge-warning badge-bold">
               UNCOMPILED
             </span>
           )}
@@ -112,10 +100,10 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
       </div>
 
       {/* 3. Metric Specs Rows */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px" }}>
+      <div className="card-specs-list">
         <div className="metric-row">
           <span className="metric-label">Storage Format</span>
-          <span className="metric-value" style={{ textTransform: "uppercase", fontWeight: 600 }}>
+          <span className="metric-value metric-value-upper">
             {d.canonical_format || d.format}
           </span>
         </div>
@@ -135,8 +123,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             {isDirectoryFormat ? "Dataset Splits" : "Container Shards"}
           </span>
           <span
-            className="metric-value"
-            style={{ fontWeight: 600, color: d.shards_count && d.shards_count > 0 ? "var(--accent-emerald)" : undefined }}
+            className={`metric-value metric-value-bold ${d.shards_count && d.shards_count > 0 ? "metric-value-emerald" : ""}`}
           >
             {isDirectoryFormat ? `${d.shards_count || 2} splits (train/val)` : `${d.shards_count || 0} shards`}
           </span>
@@ -149,12 +136,9 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
           onTogglePin={onToggleSourcesPin}
           valueBadge={
             <span
-              className="metric-value"
-              style={{
-                color: d.sources && d.sources.length > 0 ? "var(--accent-emerald)" : "var(--text-muted)",
-                fontWeight: 700,
-                fontSize: "12px",
-              }}
+              className={`metric-value metric-value-highlight ${
+                d.sources && d.sources.length > 0 ? "metric-value-emerald" : "metric-value-muted"
+              }`}
             >
               {d.sources && d.sources.length > 0 ? `${d.sources.length} Sources` : "1 Primary Source"}
             </span>
@@ -162,32 +146,23 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
           ariaLabel={`Upstream sources for ${d.display_name}. Click to pin open.`}
         >
           {d.sources && d.sources.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <div className="stack-xs">
               {d.sources.map((s, idx) => (
                 <div
                   key={`${s.name}_${idx}`}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11px" }}
+                  className="manifold-source-row"
                 >
                   <span
-                    style={{
-                      color: "var(--text-secondary)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      maxWidth: "160px",
-                    }}
+                    className="manifold-source-name"
                     title={s.ref || s.name}
                   >
                     {s.name}
                   </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                  <div className="row-gap-md">
+                    <span className="manifold-source-count">
                       {s.count ? `${s.count.toLocaleString()} samples` : "Active"}
                     </span>
-                    <span
-                      className="badge badge-secondary"
-                      style={{ fontSize: "9px", padding: "1px 5px", textTransform: "uppercase" }}
-                    >
+                    <span className="badge badge-secondary badge-xs-wide badge-upper">
                       {s.type || "SOURCE"}
                     </span>
                   </div>
@@ -198,18 +173,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         </HoverPinPopover>
 
         {/* 5. Format Breakdown */}
-        <div
-          style={{
-            marginTop: "4px",
-            paddingTop: "8px",
-            borderTop: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
+        <div className="manifold-format-footer">
           <span>WebP: {d.format_breakdown.webp.toLocaleString()}</span>
           <span>JPG: {d.format_breakdown.jpg.toLocaleString()}</span>
           <span>PNG: {d.format_breakdown.png.toLocaleString()}</span>
@@ -217,24 +181,14 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
       </div>
 
       {/* 4. Action Buttons Toolbar (2x2 Grid) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "8px",
-          marginTop: "auto",
-          paddingTop: "10px",
-          borderTop: "1px solid var(--border-color)",
-        }}
-      >
+      <div className="manifold-card-actions">
         {/* Top Row: Update Metadata & Audit Notebooks */}
         <button
           id={`comp-btn-meta-${d.key}`}
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary btn-card-action"
           onClick={() => onUpdateMetadataSingle(d)}
           disabled={isBusy || !datasetCompilerOnline}
-          style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
           title="Push dataset-metadata.json descriptors to Kaggle Cloud"
         >
           <svg
@@ -247,7 +201,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            style={{ flexShrink: 0 }}
+            className="btn-icon-fixed"
           >
             <path d="M12 20h9" />
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -258,17 +212,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         {auditOwner && (
         <ExternalLink
           href={`https://www.kaggle.com/code/${encodeURIComponent(auditOwner)}/registry-metadata-training`}
-          className="btn btn-cloud"
-          style={{
-            fontSize: "11px",
-            padding: "6px 8px",
-            fontWeight: 600,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "6px",
-          }}
+          className="btn btn-cloud btn-card-link"
           title="Open Kaggle Registry Metadata Training Audit notebook"
         >
           <svg
@@ -281,7 +225,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            style={{ flexShrink: 0 }}
+            className="btn-icon-fixed"
           >
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
             <polyline points="15 3 21 3 21 9" />
@@ -295,10 +239,9 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         <button
           id={`comp-btn-pull-${d.key}`}
           type="button"
-          className="btn btn-vault-pull"
+          className="btn btn-vault-pull btn-card-action"
           onClick={() => onDownloadManifold(d)}
           disabled={isBusy || !datasetCompilerOnline}
-          style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
           title={`Download ${d.display_name} from Kaggle Cloud Storage`}
         >
           <svg
@@ -311,7 +254,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            style={{ flexShrink: 0 }}
+            className="btn-icon-fixed"
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
@@ -323,10 +266,9 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
         <button
           id={`comp-btn-push-${d.key}`}
           type="button"
-          className="btn btn-vault-push"
+          className="btn btn-vault-push btn-card-action"
           onClick={() => onUploadManifold(d)}
           disabled={isBusy || !datasetCompilerOnline}
-          style={{ fontSize: "11px", padding: "6px 8px", fontWeight: 600 }}
           title={`Upload local ${d.display_name} manifold to Kaggle Cloud`}
         >
           <svg
@@ -339,7 +281,7 @@ export const DatasetManifoldCard: React.FC<DatasetManifoldCardProps> = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            style={{ flexShrink: 0 }}
+            className="btn-icon-fixed"
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />

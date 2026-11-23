@@ -7,7 +7,6 @@ export interface HoverPinPopoverProps {
   onTogglePin: () => void;
   children: React.ReactNode;
   ariaLabel?: string;
-  style?: React.CSSProperties;
 }
 
 export const HoverPinPopover: React.FC<HoverPinPopoverProps> = ({
@@ -17,53 +16,30 @@ export const HoverPinPopover: React.FC<HoverPinPopoverProps> = ({
   onTogglePin,
   children,
   ariaLabel,
-  style,
 }) => {
   return (
     <div
       className={`hover-pin-container ${isPinned ? "is-pinned" : ""}`}
-      style={style}
     >
       <button
         type="button"
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
-          textAlign: "left",
-          color: "inherit",
-          font: "inherit",
-        }}
+        className="hover-pin-trigger"
         onClick={onTogglePin}
         aria-expanded={isPinned}
         aria-label={ariaLabel || `${title}. Click to pin open.`}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)" }}>
+        <div className="hover-pin-label-group">
+          <span className="hover-pin-title">
             {title}
           </span>
-          <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>
+          <span className="hover-pin-hint">
             {isPinned ? "(Pinned)" : "(Click to pin)"}
           </span>
         </div>
         <div>{valueBadge}</div>
       </button>
 
-      <div
-        className="hover-pin-content"
-        style={{
-          marginTop: "10px",
-          paddingTop: "8px",
-          borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-          flexDirection: "column",
-          gap: "6px",
-        }}
-      >
+      <div className="hover-pin-content">
         {children}
       </div>
     </div>

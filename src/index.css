@@ -18,3 +18,7 @@
 @import "./styles/secrets-vault.css";
 @import "./styles/popover.css";
 @import "./styles/telemetry.css";
+@import "./styles/components.css";
+@import "./styles/panels.css";
+@import "./styles/compiler.css";
+@import "./styles/training.css";

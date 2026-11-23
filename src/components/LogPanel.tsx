@@ -66,10 +66,10 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
   return (
     <section className="card" aria-labelledby="telemetry-stream-heading">
       <div className="card-title">
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <h3 id="telemetry-stream-heading" style={{ fontSize: "16px", fontWeight: 600 }}>Real-time Telemetry &amp; Pipeline Stream</h3>
+        <div className="row-gap-md">
+          <h3 id="telemetry-stream-heading" className="card-heading">Real-time Telemetry &amp; Pipeline Stream</h3>
           <HelpTooltip content="Monospace live telemetry terminal. Receives real-time logs and progress updates over the sidecar WebSockets (Environment Manager, Dataset Compiler, Training Suite)." />
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="row-gap-sm">
             <span
               className={`badge ${isConnected ? "badge-success" : "badge-error"}`}
               aria-label={`WebSocket status: ${isConnected ? "Connected" : "Offline"}`}
@@ -79,11 +79,10 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
             <HelpTooltip content={isConnected ? "WebSocket connection established with sidecar daemon." : "WebSocket connection lost. Retrying automatically every 3 seconds."} />
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="row-gap-sm">
           <button
             type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: "11px", padding: "4px 10px" }}
+            className="btn btn-secondary btn-compact"
             onClick={handleCopy}
             disabled={events.length === 0}
             aria-label={copied ? "Telemetry logs copied to clipboard" : "Copy telemetry stream logs to clipboard"}
@@ -94,8 +93,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
 
           <button
             type="button"
-            className="btn btn-secondary"
-            style={{ fontSize: "11px", padding: "4px 10px" }}
+            className="btn btn-secondary btn-compact"
             onClick={onClear}
             aria-label="Clear telemetry stream log"
           >
@@ -114,14 +112,13 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
 
       <div
         ref={containerRef}
-        className="log-container"
+        className="log-container log-container-selectable"
         role="log"
         aria-live="off"
         aria-label="Real-time telemetry and pipeline stream log"
-        style={{ userSelect: "text", WebkitUserSelect: "text" }}
       >
         {cleanEvents.length === 0 ? (
-          <div style={{ color: "var(--text-muted)", padding: "12px 0", userSelect: "none" }}>
+          <div className="log-empty-inline">
             [Awaiting telemetry stream from sidecar server...]
           </div>
         ) : (
@@ -137,12 +134,12 @@ export const LogPanel: React.FC<LogPanelProps> = ({ events, onClear, isConnected
                 : "log-tag-info";
 
             return (
-              <div key={index} className="log-line" style={{ userSelect: "text" }}>
+              <div key={index} className="log-line log-line-selectable">
                 <span className="log-time">[{timeStr}]</span>
-                <span className={tagClass} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+                <span className={`${tagClass} log-tag-nowrap`}>
                   [{ev.step_number > 0 ? `Step ${ev.step_number}` : "SYS"}] [{ev.step_name.toUpperCase()}]:
                 </span>
-                <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{ev.message}</span>
+                <span className="log-message-wrap">{ev.message}</span>
               </div>
             );
           })

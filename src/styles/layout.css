@@ -391,3 +391,44 @@
   color: var(--text-primary);
   font-weight: 500;
 }
+
+/* App Shell Header & Sidebar Helpers */
+.brand-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.nav-item-grow,
+.nav-item-wrapper > .nav-item-grow {
+  flex: 1;
+  padding-right: 36px;
+}
+
+.nav-item-tooltip {
+  position: absolute;
+  right: 10px;
+  z-index: 2;
+}
+
+.sidebar-brand-logo {
+  width: 100%;
+  max-width: 160px;
+  height: 26px;
+  object-fit: contain;
+  filter: brightness(1.15);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

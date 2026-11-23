@@ -305,40 +305,28 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         <ValidationBanner
           type="info"
           message={refreshFeedback}
-          style={{ marginBottom: "16px" }}
+          className="banner-space-bottom"
         />
       )}
 
       {!trainingSuiteOnline && (
         <div
           role="alert"
-          style={{
-            padding: "12px 16px",
-            backgroundColor: "rgba(251, 146, 60, 0.12)",
-            border: "1px solid var(--accent-amber, #f59e0b)",
-            borderRadius: "var(--radius-sm)",
-            marginBottom: "16px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "12px",
-          }}
+          className="sidecar-offline-banner"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="row-gap-md">
             <span
-              className="status-indicator status-offline"
-              style={{ width: "10px", height: "10px", flexShrink: 0 }}
+              className="status-indicator status-offline status-indicator-alert"
               aria-label="Training Suite sidecar offline"
             />
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              <strong style={{ color: "var(--accent-amber, #f59e0b)" }}>Training Suite Sidecar Offline (:{servicePort("training-suite")})</strong> — The model catalog, training status, ladders, and metrics come only from the sidecar and appear once it is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
+            <span className="sidecar-offline-text">
+              <strong className="sidecar-offline-title">Training Suite Sidecar Offline (:{servicePort("training-suite")})</strong> — The model catalog, training status, ladders, and metrics come only from the sidecar and appear once it is reachable. Launch the sidecar to run live training passes, inspect GPU VRAM, or export ONNX weights.
             </span>
           </div>
           {onStartTrainingSuite && (
             <button
               type="button"
-              className="btn btn-primary"
-              style={{ fontSize: "12px", whiteSpace: "nowrap", flexShrink: 0 }}
+              className="btn btn-primary btn-font-sm btn-nowrap"
               onClick={onStartTrainingSuite}
             >
               Start Training Suite
@@ -355,7 +343,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           role="alert"
           message={statusError}
           onDismiss={() => setStatusError(null)}
-          style={{ marginBottom: "16px" }}
+          className="banner-space-bottom"
         />
       )}
 
@@ -364,7 +352,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
           type="success"
           message={statusNotice}
           onDismiss={() => setStatusNotice(null)}
-          style={{ marginBottom: "16px" }}
+          className="banner-space-bottom"
         />
       )}
 
@@ -400,34 +388,33 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         />
 
         {/* 2. Model Cards Masonry Grid */}
-        <div className="card-grid card-grid-models masonry-grid" style={{ marginBottom: "24px" }}>
+        <div className="card-grid card-grid-models masonry-grid models-masonry-spaced">
           {filteredModels.length === 0 ? (
-            <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
+            <div className="empty-catalog-state">
               {models.length > 0 ? (
                 <>
-                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>No architectures matched your search or filter criteria.</p>
+                  <p className="empty-catalog-message">No architectures matched your search or filter criteria.</p>
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-font-sm"
                     onClick={() => {
                       setSearchQuery("");
                       setStatusFilter("ALL");
                       setCategoryFilter("ALL");
                       setArchFilter("ALL");
                     }}
-                    style={{ fontSize: "12px" }}
                   >
                     Clear All Filters
                   </button>
                 </>
               ) : (
                 <div data-testid="models-empty-state">
-                  <p style={{ fontSize: "14px", marginBottom: "8px" }}>
+                  <p className="empty-catalog-message">
                     {trainingSuiteOnline
                       ? "The Training Suite returned no models."
                       : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
                   </p>
-                  <button type="button" className="btn btn-secondary" onClick={() => void loadTrainingData()} style={{ fontSize: "12px" }}>
+                  <button type="button" className="btn btn-secondary btn-font-sm" onClick={() => void loadTrainingData()}>
                     Retry
                   </button>
                 </div>

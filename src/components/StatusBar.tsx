@@ -25,16 +25,16 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   ];
   return (
     <footer className="status-bar" role="contentinfo" aria-label="System Status Bar">
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      <div className="status-bar-left">
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }} role="status" aria-live="polite">
+        <div className="status-bar-sidecars" role="status" aria-live="polite">
           {sidecars.map(({ label, port, online }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <div key={label} className="status-bar-sidecar-item">
               <span
                 className={`status-indicator ${online ? "status-online" : "status-offline"}`}
                 aria-hidden="true"
               />
-              <span style={{ fontSize: "11px", color: online ? "var(--text-secondary)" : "var(--text-muted)" }}>
+              <span className={online ? "status-bar-sidecar-label-online" : "status-bar-sidecar-label"}>
                 {label} (:{port})
               </span>
             </div>
@@ -46,29 +46,29 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         <span aria-hidden="true">|</span>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="status-bar-group">
           <span
             className={`status-indicator ${allOnline ? "status-online" : anyOnline ? "status-online" : "status-offline"}`}
             aria-hidden="true"
           />
-          <span style={{ fontSize: "11px", fontWeight: 600, color: allOnline ? "var(--accent-cyan)" : "var(--accent-rose)" }}>
+          <span className={allOnline ? "status-bar-mesh-online" : "status-bar-mesh-offline"}>
             {allOnline ? "Mesh Online" : anyOnline ? "Mesh Partial" : "Mesh Offline"}
           </span>
         </div>
 
         <span aria-hidden="true">|</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="status-bar-group">
           <span>Accelerator: {backend.toUpperCase()}</span>
           <HelpTooltip content={`Active hardware execution provider: ${backend.toUpperCase()}. Accelerates deep learning tensor operations.`} />
         </div>
         <span aria-hidden="true">|</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="status-bar-group">
           <span>Managed Projects: {projectCount}</span>
           <HelpTooltip content="Total discovered repositories in workspace governed by the LemGendary environment manager." />
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <div className="status-bar-group">
         <span>Last Synced: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "Never"}</span>
         <HelpTooltip content="Timestamp of the most recent hardware audit and ecosystem state synchronization." />
       </div>

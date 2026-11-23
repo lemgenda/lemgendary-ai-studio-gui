@@ -30,12 +30,12 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
     return (
       <section className="card" aria-labelledby="health-offline-title">
         <div className="card-title">
-          <h3 id="health-offline-title" style={{ fontSize: "16px", fontWeight: 600 }}>
+          <h3 id="health-offline-title" className="card-heading">
             Ecosystem Health &amp; Version Drift
           </h3>
           <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
         </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
+        <p className="offline-card-desc">
           Health audit requires Environment Manager (Port {servicePort("env-manager")}).
           Launch it to populate the toolchain prerequisite matrix and cross-project version drift table.
         </p>
@@ -127,14 +127,14 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
   const guiProject = report.projects.find((p) => p.name === guiProjectFolder());
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className="stack-xl">
       <section className="card" aria-labelledby="toolchain-prereq-title">
         <div className="card-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <h3 id="toolchain-prereq-title" style={{ fontSize: "16px", fontWeight: 600 }}>Toolchain Prerequisites</h3>
+          <div className="row-gap-sm">
+            <h3 id="toolchain-prereq-title" className="card-heading">Toolchain Prerequisites</h3>
             <HelpTooltip content="Audits global developer toolchains on the host operating system: Python 3.12+, Git SCM, and Node.js LTS engine." />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="row-gap-sm">
             <span
               className={`badge ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "badge-success" : "badge-error"}`}
               aria-label={`Toolchain status: ${report.bootstrap.python_valid && report.bootstrap.git_installed ? "All prerequisites verified" : "Attention required"}`}
@@ -167,12 +167,12 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
         </div>
 
         {report.bootstrap.missing_prerequisites.length > 0 && (
-          <div style={{ marginTop: "12px", padding: "12px", backgroundColor: "rgba(244, 63, 94, 0.1)", borderRadius: "var(--radius-sm)" }}>
-            <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--accent-rose)", marginBottom: "4px" }}>
+          <div className="health-prereq-alert">
+            <div className="health-prereq-title">
               Missing Toolchains:
             </div>
             {report.bootstrap.remediation_instructions.map((inst, i) => (
-              <div key={i} style={{ fontSize: "11px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+              <div key={i} className="health-prereq-item">
                 {inst}
               </div>
             ))}
@@ -182,11 +182,11 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
 
       <section className="card" aria-labelledby="drift-matrix-title">
         <div className="card-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <h3 id="drift-matrix-title" style={{ fontSize: "16px", fontWeight: 600 }}>Cross-Project Package Version Drift Matrix</h3>
+          <div className="row-gap-sm">
+            <h3 id="drift-matrix-title" className="card-heading">Cross-Project Package Version Drift Matrix</h3>
             <HelpTooltip content="Compares package versions across all project virtual environments. Highlights version drift where different projects run conflicting dependency releases." />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="row-gap-sm">
             <span
               className={`badge ${report.version_drift.some((d) => d.has_drift) ? "badge-warning" : "badge-success"}`}
               aria-label={`Drift status: ${report.version_drift.some((d) => d.has_drift) ? "Version drift observed" : "Synchronized"}`}
@@ -197,31 +197,31 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </div>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: "12px", maxHeight: "360px", overflowY: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+        <div className="data-table-scroll-box">
+          <table className="data-table-mono">
             <caption className="sr-only">Cross-Project Package Version Drift Matrix comparing package versions across projects</caption>
             <thead>
-              <tr style={{ borderBottom: "1px solid var(--border-color)", textAlign: "left", color: "var(--text-muted)" }}>
-                <th scope="col" style={{ padding: "8px 12px" }}>Package</th>
+              <tr className="data-table-head-row">
+                <th scope="col" className="data-table-cell">Package</th>
                 {projNames.map((name) => (
-                  <th key={name} scope="col" style={{ padding: "8px 12px" }}>{name}</th>
+                  <th key={name} scope="col" className="data-table-cell">{name}</th>
                 ))}
-                <th scope="col" style={{ padding: "8px 12px" }}>Status</th>
+                <th scope="col" className="data-table-cell">Status</th>
               </tr>
             </thead>
             <tbody>
               {report.version_drift.map((drift) => (
-                <tr key={drift.package_name} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
-                  <th scope="row" style={{ padding: "8px 12px", color: "var(--accent-cyan)", fontWeight: 500, textAlign: "left" }}>
+                <tr key={drift.package_name} className="data-table-row">
+                  <th scope="row" className="data-table-th-key">
                     {drift.package_name}
                   </th>
                   {projNames.map((pName) => (
-                    <td key={pName} style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>
+                    <td key={pName} className="data-table-td-secondary">
                       {drift.versions[pName] || "-"}
                     </td>
                   ))}
-                  <td style={{ padding: "8px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <td className="data-table-cell">
+                    <div className="row-gap-sm">
                       <span className={`badge ${drift.has_drift ? "badge-warning" : "badge-success"}`}>
                         {drift.has_drift ? "DRIFT" : "SYNC"}
                       </span>
@@ -238,11 +238,11 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       {guiProject && (
         <section className="card" aria-labelledby="gui-dependencies-title">
           <div className="card-title">
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <h3 id="gui-dependencies-title" style={{ fontSize: "16px", fontWeight: 600 }}>Desktop GUI Project Packages (NPM)</h3>
+            <div className="row-gap-sm">
+              <h3 id="gui-dependencies-title" className="card-heading">Desktop GUI Project Packages (NPM)</h3>
               <HelpTooltip content="Node.js and Tauri ecosystem packages managed via package.json. Desktop UI runs independently of Python virtual environments." />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div className="row-gap-sm">
               <span className={`badge ${guiProject.is_healthy ? "badge-success" : "badge-error"}`}>
                 {guiProject.is_healthy ? "NODE_MODULES READY" : "ATTENTION REQUIRED"}
               </span>
@@ -250,7 +250,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginTop: "12px" }}>
+          <div className="health-npm-grid">
             <div className="metric-row">
               <span className="metric-label">Runtime Engine</span>
               <span className="metric-value">Node.js LTS (npm)</span>
@@ -266,27 +266,27 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           </div>
 
           {Object.keys(guiProject.installed_packages).length > 0 && (
-            <div style={{ marginTop: "16px", overflowX: "auto", maxHeight: "360px", overflowY: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", fontFamily: "var(--font-mono)" }}>
+            <div className="data-table-scroll-box-lg">
+              <table className="data-table-mono">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border-color)", textAlign: "left", color: "var(--text-muted)" }}>
-                    <th scope="col" style={{ padding: "8px 12px" }}>Package Name</th>
-                    <th scope="col" style={{ padding: "8px 12px" }}>Installed Version</th>
-                    <th scope="col" style={{ padding: "8px 12px" }}>Category</th>
-                    <th scope="col" style={{ padding: "8px 12px" }}>Status</th>
+                  <tr className="data-table-head-row">
+                    <th scope="col" className="data-table-cell">Package Name</th>
+                    <th scope="col" className="data-table-cell">Installed Version</th>
+                    <th scope="col" className="data-table-cell">Category</th>
+                    <th scope="col" className="data-table-cell">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(guiProject.installed_packages).map(([pkg, ver]) => (
-                    <tr key={pkg} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
-                      <th scope="row" style={{ padding: "8px 12px", color: "var(--accent-cyan)", fontWeight: 500, textAlign: "left" }}>
+                    <tr key={pkg} className="data-table-row">
+                      <th scope="row" className="data-table-th-key">
                         {pkg}
                       </th>
-                      <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{ver}</td>
-                      <td style={{ padding: "8px 12px", color: "var(--text-muted)" }}>
+                      <td className="data-table-td-secondary">{ver}</td>
+                      <td className="data-table-td-muted">
                         {pkg.startsWith("@types") || pkg.includes("eslint") || pkg === "typescript" || pkg === "vite" || pkg === "vitest" ? "Dev Dependency" : "Production Dependency"}
                       </td>
-                      <td style={{ padding: "8px 12px" }}>
+                      <td className="data-table-cell">
                         <span className="badge badge-success">INSTALLED</span>
                       </td>
                     </tr>
@@ -301,8 +301,8 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       {/* ─── ECOSYSTEM MAINTENANCE & GOVERNANCE ACTIONS ─── */}
       <section className="card" aria-labelledby="maintenance-actions-title">
         <div className="card-title">
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <h3 id="maintenance-actions-title" style={{ fontSize: "16px", fontWeight: 600 }}>
+          <div className="row-gap-sm">
+            <h3 id="maintenance-actions-title" className="card-heading">
               Ecosystem Maintenance &amp; Governance
             </h3>
             <HelpTooltip content={`Operational maintenance routines executed by Environment Manager (Port ${servicePort("env-manager")}): non-breaking bottom-up package upgrades, deep cache purges, git hook synchronization, and multi-linter validation.`} />
@@ -310,18 +310,17 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <span className="badge badge-info">MAINTENANCE</span>
         </div>
 
-        <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "16px" }}>
+        <p className="health-intro-desc">
           One-click ecosystem maintenance routines enforcing zero-drift dependency alignment, clean workspace caches, and standardized pre-commit validation hooks.
         </p>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
+        <div className="health-actions-row">
           <button
             id="health-btn-safe-upgrade"
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary btn-maintenance-primary"
             onClick={() => setPendingAction("upgrade")}
             disabled={isUpdating}
-            style={{ fontSize: "12px", padding: "8px 14px", fontWeight: 600 }}
           >
             {isUpdating ? "Upgrading Packages..." : "Safe Package Upgrade"}
           </button>
@@ -329,10 +328,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <button
             id="health-btn-upgrade-dry-run"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-maintenance"
             onClick={() => handleSafeUpdate(true)}
             disabled={isUpdating}
-            style={{ fontSize: "12px", padding: "8px 14px" }}
           >
             Upgrade Dry Run
           </button>
@@ -340,10 +338,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <button
             id="health-btn-deep-clean"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-maintenance"
             onClick={() => setPendingAction("purge")}
             disabled={isCleaning}
-            style={{ fontSize: "12px", padding: "8px 14px" }}
           >
             {isCleaning ? "Purging Caches..." : "Deep Cache Purge"}
           </button>
@@ -351,10 +348,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <button
             id="health-btn-install-hooks"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-maintenance"
             onClick={handleInstallHooks}
             disabled={isInstallingHooks}
-            style={{ fontSize: "12px", padding: "8px 14px" }}
           >
             {isInstallingHooks ? "Configuring Hooks..." : "Install Git Hooks"}
           </button>
@@ -362,10 +358,9 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <button
             id="health-btn-validate-ecosystem"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-maintenance"
             onClick={handleValidateEcosystem}
             disabled={isValidating}
-            style={{ fontSize: "12px", padding: "8px 14px" }}
           >
             {isValidating ? "Validating Ecosystem..." : "Run Ecosystem Validation"}
           </button>
@@ -375,7 +370,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <ValidationBanner
             type="success"
             message={maintenanceFeedback}
-            style={{ fontSize: "12px", marginTop: "10px" }}
+            className="banner-space-top-xs banner-text-sm"
           />
         )}
 
@@ -383,7 +378,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
           <ValidationBanner
             type="error"
             message={maintenanceError}
-            style={{ fontSize: "12px", marginTop: "10px" }}
+            className="banner-space-top-xs banner-text-sm"
           />
         )}
       </section>

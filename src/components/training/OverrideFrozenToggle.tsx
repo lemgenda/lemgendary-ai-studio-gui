@@ -22,30 +22,20 @@ interface OverrideFrozenToggleProps {
   disabled?: boolean;
   /** Accessible name suffix, for example the model name on a card. */
   context?: string;
-  style?: React.CSSProperties;
+  className?: string;
 }
 
-export const OverrideFrozenToggle: React.FC<OverrideFrozenToggleProps> = ({ id, checked, onChange, disabled = false, context, style }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "8px", ...style }}>
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        fontSize: "12px",
-        color: "var(--text-primary)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        userSelect: "none",
-      }}
-    >
+export const OverrideFrozenToggle: React.FC<OverrideFrozenToggleProps> = ({ id, checked, onChange, disabled = false, context, className = "" }) => (
+  <div className={`override-frozen-row ${className}`}>
+    <label className={`checkbox-label ${disabled ? "checkbox-label-disabled" : ""}`}>
       <input
         id={id}
         type="checkbox"
+        className={disabled ? "checkbox-input-lg-disabled" : "checkbox-input-lg"}
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         aria-label={context ? `${OVERRIDE_FROZEN_LABEL} for ${context}` : undefined}
-        style={{ cursor: disabled ? "not-allowed" : "pointer", width: "16px", height: "16px" }}
       />
       <span>{OVERRIDE_FROZEN_LABEL}</span>
     </label>

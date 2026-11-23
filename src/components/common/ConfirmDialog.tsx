@@ -50,7 +50,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </>
       }
     >
-      <div id={descId} style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+      <div id={descId} className="modal-desc">
         {message}
       </div>
     </Modal>

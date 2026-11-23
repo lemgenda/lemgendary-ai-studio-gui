@@ -166,6 +166,12 @@
   color: var(--accent-cyan);
 }
 
+.banner-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--accent-amber, #f59e0b);
+  color: var(--accent-amber, #f59e0b);
+}
+
 /* ─── Diff View ──────────────────────────────────────────────────────────── */
 .diff-view-container {
   flex: 1;
@@ -226,4 +232,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.manifest-select-label {
+  font-size: 12px;
+  color: var(--text-muted);
 }

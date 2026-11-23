@@ -51,62 +51,32 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
   datasetCompilerOnline,
 }) => (
   <div>
-    <div
-      className="form-grid"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "12px",
-        marginBottom: "14px",
-      }}
-    >
+    <div className="form-grid form-grid-custom">
       <div className="form-group">
-        <label
-          htmlFor="custom-name-input"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
+        <label htmlFor="custom-name-input" className="form-field-label">
           Manifold Name:
         </label>
         <input
           id="custom-name-input"
           type="text"
-          className="editor-input"
+          className="editor-input form-control-sm"
           placeholder="e.g. FineArtPortraitsV1"
           value={customName}
           onChange={(e) => onChangeCustomName(e.target.value)}
           disabled={isCustomCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         />
       </div>
 
       <div className="form-group">
-        <label
-          htmlFor="custom-task-select"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
+        <label htmlFor="custom-task-select" className="form-field-label">
           Task Category:
         </label>
         <select
           id="custom-task-select"
-          className="editor-select"
+          className="editor-select form-control-sm"
           value={customTask}
           onChange={(e) => onChangeCustomTask(e.target.value)}
           disabled={isCustomCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         >
           <option value="restoration">Restoration &amp; Enhancement</option>
           <option value="detection">Detection &amp; Localization</option>
@@ -117,22 +87,12 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label
-          htmlFor="custom-format-select"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
+        <label htmlFor="custom-format-select" className="form-field-label">
           Container Format:
         </label>
         <select
           id="custom-format-select"
-          className="editor-select"
+          className="editor-select form-control-sm"
           value={customCanonicalFormat}
           onChange={(e) =>
             onChangeCustomCanonicalFormat(
@@ -140,7 +100,6 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
             )
           }
           disabled={isCustomCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         >
           <option value="webdataset">WebDataset Streaming (.data shards)</option>
           <option value="parquet">Columnar Parquet (.parquet)</option>
@@ -150,62 +109,37 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label
-          htmlFor="custom-preset-select"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
+        <label htmlFor="custom-preset-select" className="form-field-label">
           Compression Profile:
         </label>
         <select
           id="custom-preset-select"
-          className="editor-select"
+          className="editor-select form-control-sm"
           value={customPreset}
           onChange={(e) => onChangeCustomPreset(e.target.value)}
           disabled={isCustomCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         >
           <PresetOptions presets={presets} presetsError={presetsError} />
         </select>
       </div>
 
       <div className="form-group">
-        <label
-          htmlFor="custom-shard-size"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
-        >
+        <label htmlFor="custom-shard-size" className="form-field-label">
           Samples Per Shard:
         </label>
         <input
           id="custom-shard-size"
           type="number"
-          className="editor-input"
+          className="editor-input form-control-sm"
           value={customShardSize}
           onChange={(e) => onChangeCustomShardSize(Number(e.target.value))}
           disabled={isCustomCompiling}
           min={100}
           max={50000}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         />
       </div>
 
-      <div
-        className="form-group"
-        style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "22px" }}
-      >
+      <div className="form-group custom-purge-row">
         <input
           id="custom-purge-check"
           type="checkbox"
@@ -213,42 +147,24 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
           onChange={(e) => onToggleCustomPurgeLoose(e.target.checked)}
           disabled={isCustomCompiling}
         />
-        <label
-          htmlFor="custom-purge-check"
-          style={{ fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}
-        >
+        <label htmlFor="custom-purge-check" className="checkbox-label">
           Purge loose source images
         </label>
       </div>
     </div>
 
-    <div className="form-group" style={{ marginBottom: "14px" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "4px",
-        }}
-      >
-        <label
-          htmlFor="custom-sources-area"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-          }}
-        >
+    <div className="form-group custom-sources-field">
+      <div className="custom-sources-header">
+        <label htmlFor="custom-sources-area" className="form-field-label-caps">
           Source Repositories &amp; URLs (One per line):
         </label>
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <span className="custom-sources-hint">
           Prefixes: kaggle:// | hf:// | gd:// | gh:// or raw URLs
         </span>
       </div>
       <textarea
         id="custom-sources-area"
-        className="editor-textarea"
+        className="editor-textarea custom-sources-textarea"
         rows={3}
         placeholder={
           "# Enter source repositories or direct links, one per line:\nkaggle://username/dataset-slug\nhttps://huggingface.co/datasets/org/dataset-name\nhttps://github.com/owner/repository"
@@ -256,17 +172,15 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
         value={customSourcesText}
         onChange={(e) => onChangeCustomSourcesText(e.target.value)}
         disabled={isCustomCompiling}
-        style={{ fontSize: "12px", padding: "8px" }}
       />
     </div>
 
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <div className="row-gap-lg">
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-action-bold"
         onClick={onCustomCompile}
         disabled={isCustomCompiling || !datasetCompilerOnline}
-        style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
       >
         {isCustomCompiling ? "Compiling Custom Manifold..." : "Compile Custom Dataset"}
       </button>
@@ -275,7 +189,7 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
     {customCompileStatus && (
       <ValidationBanner
         message={customCompileStatus}
-        style={{ marginTop: "12px", fontSize: "12px" }}
+        className="banner-space-top-sm banner-text-sm"
       />
     )}
   </div>

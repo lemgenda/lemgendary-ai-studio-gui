@@ -113,11 +113,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="sidebar" aria-label="Application Sidebar">
       <div className="brand-header">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="brand-header-row">
           <img
             src={lemgendaIcon}
             alt="LemGendary Brand"
-            style={{ width: "24px", height: "24px", objectFit: "contain", flexShrink: 0 }}
+            className="brand-icon"
           />
           <h1 className="brand-title">LemGendary AI</h1>
           <HelpTooltip
@@ -140,19 +140,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   aria-current={isSelected ? "page" : undefined}
                   aria-controls="main-content"
-                  className={`nav-item ${isSelected ? "active" : ""}`}
-                  style={{ flex: 1, paddingRight: "36px" }}
+                  className={`nav-item nav-item-grow ${isSelected ? "active" : ""}`}
                   onClick={() => onSelectTab(item.id)}
                   onKeyDown={(e) => handleKeyDown(e, index)}
                 >
                   <span
-                    className={`status-indicator ${isOnline ? "status-online" : "status-offline"}`}
+                    className={`status-indicator status-indicator-nav ${isOnline ? "status-online" : "status-offline"}`}
                     aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
-                    style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
                   />
                   {item.label}
                 </button>
-                <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+                <div className="nav-item-tooltip">
                   <HelpTooltip content={item.tooltip} position="right" />
                 </div>
               </div>
@@ -163,21 +161,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     id="sidebar-btn-docs-hub"
                     type="button"
-                    className="nav-item"
-                    style={{ flex: 1, paddingRight: "36px" }}
+                    className="nav-item nav-item-grow"
                     onClick={handleOpenDocs}
                     disabled={!docsUrl}
                     title={docsUrl ? undefined : docsUnavailableReason}
                     aria-label="Open local offline LemGendary AI Documentation Hub"
                   >
                     <span
-                      className={`status-indicator ${docsUrl ? "status-online" : "status-offline"}`}
+                      className={`status-indicator status-indicator-nav ${docsUrl ? "status-online" : "status-offline"}`}
                       aria-label={docsUrl ? "Documentation Hub online" : "Documentation Hub offline"}
-                      style={{ display: "inline-block", marginRight: "8px", flexShrink: 0 }}
                     />
                     LemGendary AI Documentation Hub
                   </button>
-                  <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+                  <div className="nav-item-tooltip">
                     <HelpTooltip
                       content={
                         docsUrl
@@ -200,14 +196,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               id="sidebar-btn-config"
               type="button"
-              className="btn btn-secondary sidebar-action-btn"
-              style={{ flex: 1, paddingRight: "36px" }}
+              className="btn btn-secondary sidebar-action-btn nav-item-grow"
               onClick={onOpenConfigEditor}
               aria-label="Open Universal Configuration, Registry Editor & Secrets Vault Modal"
             >
               Config &amp; Secrets
             </button>
-            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+            <div className="nav-item-tooltip">
               <HelpTooltip
                 content="Universal Configuration & Secrets Editor: Inspect and edit YAML manifests, dataset configs, model hyperparameters, and manage API keys & tokens."
                 position="right"
@@ -221,14 +216,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               id="header-btn-test-modal"
               type="button"
-              className="btn btn-secondary sidebar-action-btn"
-              style={{ flex: 1, paddingRight: "36px" }}
+              className="btn btn-secondary sidebar-action-btn nav-item-grow"
               onClick={onOpenTestModal}
               aria-label="Open Test & Diagnostic Orchestrator modal"
             >
               Tests &amp; Diagnostics
             </button>
-            <div style={{ position: "absolute", right: "10px", zIndex: 2 }}>
+            <div className="nav-item-tooltip">
               <HelpTooltip
                 content="Test & Diagnostic Orchestrator: dispatch the fleet 1-epoch smoke test, or run the Training Suite and Dataset Compiler unit test suites in-process on their sidecars."
                 position="right"
@@ -247,14 +241,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <img
             src={lemgendaLogo}
             alt="LemGenda"
-            style={{
-              width: "100%",
-              maxWidth: "160px",
-              height: "26px",
-              objectFit: "contain",
-              filter: "brightness(1.15)",
-              transition: "transform 0.2s ease, opacity 0.2s ease",
-            }}
+            className="sidebar-brand-logo"
           />
         </ExternalLink>
       </div>

@@ -1,8 +1,307 @@
-/* LemGendary AI Studio - Telemetry progress tracker animation. */
+/* LemGendary AI Studio - Telemetry progress tracker and console stream. */
 
 /* Indeterminate sweep for TelemetryProgressTracker (kept here so the CSP needs no inline <style>). */
 @keyframes telemetry-indeterminate-sweep {
   0% { transform: translateX(-100%); width: 40%; }
   50% { transform: translateX(50%); width: 60%; }
   100% { transform: translateX(200%); width: 40%; }
+}
+
+@keyframes telemetry-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.telemetry-progress-tracker {
+  --tracker-accent: var(--accent-emerald, #00ff88);
+  --tracker-gradient: linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%);
+}
+
+.telemetry-theme-validation {
+  --tracker-accent: var(--accent-emerald, #00ff88);
+  --tracker-gradient: linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%);
+}
+
+.telemetry-theme-compiler {
+  --tracker-accent: var(--accent-cyan, #00f0ff);
+  --tracker-gradient: linear-gradient(90deg, #00d2ff 0%, #00f0ff 60%, #00ff88 100%);
+}
+
+.telemetry-theme-training {
+  --tracker-accent: var(--accent-purple, #bf7af0);
+  --tracker-gradient: linear-gradient(90deg, #8a2be2 0%, #bf7af0 60%, #00f0ff 100%);
+}
+
+.telemetry-theme-pipeline {
+  --tracker-accent: var(--accent-amber, #ffd166);
+  --tracker-gradient: linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%);
+}
+
+.telemetry-theme-default {
+  --tracker-accent: var(--accent-emerald, #00ff88);
+  --tracker-gradient: linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%);
+}
+
+.telemetry-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.telemetry-progress-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.telemetry-progress-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--tracker-accent);
+  box-shadow: 0 0 8px var(--tracker-accent);
+  flex-shrink: 0;
+}
+
+.telemetry-progress-op {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--tracker-accent);
+  flex-shrink: 0;
+}
+
+.telemetry-progress-target {
+  color: var(--text-primary, #ffffff);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.telemetry-progress-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.telemetry-progress-stats {
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.telemetry-progress-rate {
+  color: var(--accent-cyan, #00f0ff);
+}
+
+.telemetry-progress-eta {
+  color: var(--accent-yellow, #ffd166);
+}
+
+.telemetry-progress-pct {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  min-width: 52px;
+  text-align: right;
+}
+
+.telemetry-progress-root {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  width: 100%;
+  height: 7px;
+  transform: translateZ(0);
+}
+
+.telemetry-progress-indicator {
+  background: var(--tracker-gradient);
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  box-shadow: 0 0 12px var(--tracker-accent);
+  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(-100%);
+}
+
+.telemetry-progress-indicator-indeterminate {
+  width: 50%;
+  transition: none;
+  animation: telemetry-indeterminate-sweep 1.8s infinite ease-in-out;
+}
+
+.telemetry-progress-indicator[data-pct="0"] { transform: translateX(-100%); }
+.telemetry-progress-indicator[data-pct="1"] { transform: translateX(-99%); }
+.telemetry-progress-indicator[data-pct="2"] { transform: translateX(-98%); }
+.telemetry-progress-indicator[data-pct="3"] { transform: translateX(-97%); }
+.telemetry-progress-indicator[data-pct="4"] { transform: translateX(-96%); }
+.telemetry-progress-indicator[data-pct="5"] { transform: translateX(-95%); }
+.telemetry-progress-indicator[data-pct="6"] { transform: translateX(-94%); }
+.telemetry-progress-indicator[data-pct="7"] { transform: translateX(-93%); }
+.telemetry-progress-indicator[data-pct="8"] { transform: translateX(-92%); }
+.telemetry-progress-indicator[data-pct="9"] { transform: translateX(-91%); }
+.telemetry-progress-indicator[data-pct="10"] { transform: translateX(-90%); }
+.telemetry-progress-indicator[data-pct="11"] { transform: translateX(-89%); }
+.telemetry-progress-indicator[data-pct="12"] { transform: translateX(-88%); }
+.telemetry-progress-indicator[data-pct="13"] { transform: translateX(-87%); }
+.telemetry-progress-indicator[data-pct="14"] { transform: translateX(-86%); }
+.telemetry-progress-indicator[data-pct="15"] { transform: translateX(-85%); }
+.telemetry-progress-indicator[data-pct="16"] { transform: translateX(-84%); }
+.telemetry-progress-indicator[data-pct="17"] { transform: translateX(-83%); }
+.telemetry-progress-indicator[data-pct="18"] { transform: translateX(-82%); }
+.telemetry-progress-indicator[data-pct="19"] { transform: translateX(-81%); }
+.telemetry-progress-indicator[data-pct="20"] { transform: translateX(-80%); }
+.telemetry-progress-indicator[data-pct="21"] { transform: translateX(-79%); }
+.telemetry-progress-indicator[data-pct="22"] { transform: translateX(-78%); }
+.telemetry-progress-indicator[data-pct="23"] { transform: translateX(-77%); }
+.telemetry-progress-indicator[data-pct="24"] { transform: translateX(-76%); }
+.telemetry-progress-indicator[data-pct="25"] { transform: translateX(-75%); }
+.telemetry-progress-indicator[data-pct="26"] { transform: translateX(-74%); }
+.telemetry-progress-indicator[data-pct="27"] { transform: translateX(-73%); }
+.telemetry-progress-indicator[data-pct="28"] { transform: translateX(-72%); }
+.telemetry-progress-indicator[data-pct="29"] { transform: translateX(-71%); }
+.telemetry-progress-indicator[data-pct="30"] { transform: translateX(-70%); }
+.telemetry-progress-indicator[data-pct="31"] { transform: translateX(-69%); }
+.telemetry-progress-indicator[data-pct="32"] { transform: translateX(-68%); }
+.telemetry-progress-indicator[data-pct="33"] { transform: translateX(-67%); }
+.telemetry-progress-indicator[data-pct="34"] { transform: translateX(-66%); }
+.telemetry-progress-indicator[data-pct="35"] { transform: translateX(-65%); }
+.telemetry-progress-indicator[data-pct="36"] { transform: translateX(-64%); }
+.telemetry-progress-indicator[data-pct="37"] { transform: translateX(-63%); }
+.telemetry-progress-indicator[data-pct="38"] { transform: translateX(-62%); }
+.telemetry-progress-indicator[data-pct="39"] { transform: translateX(-61%); }
+.telemetry-progress-indicator[data-pct="40"] { transform: translateX(-60%); }
+.telemetry-progress-indicator[data-pct="41"] { transform: translateX(-59%); }
+.telemetry-progress-indicator[data-pct="42"] { transform: translateX(-58%); }
+.telemetry-progress-indicator[data-pct="43"] { transform: translateX(-57%); }
+.telemetry-progress-indicator[data-pct="44"] { transform: translateX(-56%); }
+.telemetry-progress-indicator[data-pct="45"] { transform: translateX(-55%); }
+.telemetry-progress-indicator[data-pct="46"] { transform: translateX(-54%); }
+.telemetry-progress-indicator[data-pct="47"] { transform: translateX(-53%); }
+.telemetry-progress-indicator[data-pct="48"] { transform: translateX(-52%); }
+.telemetry-progress-indicator[data-pct="49"] { transform: translateX(-51%); }
+.telemetry-progress-indicator[data-pct="50"] { transform: translateX(-50%); }
+.telemetry-progress-indicator[data-pct="51"] { transform: translateX(-49%); }
+.telemetry-progress-indicator[data-pct="52"] { transform: translateX(-48%); }
+.telemetry-progress-indicator[data-pct="53"] { transform: translateX(-47%); }
+.telemetry-progress-indicator[data-pct="54"] { transform: translateX(-46%); }
+.telemetry-progress-indicator[data-pct="55"] { transform: translateX(-45%); }
+.telemetry-progress-indicator[data-pct="56"] { transform: translateX(-44%); }
+.telemetry-progress-indicator[data-pct="57"] { transform: translateX(-43%); }
+.telemetry-progress-indicator[data-pct="58"] { transform: translateX(-42%); }
+.telemetry-progress-indicator[data-pct="59"] { transform: translateX(-41%); }
+.telemetry-progress-indicator[data-pct="60"] { transform: translateX(-40%); }
+.telemetry-progress-indicator[data-pct="61"] { transform: translateX(-39%); }
+.telemetry-progress-indicator[data-pct="62"] { transform: translateX(-38%); }
+.telemetry-progress-indicator[data-pct="63"] { transform: translateX(-37%); }
+.telemetry-progress-indicator[data-pct="64"] { transform: translateX(-36%); }
+.telemetry-progress-indicator[data-pct="65"] { transform: translateX(-35%); }
+.telemetry-progress-indicator[data-pct="66"] { transform: translateX(-34%); }
+.telemetry-progress-indicator[data-pct="67"] { transform: translateX(-33%); }
+.telemetry-progress-indicator[data-pct="68"] { transform: translateX(-32%); }
+.telemetry-progress-indicator[data-pct="69"] { transform: translateX(-31%); }
+.telemetry-progress-indicator[data-pct="70"] { transform: translateX(-30%); }
+.telemetry-progress-indicator[data-pct="71"] { transform: translateX(-29%); }
+.telemetry-progress-indicator[data-pct="72"] { transform: translateX(-28%); }
+.telemetry-progress-indicator[data-pct="73"] { transform: translateX(-27%); }
+.telemetry-progress-indicator[data-pct="74"] { transform: translateX(-26%); }
+.telemetry-progress-indicator[data-pct="75"] { transform: translateX(-25%); }
+.telemetry-progress-indicator[data-pct="76"] { transform: translateX(-24%); }
+.telemetry-progress-indicator[data-pct="77"] { transform: translateX(-23%); }
+.telemetry-progress-indicator[data-pct="78"] { transform: translateX(-22%); }
+.telemetry-progress-indicator[data-pct="79"] { transform: translateX(-21%); }
+.telemetry-progress-indicator[data-pct="80"] { transform: translateX(-20%); }
+.telemetry-progress-indicator[data-pct="81"] { transform: translateX(-19%); }
+.telemetry-progress-indicator[data-pct="82"] { transform: translateX(-18%); }
+.telemetry-progress-indicator[data-pct="83"] { transform: translateX(-17%); }
+.telemetry-progress-indicator[data-pct="84"] { transform: translateX(-16%); }
+.telemetry-progress-indicator[data-pct="85"] { transform: translateX(-15%); }
+.telemetry-progress-indicator[data-pct="86"] { transform: translateX(-14%); }
+.telemetry-progress-indicator[data-pct="87"] { transform: translateX(-13%); }
+.telemetry-progress-indicator[data-pct="88"] { transform: translateX(-12%); }
+.telemetry-progress-indicator[data-pct="89"] { transform: translateX(-11%); }
+.telemetry-progress-indicator[data-pct="90"] { transform: translateX(-10%); }
+.telemetry-progress-indicator[data-pct="91"] { transform: translateX(-9%); }
+.telemetry-progress-indicator[data-pct="92"] { transform: translateX(-8%); }
+.telemetry-progress-indicator[data-pct="93"] { transform: translateX(-7%); }
+.telemetry-progress-indicator[data-pct="94"] { transform: translateX(-6%); }
+.telemetry-progress-indicator[data-pct="95"] { transform: translateX(-5%); }
+.telemetry-progress-indicator[data-pct="96"] { transform: translateX(-4%); }
+.telemetry-progress-indicator[data-pct="97"] { transform: translateX(-3%); }
+.telemetry-progress-indicator[data-pct="98"] { transform: translateX(-2%); }
+.telemetry-progress-indicator[data-pct="99"] { transform: translateX(-1%); }
+.telemetry-progress-indicator[data-pct="100"] { transform: translateX(0%); }
+
+/* Telemetry Console Panel */
+.telemetry-panel-anchor {
+  margin-top: 28px;
+}
+
+.telemetry-card-header {
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.telemetry-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.telemetry-dot-local-active {
+  background: var(--accent-emerald, #10b981);
+  animation: telemetry-dot-pulse 1.5s infinite;
+}
+
+.telemetry-dot-remote-active {
+  background: var(--accent-cyan, #06b6d4);
+  animation: telemetry-dot-pulse 1.5s infinite;
+}
+
+.telemetry-local-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.telemetry-worker-info {
+  color: var(--text-secondary);
+}
+
+.telemetry-worker-model {
+  color: var(--text-primary);
+}
+
+.telemetry-worker-hint {
+  color: var(--text-muted);
 }

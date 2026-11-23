@@ -259,17 +259,17 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
           if (id) confirmDeleteSecret(id);
         }}
       />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-color)", paddingBottom: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div className="secrets-header-bar">
+        <div className="secrets-header-meta">
           <span className={`service-badge ${hasKaggleConfigured ? "badge-mandatory" : "badge-error"}`}>
             {hasKaggleConfigured ? "Kaggle Authenticated (Mandatory)" : "Kaggle API Key Missing (Required)"}
           </span>
-          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <span className="secrets-count-text">
             {secrets.length} active credentials registered
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="row-gap-md">
           <button
             type="button"
             className="btn btn-secondary"
@@ -298,7 +298,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
           type="error"
           message={secretsErrorMsg}
           onDismiss={() => setSecretsErrorMsg(null)}
-          style={{ marginTop: "12px" }}
+          className="banner-space-top-sm"
         />
       )}
 
@@ -307,15 +307,15 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
           type="success"
           message={secretsSuccessMsg}
           onDismiss={() => setSecretsSuccessMsg(null)}
-          style={{ marginTop: "12px" }}
+          className="banner-space-top-sm"
         />
       )}
 
       {isAddingSecret && (
         <form className="secret-form-card" onSubmit={handleAddSecretSubmit}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 700 }}>Add New Credential / Token</h4>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Multiple secrets allowed per service</span>
+          <div className="secrets-form-header">
+            <h4 className="secrets-form-title">Add New Credential / Token</h4>
+            <span className="secrets-form-hint">Multiple secrets allowed per service</span>
           </div>
 
           <div className="form-grid">
@@ -373,7 +373,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
               </div>
             )}
 
-            <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+            <div className="form-field secrets-field-full">
               <label htmlFor="new-secret-input">Secret Token / API Key / Password:</label>
               <input
                 id="new-secret-input"
@@ -387,8 +387,8 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", cursor: "pointer" }}>
+          <div className="secrets-form-footer">
+            <label className="secrets-checkbox-label">
               <input
                 type="checkbox"
                 checked={newIsDefault}
@@ -397,7 +397,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
               Set as default active credential for this service
             </label>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="row-gap-md">
               <button type="button" className="btn btn-secondary" onClick={() => setIsAddingSecret(false)}>
                 Cancel
               </button>
@@ -410,11 +410,11 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
       )}
 
       {isSecretsLoading ? (
-        <div style={{ padding: "30px", textAlign: "center", color: "var(--text-muted)" }}>
+        <div className="secrets-loading-state">
           Loading ecosystem secrets vault...
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="secrets-services-list">
           {PREDEFINED_SERVICES.map((def) => {
             const serviceSecrets = secrets.filter((s) => s.service.toLowerCase() === def.key.toLowerCase());
             return (
@@ -425,15 +425,14 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                     <span className={`service-badge ${def.mandatory ? "badge-mandatory" : "badge-optional"}`}>
                       {def.mandatory ? "Mandatory" : "Optional"}
                     </span>
-                    <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                    <span className="secrets-service-count">
                       ({serviceSecrets.length} configured)
                     </span>
                   </div>
 
                   <button
                     type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: "4px 8px", fontSize: "11px" }}
+                    className="btn btn-secondary btn-xs"
                     onClick={() => {
                       setNewService(def.key);
                       setIsAddingSecret(true);
@@ -444,12 +443,12 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                   </button>
                 </div>
 
-                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>
+                <p className="secrets-service-desc">
                   {def.description}
                 </p>
 
                 {serviceSecrets.length === 0 ? (
-                  <div style={{ padding: "10px 14px", backgroundColor: "rgba(15, 23, 42, 0.4)", borderRadius: "var(--radius-sm)", fontSize: "12px", color: "var(--text-muted)" }}>
+                  <div className="secrets-empty-note">
                     No credentials configured for {def.name}. {def.mandatory ? "Please add at least one account to allow cloud data synchronization." : "Add a credential if you plan to use this integration."}
                   </div>
                 ) : (
@@ -459,10 +458,10 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                       return (
                         <div key={sec.id} className="credential-item">
                           <div className="credential-meta">
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div className="secrets-cred-title-row">
                               <span className="credential-label">{sec.label}</span>
                               {sec.is_default && (
-                                <span style={{ fontSize: "10px", background: "rgba(16, 185, 129, 0.2)", color: "#10b981", padding: "1px 6px", borderRadius: "4px", fontWeight: 600 }}>
+                                <span className="badge-default-tag">
                                   DEFAULT
                                 </span>
                               )}
@@ -472,7 +471,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                               {sec.server && <span>Server: {sec.server}</span>}
                               <span>Token: {describeSecretStatus(sec)}</span>
                             </div>
-                            <label htmlFor={replaceInputId} style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                            <label htmlFor={replaceInputId} className="secrets-replace-label">
                               Replace value (leave blank to keep):
                             </label>
                             <input
@@ -490,8 +489,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
                             {!sec.is_default && (
                               <button
                                 type="button"
-                                className="btn btn-secondary"
-                                style={{ padding: "4px 8px", fontSize: "11px" }}
+                                className="btn btn-secondary btn-xs"
                                 onClick={() => handleSetDefault(sec.id, sec.service)}
                                 aria-label="Set as default active credential"
                               >
@@ -501,8 +499,7 @@ export const SecretsEditorTab: React.FC<SecretsEditorTabProps> = ({
 
                             <button
                               type="button"
-                              className="btn btn-danger"
-                              style={{ padding: "4px 8px", fontSize: "11px" }}
+                              className="btn btn-danger btn-xs"
                               onClick={() => handleDeleteSecret(sec.id)}
                               aria-label="Delete this credential"
                             >

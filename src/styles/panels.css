@@ -1,0 +1,294 @@
+/* LemGendary AI Studio - Environment panels: Hardware, Services, Projects, Health & Pipeline. */
+
+/* Offline Card Message */
+.offline-card-desc {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* Hardware Card */
+.hardware-accel-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.hardware-accel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.hardware-accel-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Service Tiles */
+.service-section {
+  margin-bottom: 24px;
+}
+
+.service-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.service-card-offline {
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.service-card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.service-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.service-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Project Card & Managed Projects Section */
+.project-card-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.project-missing-list {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--accent-rose);
+  font-family: var(--font-mono);
+}
+
+.project-card-footer {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.section-header-refresh {
+  margin-left: auto;
+}
+
+/* Health Panel */
+.health-prereq-alert {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: rgba(244, 63, 94, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.health-prereq-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-rose);
+  margin-bottom: 4px;
+}
+
+.health-prereq-item {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.health-npm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.health-intro-desc {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.health-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+/* Pipeline Panel & Step Cards */
+.pipeline-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.pipeline-steps-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.pipeline-step-pill {
+  flex: 1 1 120px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.pipeline-step-pill-active {
+  border-color: var(--accent-amber);
+}
+
+.pipeline-step-num {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.pipeline-step-pill-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.pipeline-step-pill-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pipeline-offline-alert {
+  font-size: 12px;
+  color: var(--accent-rose);
+  margin-top: 8px;
+}
+
+.pipeline-steps-section {
+  margin-top: 20px;
+}
+
+.pipeline-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pipeline-steps-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pipeline-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.pipeline-step-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pipeline-step-card-running {
+  border-color: var(--accent-amber);
+}
+
+.pipeline-step-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pipeline-step-card-num {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.pipeline-step-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.pipeline-step-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.pipeline-step-progress-track {
+  margin-bottom: 10px;
+  position: relative;
+  height: 5px;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pipeline-step-progress-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 8px rgba(255, 209, 102, 0.5);
+  animation: telemetry-indeterminate-sweep 1.8s infinite ease-in-out;
+}
+
+.pipeline-step-log {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  margin-bottom: 14px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  max-height: 60px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+.pipeline-step-log-error {
+  color: var(--accent-rose);
+}
+
+.pipeline-step-log-warning {
+  color: var(--accent-amber);
+}
+
+.pipeline-step-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}

@@ -47,17 +47,16 @@ export const ManagedProjectsSection: React.FC<ManagedProjectsSectionProps> = ({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-        <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Managed Workspace Projects</h3>
+      <div className="section-header-bar">
+        <h3 className="card-heading">Managed Workspace Projects</h3>
         <HelpTooltip content="Independent sub-repositories in the workspace governed by the LemGendary environment manager. Each card provides status, package metrics, and individual virtual environment reconciliation." />
         <button
           type="button"
           id="dash-btn-refresh-projects"
-          className="btn btn-secondary"
+          className="btn btn-secondary btn-toolbar-sm section-header-refresh"
           onClick={() => void handleRefreshProjects()}
           disabled={isRefreshing || isProcessing || isOffline || !envManagerOnline}
           title="Re-reads each project's virtual environment and installed packages from the Environment Manager"
-          style={{ marginLeft: "auto", fontSize: "12px", padding: "5px 12px" }}
         >
           {isRefreshing ? "Refreshing..." : "Refresh Projects"}
         </button>
@@ -67,7 +66,7 @@ export const ManagedProjectsSection: React.FC<ManagedProjectsSectionProps> = ({
           type="error"
           message={refreshError}
           onDismiss={() => setRefreshError(null)}
-          style={{ marginBottom: "16px", fontSize: "12px" }}
+          className="banner-space-bottom banner-text-sm"
         />
       )}
       <div className="card-grid">

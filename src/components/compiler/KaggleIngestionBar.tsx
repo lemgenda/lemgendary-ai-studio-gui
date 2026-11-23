@@ -64,38 +64,30 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
   };
 
   return (
-    <div
-      style={{
-        background: "rgba(0,0,0,0.25)",
-        border: "1px solid var(--border-color)",
-        borderRadius: "8px",
-        padding: "14px 16px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)", textTransform: "uppercase" }}>
+    <div className="ingestion-bar">
+      <div className="ingestion-header">
+        <div className="row-gap-sm">
+          <span className="ingestion-title">
             Direct Kaggle Ingestion:
           </span>
           <HelpTooltip content="Download any public or private dataset from Kaggle into LemGendaryDatasets using its dataset slug (owner/dataset-name) or full URL." />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+        <div className="row-gap-md">
+          <span className="ingestion-format-hint">
             Format: username/dataset-slug or https://www.kaggle.com/datasets/...
           </span>
           <KaggleAuthBadge status={status} online={datasetCompilerOnline} />
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px", alignItems: "center", marginBottom: "10px" }}>
+      <div className="ingestion-registry-row">
         <select
           id="comp-select-kaggle-registry"
-          className="editor-input"
+          className="editor-input form-control-md"
           aria-label="Registry manifold with a Kaggle reference"
           value={pickedRegistryItem ? pickedRegistryItem.kaggle_ref : ""}
           onChange={(e) => handlePickRegistry(e.target.value)}
           disabled={isDownloadingKaggle || !datasetCompilerOnline || registry.length === 0}
-          style={{ fontSize: "12px", padding: "6px 10px" }}
         >
           <option value="">
             {registry.length === 0 ? "No registry manifolds with a Kaggle reference" : "Pick a registry manifold (or type a slug below)..."}
@@ -109,50 +101,37 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
         <button
           type="button"
           id="comp-btn-kaggle-registry-reload"
-          className="btn btn-secondary"
+          className="btn btn-secondary btn-action-compact btn-nowrap"
           onClick={() => void reload()}
           disabled={isLoading || !datasetCompilerOnline}
-          style={{ fontSize: "12px", padding: "6px 14px", whiteSpace: "nowrap" }}
         >
           {isLoading ? "Loading..." : "Reload Registry"}
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 180px auto auto", gap: "10px", alignItems: "center" }}>
+      <div className="ingestion-controls-row">
         <input
           id="comp-input-kaggle-custom-ref"
           type="text"
-          className="editor-input"
+          className="editor-input form-control-md"
           aria-label="Kaggle dataset slug or URL"
           placeholder="e.g. owner/dataset-name or https://www.kaggle.com/datasets/..."
           value={customKaggleRef}
           onChange={(e) => onChangeCustomKaggleRef(e.target.value)}
           disabled={isDownloadingKaggle}
-          style={{ fontSize: "12px", padding: "6px 10px" }}
         />
 
         <input
           type="text"
-          className="editor-input"
+          className="editor-input form-control-md"
           aria-label="Target folder under LemGendaryDatasets (optional)"
           placeholder="Target folder (optional)"
           value={downloadTargetFolder}
           onChange={(e) => onChangeDownloadTargetFolder(e.target.value)}
           disabled={isDownloadingKaggle}
-          style={{ fontSize: "12px", padding: "6px 10px" }}
         />
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-        >
+        <label className="checkbox-label-compact">
           <input
             type="checkbox"
             checked={downloadForce}
@@ -164,10 +143,9 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
 
         <button
           type="button"
-          className="btn btn-cloud"
+          className="btn btn-cloud btn-action-bold btn-nowrap"
           onClick={onDownloadKaggleDirect}
           disabled={!customKaggleRef || isDownloadingKaggle || !datasetCompilerOnline}
-          style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600, whiteSpace: "nowrap" }}
         >
           {isDownloadingKaggle ? "Ingesting..." : "Ingest from Kaggle"}
         </button>
@@ -176,7 +154,7 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
       {downloadStatus && (
         <ValidationBanner
           message={downloadStatus}
-          style={{ marginTop: "10px", fontSize: "12px" }}
+          className="banner-space-top-xs banner-text-sm"
         />
       )}
     </div>

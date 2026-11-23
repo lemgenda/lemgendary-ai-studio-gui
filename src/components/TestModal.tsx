@@ -128,26 +128,24 @@ export const TestModal: React.FC<TestModalProps> = ({
             items={TEST_TABS}
             value={activeTab}
             onChange={setActiveTab}
-            tabClassName={(selected) => `btn ${selected ? "btn-primary" : "btn-secondary"}`}
-            style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}
-            tabStyle={{ flex: 1, fontSize: "12px", padding: "6px 12px" }}
+            className="modal-tablist"
+            tabClassName={(selected) => `btn modal-tab-option-sm ${selected ? "btn-primary" : "btn-secondary"}`}
           />
 
           <TabPanel idPrefix="test-modal" items={TEST_TABS} value={activeTab}>
           {/* Description & Action */}
-          <div style={{ marginBottom: "18px" }}>
+          <div className="modal-section-mb">
             {activeTab === "fleet" && (
               <div>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px", lineHeight: "1.5" }}>
+                <p className="modal-section-desc">
                   Dispatches a non-blocking 1-epoch diagnostic smoke test pass across all 23 registered neural architectures (Restoration, Classification, Forex, and Causal Assistant LLMs) to verify tensor pipelines, memory sentinels, loss calculation, and binary export.
                 </p>
                 <button
                   type="button"
                   id="test-modal-btn-run-fleet"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-inline-icon"
                   onClick={handleRunFleetDiagnostic}
                   disabled={isRunning || !trainingSuiteOnline}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
                 >
                   {isRunning ? "Running Fleet Pass..." : "Run Fleet Diagnostic (All 23 Models)"}
                 </button>
@@ -156,16 +154,15 @@ export const TestModal: React.FC<TestModalProps> = ({
 
             {activeTab === "training_unit" && (
               <div>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px", lineHeight: "1.5" }}>
+                <p className="modal-section-desc">
                   Runs the complete in-process unit test suite in <code>lemgendary-training-suite/tests/unit/</code> (model topologies, SOTA governor, export paths, OpenAPI 3.1 contracts, and universal causal LLM engine).
                 </p>
                 <button
                   type="button"
                   id="test-modal-btn-run-training-unit"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-inline-icon"
                   onClick={handleRunTrainingUnitTests}
                   disabled={isRunning || !trainingSuiteOnline}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
                 >
                   {isRunning ? "Running Training Unit Tests..." : "Run Training Unit Tests"}
                 </button>
@@ -174,16 +171,15 @@ export const TestModal: React.FC<TestModalProps> = ({
 
             {activeTab === "dataset_unit" && (
               <div>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "12px", lineHeight: "1.5" }}>
+                <p className="modal-section-desc">
                   Runs the test suite in <code>lemgendary-datasets/tests/</code> (knowledge ingestor, recursive chunker, QualityValidator zero-emoji enforcement, and SSOT manifest schemas).
                 </p>
                 <button
                   type="button"
                   id="test-modal-btn-run-dataset-unit"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-inline-icon"
                   onClick={handleRunDatasetUnitTests}
                   disabled={isRunning || !datasetCompilerOnline}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
                 >
                   {isRunning ? "Running Dataset Tests..." : "Run Dataset Compiler Tests"}
                 </button>
@@ -193,26 +189,11 @@ export const TestModal: React.FC<TestModalProps> = ({
 
           {/* Console Output Display */}
           {output && (
-            <div style={{ marginTop: "16px" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px" }}>
+            <div className="modal-output-section">
+              <div className="modal-output-heading">
                 Execution Output
               </div>
-              <pre
-                id="test-modal-output-console"
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "6px",
-                  padding: "12px",
-                  fontSize: "12px",
-                  fontFamily: "monospace",
-                  color: "var(--text-primary)",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-all",
-                  maxHeight: "220px",
-                  overflowY: "auto",
-                }}
-              >
+              <pre id="test-modal-output-console" className="modal-output-pre">
                 {output}
               </pre>
             </div>

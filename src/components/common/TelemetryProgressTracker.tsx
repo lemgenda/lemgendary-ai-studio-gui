@@ -21,130 +21,58 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
 
   // Accent styling based on subsystem source and operation
   const isValidation = operation === "VALIDATION";
-  const sourceColor =
-    isValidation
-      ? "var(--accent-emerald, #00ff88)"
-      : source === "compiler"
-      ? "var(--accent-cyan, #00f0ff)"
+  const themeClass = isValidation
+    ? "telemetry-theme-validation"
+    : source === "compiler"
+      ? "telemetry-theme-compiler"
       : source === "training"
-      ? "var(--accent-purple, #bf7af0)"
-      : source === "pipeline"
-      ? "var(--accent-amber, #ffd166)"
-      : "var(--accent-emerald, #00ff88)";
-
-  const gradient =
-    isValidation
-      ? "linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%)"
-      : source === "compiler"
-      ? "linear-gradient(90deg, #00d2ff 0%, #00f0ff 60%, #00ff88 100%)"
-      : source === "training"
-      ? "linear-gradient(90deg, #8a2be2 0%, #bf7af0 60%, #00f0ff 100%)"
-      : source === "pipeline"
-      ? "linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)"
-      : "linear-gradient(90deg, #00aa55 0%, #00ff88 60%, #00f0ff 100%)";
+        ? "telemetry-theme-training"
+        : source === "pipeline"
+          ? "telemetry-theme-pipeline"
+          : "telemetry-theme-default";
+  const clampedPct = Math.max(0, Math.min(100, percentage));
+  const indicatorPct =
+    clampedPct > 0 && clampedPct < 1 ? 1 : Math.round(clampedPct);
 
   return (
     <div
-      className={`telemetry-progress-tracker ${className}`}
+      className={`telemetry-progress-tracker ${themeClass} ${className}`}
       aria-label="Active Telemetry Progress Tracker"
     >
       {/* ─── LINE 1: NUMERIC DATA & METRICS (UNCONSTRAINED) ──────────────── */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "nowrap",
-          gap: "12px",
-          marginBottom: "8px",
-          fontSize: "12px",
-          lineHeight: 1.4,
-        }}
-      >
+      <div className="telemetry-progress-header">
         {/* Left: Operation Title & Target */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flexShrink: 1 }}>
-          <span
-            style={{
-              display: "inline-block",
-              width: "8px",
-              height: "8px",
-              borderRadius: "50%",
-              backgroundColor: sourceColor,
-              boxShadow: `0 0 8px ${sourceColor}`,
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontWeight: 700,
-              letterSpacing: "0.5px",
-              textTransform: "uppercase",
-              color: sourceColor,
-              flexShrink: 0,
-            }}
-          >
+        <div className="telemetry-progress-title-group">
+          <span className="telemetry-progress-dot" />
+          <span className="telemetry-progress-op">
             {titlePrefix ? `${titlePrefix} ` : ""}
             {operation}
           </span>
           {target && (
-            <code
-              style={{
-                color: "var(--text-primary, #ffffff)",
-                fontSize: "11px",
-                background: "rgba(255, 255, 255, 0.06)",
-                padding: "1px 6px",
-                borderRadius: "4px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={target}
-            >
+            <code className="telemetry-progress-target" title={target}>
               {target}
             </code>
           )}
         </div>
 
         {/* Right: Unconstrained Numeric Data (Percentage, Size, Rate, ETA) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexShrink: 0,
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-            fontSize: "11px",
-            color: "var(--text-muted, #94a3b8)",
-          }}
-        >
+        <div className="telemetry-progress-metrics">
           {numericStats && (
-            <span style={{ color: "var(--text-secondary, #cbd5e1)" }}>
+            <span className="telemetry-progress-stats">
               [{numericStats}]
             </span>
           )}
           {rate && (!numericStats || !numericStats.includes(rate)) && (
-            <span style={{ color: "var(--accent-cyan, #00f0ff)" }}>
+            <span className="telemetry-progress-rate">
               {rate}
             </span>
           )}
           {eta && (!numericStats || !numericStats.includes(eta)) && (
-            <span style={{ color: "var(--accent-yellow, #ffd166)" }}>
+            <span className="telemetry-progress-eta">
               ETA {eta}
             </span>
           )}
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: "13px",
-              color: "#ffffff",
-              background: "rgba(255, 255, 255, 0.1)",
-              padding: "2px 8px",
-              borderRadius: "4px",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              minWidth: "52px",
-              textAlign: "right",
-            }}
-          >
+          <span className="telemetry-progress-pct">
             {isIndeterminate
               ? "IN-FLIGHT"
               : percentage > 0 && percentage < 1
@@ -159,29 +87,13 @@ export const TelemetryProgressTracker: React.FC<TelemetryProgressTrackerProps> =
         value={isIndeterminate ? null : percentage}
         max={100}
         aria-label={`${operation} Progress`}
-        style={{
-          position: "relative",
-          overflow: "hidden",
-          background: "rgba(255, 255, 255, 0.08)",
-          borderRadius: "9999px",
-          width: "100%",
-          height: "7px",
-          transform: "translateZ(0)",
-        }}
+        className="telemetry-progress-root"
       >
         <Progress.Indicator
-          style={{
-            background: gradient,
-            width: isIndeterminate ? "50%" : "100%",
-            height: "100%",
-            borderRadius: "9999px",
-            boxShadow: `0 0 12px ${sourceColor}`,
-            transition: isIndeterminate ? "none" : "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
-            animation: isIndeterminate ? "telemetry-indeterminate-sweep 1.8s infinite ease-in-out" : "none",
-            transform: isIndeterminate
-              ? undefined
-              : `translateX(-${100 - percentage}%)`,
-          }}
+          className={`telemetry-progress-indicator ${
+            isIndeterminate ? "telemetry-progress-indicator-indeterminate" : ""
+          }`}
+          data-pct={isIndeterminate ? undefined : String(indicatorPct)}
         />
       </Progress.Root>
     </div>

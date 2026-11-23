@@ -8,26 +8,13 @@ interface MeshOfflineBannerProps {
 
 /** Global banner shown across all tabs when the entire mesh is down. */
 export const MeshOfflineBanner: React.FC<MeshOfflineBannerProps> = ({ startingServiceId, onStartAll }) => (
-  <div
-    role="alert"
-    style={{
-      padding: "12px 20px",
-      backgroundColor: "rgba(244, 63, 94, 0.12)",
-      border: "1px solid var(--accent-rose)",
-      borderRadius: "var(--radius-sm)",
-      marginBottom: "16px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    }}
-  >
-    <span style={{ fontSize: "13px", color: "var(--accent-rose)", fontWeight: 600 }}>
+  <div role="alert" className="mesh-offline-banner">
+    <span className="mesh-offline-text">
       Ecosystem mesh offline. All three sidecars (Ports {servicePortList()}) are unreachable.
     </span>
     <button
       type="button"
-      className="btn btn-primary"
-      style={{ fontSize: "12px" }}
+      className="btn btn-primary btn-font-sm"
       onClick={onStartAll}
       disabled={startingServiceId !== null}
       aria-label="Start all LemGendary ecosystem sidecars"
@@ -44,26 +31,12 @@ interface RefreshErrorBannerProps {
 
 /** Dismissible banner for refresh, pipeline and service lifecycle failures. */
 export const RefreshErrorBanner: React.FC<RefreshErrorBannerProps> = ({ message, onDismiss }) => (
-  <div
-    role="alert"
-    style={{
-      padding: "10px 16px",
-      backgroundColor: "rgba(251, 146, 60, 0.10)",
-      border: "1px solid var(--accent-amber, #f59e0b)",
-      borderRadius: "var(--radius-sm)",
-      marginBottom: "16px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: "12px",
-    }}
-  >
-    <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{message}</span>
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+  <div role="alert" className="mesh-error-banner">
+    <span className="mesh-error-text">{message}</span>
+    <div className="row-gap-md btn-icon-fixed">
       <button
         type="button"
-        className="btn btn-secondary"
-        style={{ fontSize: "11px", padding: "2px 10px" }}
+        className="btn btn-secondary btn-dismiss-sm"
         onClick={onDismiss}
         aria-label="Dismiss error message"
       >

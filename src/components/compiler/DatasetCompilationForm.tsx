@@ -129,7 +129,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   datasetCompilerOnline,
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+    <div className="compiler-form-stack">
       {/* ── Direct Kaggle Cloud Ingestion Bar ── */}
       <KaggleIngestionBar
         customKaggleRef={customKaggleRef}
@@ -145,23 +145,22 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
       />
 
       {/* ── Compilation Mode Form (Standard vs Custom) ── */}
-      <div className="card" style={{ padding: "16px 20px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <h4 style={{ fontSize: "14px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+      <div className="card compile-engine-card">
+        <div className="compile-engine-header">
+          <div className="row-gap-md">
+            <h4 className="card-section-title">
               Dataset Compilation Engine
             </h4>
             <HelpTooltip content="Compile raw multi-source imagery into production WebDataset (.data) or MosaicML Streaming containers." />
           </div>
 
-          <div className="segmented-control" role="group" aria-label="Compilation mode" style={{ maxWidth: "260px" }}>
+          <div className="segmented-control segmented-control-compact" role="group" aria-label="Compilation mode">
             <button
               type="button"
               id="comp-mode-standard"
               aria-pressed={compileMode === "standard"}
-              className={`segmented-btn ${compileMode === "standard" ? "active" : ""}`}
+              className={`segmented-btn segmented-btn-compact ${compileMode === "standard" ? "active" : ""}`}
               onClick={() => onChangeCompileMode("standard")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
             >
               Standard Preset
             </button>
@@ -169,9 +168,8 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
               type="button"
               id="comp-mode-custom"
               aria-pressed={compileMode === "custom"}
-              className={`segmented-btn ${compileMode === "custom" ? "active" : ""}`}
+              className={`segmented-btn segmented-btn-compact ${compileMode === "custom" ? "active" : ""}`}
               onClick={() => onChangeCompileMode("custom")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
             >
               Custom Multi-Source
             </button>
@@ -237,7 +235,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
           <ValidationBanner
             type="error"
             message={`Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. Launch ${ecosystemService("dataset-compiler").project} to enable compilation.`}
-            style={{ marginTop: "12px", fontSize: "12px" }}
+            className="banner-space-top-sm banner-text-sm"
           />
         )}
       </div>

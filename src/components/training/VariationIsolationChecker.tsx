@@ -30,19 +30,18 @@ const VariationCard: React.FC<{ variation: VariationKey; report: ModelValidateIs
   return (
     <div
       data-variation={variation}
-      style={{ background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: "6px", border: "1px solid var(--border-color)" }}
+      className="variation-card"
     >
-      <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-primary)" }}>{display.label}</div>
-      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{variation}</div>
-      <div style={{ fontSize: "10px", color: "var(--text-muted)" }} title={files.join(", ")}>
+      <div className="variation-card-title">{display.label}</div>
+      <div className="variation-card-key">{variation}</div>
+      <div className="variation-card-files" title={files.join(", ")}>
         {files.length ? `${files.length} file(s)` : `Nothing staged (${display.payload})`}
       </div>
       {detail?.errors?.length ? (
-        <div style={{ fontSize: "10px", color: "#f87171" }}>{detail.errors.join("; ")}</div>
+        <div className="variation-card-error">{detail.errors.join("; ")}</div>
       ) : null}
       <span
-        className={`badge ${isolated ? "badge-success" : "badge-secondary"}`}
-        style={{ fontSize: "9px", marginTop: "4px", display: "inline-block" }}
+        className={`badge badge-xs-block ${isolated ? "badge-success" : "badge-secondary"}`}
       >
         {isolated ? "ISOLATED" : "PENDING"}
       </span>
@@ -66,29 +65,27 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
   uploadStatus,
 }) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div className="isolation-wrapper">
       {/* Header and Action Triggers */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>
+      <div className="row-between">
+        <span className="isolation-controls-title">
           Distribution Staging Controls:
         </span>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div className="row-gap-md">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-xs"
             onClick={onGenerateDocs}
             disabled={isGeneratingDocs || isBusy}
-            style={{ fontSize: "11px", padding: "4px 8px" }}
             title={`Regenerates README.md and model-metadata.json for ${modelKey}`}
           >
             {isGeneratingDocs ? "Regenerating..." : "Regen Docs & Meta"}
           </button>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-xs"
             onClick={onStageVariations}
             disabled={isStaging || isBusy}
-            style={{ fontSize: "11px", padding: "4px 8px" }}
             title={`Copies model binaries from root into dist/kaggle/ variation directories for ${modelKey}`}
           >
             {isStaging ? "Staging..." : "Stage Variations"}
@@ -97,17 +94,17 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
       </div>
 
       {/* Isolation Status Checklist */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-        <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase" }}>
+      <div className="stack-xs">
+        <div className="isolation-status-heading">
           Binary Isolation Status (dist/kaggle/):
           {isValidatingIsolation && (
-            <span style={{ color: "#38bdf8", textTransform: "none", marginLeft: "6px" }}>
+            <span className="isolation-verifying">
               (Verifying...)
             </span>
           )}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <div className="isolation-grid">
           {VARIATION_KEYS.map((key) => (
             <VariationCard key={key} variation={key} report={isolationReport} />
           ))}
@@ -115,17 +112,16 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
       </div>
 
       {/* Upload Controls */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+      <div className="isolation-controls-grid">
         <div className="form-group">
-          <label htmlFor="variation-select" style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>
+          <label htmlFor="variation-select" className="form-field-label-secondary">
             Framework Variation to Push:
           </label>
           <select
             id="variation-select"
-            className="editor-select"
+            className="editor-select form-control-wide-md"
             value={selectedVariation}
             onChange={(e) => onSelectVariation(toVariationChoice(e.target.value))}
-            style={{ width: "100%", padding: "6px 10px", fontSize: "12px" }}
           >
             {VARIATION_CHOICES.map((choice) => (
               <option key={choice.value} value={choice.value}>
@@ -135,14 +131,14 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
           </select>
         </div>
 
-        <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "6px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+        <div className="form-group form-checkbox-field">
+          <div className="form-checkbox-inner-sm">
+            <label className="checkbox-label">
               <input
                 type="checkbox"
+                className="checkbox-input-lg"
                 checked={dryRun}
                 onChange={(e) => onToggleDryRun(e.target.checked)}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
               <span>Dry-Run Validation Only</span>
             </label>
@@ -155,7 +151,7 @@ export const VariationIsolationChecker: React.FC<VariationIsolationCheckerProps>
         <ValidationBanner
           type={uploadStatus.type}
           message={uploadStatus.message}
-          style={{ marginTop: "6px", fontSize: "12px" }}
+          className="banner-space-top-2xs banner-text-sm"
         />
       )}
     </div>

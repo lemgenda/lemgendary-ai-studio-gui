@@ -60,11 +60,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
 
   return (
     <div
-      className={`card card-compact ${isExpanded ? "expanded" : ""}`}
-      style={{
-        border: isCurrentlyTrainingThis ? "1px solid var(--accent-emerald)" : undefined,
-        background: isCurrentlyTrainingThis ? "rgba(16, 185, 129, 0.03)" : undefined,
-      }}
+      className={`card card-compact ${isExpanded ? "expanded" : ""} ${isCurrentlyTrainingThis ? "model-card-active" : ""}`}
     >
       {/* 1. Model Name: Full-width collapsible header at the very top */}
       <div className="card-compact-header">
@@ -99,20 +95,8 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
         <>
 
       {/* 2. Training Progress / Status: Full-width directly below Model Name */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "8px",
-          background: "rgba(255,255,255,0.03)",
-          padding: "6px 10px",
-          borderRadius: "6px",
-          border: "1px solid var(--border-color)",
-        }}
-      >
-        <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+      <div className="card-status-strip">
+        <span className="card-status-label">
           Training Progress:
         </span>
         <TrainingStatusBadge model={m} statusUnknown={statusUnknown} />
@@ -145,7 +129,7 @@ export const ModelManifoldCard: React.FC<ModelManifoldCardProps> = ({
           onChange={setOverrideFrozen}
           disabled={isBusy || isCurrentlyTrainingThis}
           context={m.display_name}
-          style={{ padding: "0 10px" }}
+          className="override-frozen-card-row"
         />
       )}
 

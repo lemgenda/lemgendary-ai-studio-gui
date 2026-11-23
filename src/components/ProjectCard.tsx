@@ -22,11 +22,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   return (
     <article className="card" aria-labelledby={headingId}>
       <div className="card-title">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <h3 id={headingId} style={{ fontSize: "15px", fontWeight: 600 }}>{displayName}</h3>
+        <div className="row-gap-sm">
+          <h3 id={headingId} className="project-card-title">{displayName}</h3>
           <HelpTooltip content="Independent workspace project governed via SSOT requirements manifest." />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="row-gap-sm">
           <span
             className={`badge ${isOffline ? "badge-warning" : project.is_healthy ? "badge-success" : "badge-warning"}`}
             aria-label={`Project status: ${isOffline ? "Unknown" : project.is_healthy ? "Healthy" : "Attention required"}`}
@@ -60,23 +60,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
       <div className="metric-row">
         <span className="metric-label">Missing Packages</span>
-        <span className="metric-value" style={{ color: !isOffline && project.missing_packages.length > 0 ? "var(--accent-rose)" : "inherit" }}>
+        <span className={`metric-value ${!isOffline && project.missing_packages.length > 0 ? "metric-value-danger" : ""}`}>
           {isOffline ? "--" : project.missing_packages.length}
         </span>
       </div>
 
       {project.missing_packages.length > 0 && (
-        <div style={{ marginTop: "10px", fontSize: "11px", color: "var(--accent-rose)", fontFamily: "var(--font-mono)" }}>
+        <div className="project-missing-list">
           Missing: {project.missing_packages.slice(0, 4).join(", ")}
           {project.missing_packages.length > 4 ? ` +${project.missing_packages.length - 4} more` : ""}
         </div>
       )}
 
-      <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className="project-card-footer">
         <button
           type="button"
-          className="btn btn-secondary"
-          style={{ width: "100%", fontSize: "12px" }}
+          className="btn btn-secondary btn-full"
           onClick={() => onInstall(project.name)}
           disabled={isProcessing || isOffline}
           aria-label={isOffline ? `Reconcile unavailable for ${project.name} — Environment Manager offline` : `Reconcile environment for project ${project.name}`}

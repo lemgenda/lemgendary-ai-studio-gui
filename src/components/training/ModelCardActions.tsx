@@ -2,13 +2,10 @@ import React from "react";
 import { ModelItem } from "../../api/types";
 import { LocalTrainSettings } from "./localTrainSettings";
 
-const BUTTON_STYLE: React.CSSProperties = { fontSize: "11px", padding: "6px 8px", fontWeight: 600 };
-const ICON_STYLE: React.CSSProperties = { flexShrink: 0 };
-
 /** 12 px icon; `filled` icons use `currentColor` fill, the others a 2.5 px stroke. */
 const CardIcon: React.FC<{ filled?: boolean; children: React.ReactNode }> = ({ filled = false, children }) =>
   filled ? (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={ICON_STYLE}>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="btn-icon-fixed">
       {children}
     </svg>
   ) : (
@@ -22,7 +19,7 @@ const CardIcon: React.FC<{ filled?: boolean; children: React.ReactNode }> = ({ f
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      style={ICON_STYLE}
+      className="btn-icon-fixed"
     >
       {children}
     </svg>
@@ -39,7 +36,7 @@ interface CardActionButtonProps {
 }
 
 const CardActionButton: React.FC<CardActionButtonProps> = ({ id, className, onClick, disabled, title, icon, label }) => (
-  <button id={id} type="button" className={className} onClick={onClick} disabled={disabled} style={BUTTON_STYLE} title={title}>
+  <button id={id} type="button" className={`${className} btn-card-action`} onClick={onClick} disabled={disabled} title={title}>
     {icon}
     <span>{label}</span>
   </button>
@@ -98,15 +95,7 @@ export const ModelCardActions: React.FC<ModelCardActionsProps> = ({
   const usageNotebookBusy = generatingNotebookModel === `${m.key}_usage`;
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "8px",
-        paddingTop: "6px",
-        borderTop: "1px solid var(--border-color)",
-      }}
-    >
+    <div className="model-card-actions">
       {isCurrentlyTrainingThis ? (
         <CardActionButton
           id={`train-btn-stop-${m.key}`}

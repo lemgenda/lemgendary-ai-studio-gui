@@ -20,8 +20,7 @@ export const TrainingStatusBadge: React.FC<TrainingStatusBadgeProps> = ({ model:
     return (
       <div>
         <span
-          className="badge badge-secondary"
-          style={{ fontWeight: 700 }}
+          className="badge badge-secondary badge-bold"
           title={m.stats_error ? `Training Suite could not compute stats: ${m.stats_error}` : "Training Suite reported the training status as unknown."}
         >
           UNKNOWN
@@ -32,7 +31,7 @@ export const TrainingStatusBadge: React.FC<TrainingStatusBadgeProps> = ({ model:
   const badge = BADGES[m.training_status];
   return (
     <div>
-      <span className={badge.className} style={{ fontWeight: 700 }}>
+      <span className={`${badge.className} badge-bold`}>
         {badge.label}
       </span>
     </div>

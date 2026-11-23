@@ -57,7 +57,7 @@ export const CleanInstallConfirmDialog: React.FC<CleanInstallConfirmDialogProps>
         </>
       }
     >
-      <p id="pipeline-dialog-clean-install-desc" style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+      <p id="pipeline-dialog-clean-install-desc" className="modal-desc">
         A clean install deletes the following across all workspace projects, then reinstalls
         everything from scratch. This can take a long time and cannot be undone.
       </p>

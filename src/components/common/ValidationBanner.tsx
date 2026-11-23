@@ -7,7 +7,6 @@ export interface ValidationBannerProps {
   message?: React.ReactNode;
   children?: React.ReactNode;
   onDismiss?: () => void;
-  style?: React.CSSProperties;
   className?: string;
   role?: "alert" | "status";
   autoDetectType?: boolean;
@@ -18,7 +17,6 @@ export const ValidationBanner: React.FC<ValidationBannerProps> = ({
   message,
   children,
   onDismiss,
-  style,
   className = "",
   role,
   autoDetectType = true,
@@ -42,36 +40,20 @@ export const ValidationBanner: React.FC<ValidationBannerProps> = ({
   }
 
   const computedRole = role ?? (computedType === "error" || computedType === "warning" ? "alert" : "status");
-  const bannerClass = `validation-banner banner-${computedType} ${className}`.trim();
+  const bannerClass = `validation-banner banner-${computedType} ${
+    onDismiss ? "validation-banner-dismissible" : ""
+  } ${className}`.trim();
 
   return (
-    <div
-      className={bannerClass}
-      style={{
-        display: onDismiss ? "flex" : undefined,
-        alignItems: onDismiss ? "center" : undefined,
-        justifyContent: onDismiss ? "space-between" : undefined,
-        ...style,
-      }}
-      role={computedRole}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+    <div className={bannerClass} role={computedRole}>
+      <div className="validation-banner-body">
         <span>{content}</span>
       </div>
       {onDismiss && (
         <button
           type="button"
           onClick={onDismiss}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "inherit",
-            cursor: "pointer",
-            fontWeight: 700,
-            padding: "0 4px",
-            fontSize: "12px",
-            lineHeight: 1,
-          }}
+          className="btn-dismiss-icon"
           aria-label="Dismiss banner"
         >
           X

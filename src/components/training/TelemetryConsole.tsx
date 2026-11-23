@@ -97,54 +97,27 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
   useScrollToBottom(remoteLogContainerRef, cleanRemoteEvents, activeTelemetryTab === "remote");
 
   return (
-    <div id="telemetry-panel-anchor" style={{ marginTop: "28px" }}>
+    <div id="telemetry-panel-anchor" className="telemetry-panel-anchor">
       <section className="card" aria-labelledby="telemetry-card-heading">
         {/* Telemetry Card Header with Process Tabs */}
-        <div
-          className="card-title"
-          style={{
-            flexWrap: "wrap",
-            gap: "12px",
-            borderBottom: "1px solid var(--border-color)",
-            paddingBottom: "12px",
-            marginBottom: "16px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <h3 id="telemetry-card-heading" style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+        <div className="card-title telemetry-card-header">
+          <div className="row-gap-lg row-wrap">
+            <h3 id="telemetry-card-heading" className="card-heading-bold">
               Real-Time Telemetry &amp; Execution
             </h3>
             <HelpTooltip content="Unified telemetry hub supporting concurrent local GPU training and remote Kaggle/Colab cloud training in isolated streams." />
 
             {/* Tab Switcher */}
-            <div
-              style={{
-                display: "inline-flex",
-                background: "rgba(0,0,0,0.3)",
-                padding: "3px",
-                borderRadius: "6px",
-                border: "1px solid var(--border-color)",
-                gap: "4px",
-              }}
-            >
+            <div className="subtab-switcher-pill">
               {/* Tab 1: Local Training */}
               <button
                 id="training-telemetry-tabs-tab-local"
                 type="button"
                 aria-pressed={activeTelemetryTab === "local"}
-                className={`btn ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
+                className={`btn btn-compact-gap ${activeTelemetryTab === "local" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("local")}
-                style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
               >
-                <span
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "50%",
-                    background: localJobId ? "var(--accent-emerald, #10b981)" : "#64748b",
-                    animation: localJobId ? "pulse 1.5s infinite" : "none",
-                  }}
-                />
+                <span className={`telemetry-dot ${localJobId ? "telemetry-dot-local-active" : ""}`} />
                 <span>Local Training {localJobId ? `(${localJobModel || "Active"})` : ""}</span>
               </button>
 
@@ -153,19 +126,10 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                 id="training-telemetry-tabs-tab-remote"
                 type="button"
                 aria-pressed={activeTelemetryTab === "remote"}
-                className={`btn ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
+                className={`btn btn-compact-gap ${activeTelemetryTab === "remote" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("remote")}
-                style={{ fontSize: "11px", padding: "4px 10px", gap: "6px" }}
               >
-                <span
-                  style={{
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "50%",
-                    background: remoteJobId ? "var(--accent-cyan, #06b6d4)" : "#64748b",
-                    animation: remoteJobId ? "pulse 1.5s infinite" : "none",
-                  }}
-                />
+                <span className={`telemetry-dot ${remoteJobId ? "telemetry-dot-remote-active" : ""}`} />
                 <span>
                   Remote Cloud{remoteJobModel ? ` (${remoteJobModel})` : ""}
                 </span>
@@ -176,9 +140,8 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                 id="training-telemetry-tabs-tab-system"
                 type="button"
                 aria-pressed={activeTelemetryTab === "mesh"}
-                className={`btn ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}
+                className={`btn btn-compact ${activeTelemetryTab === "mesh" ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => onTabChange("mesh")}
-                style={{ fontSize: "11px", padding: "4px 10px" }}
               >
                 Ecosystem Mesh
               </button>
@@ -186,13 +149,12 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
           </div>
 
           {/* Quick Context Controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="row-gap-sm">
             {activeTelemetryTab === "local" && (
               <>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: "11px", padding: "4px 10px" }}
+                  className="btn btn-secondary btn-compact"
                   onClick={onCopyLocalStream}
                   disabled={displayedLocalEvents.length === 0}
                   aria-label={localCopied ? "Local logs copied to clipboard" : "Copy local training stream logs to clipboard"}
@@ -203,8 +165,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
 
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: "11px", padding: "4px 10px" }}
+                  className="btn btn-secondary btn-compact"
                   onClick={onClearLocalStream}
                   aria-label="Clear local training stream log"
                 >
@@ -215,10 +176,9 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                 {localJobId && (
                   <button
                     type="button"
-                    className="btn btn-danger"
+                    className="btn btn-danger btn-compact-wide"
                     onClick={onStopLocalTrain}
                     disabled={isStoppingLocal}
-                    style={{ fontSize: "11px", padding: "4px 12px" }}
                   >
                     {isStoppingLocal ? "Halting Job..." : "Halt Local Job"}
                   </button>
@@ -230,8 +190,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
               <>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: "11px", padding: "4px 10px" }}
+                  className="btn btn-secondary btn-compact"
                   onClick={onCopyRemoteStream}
                   disabled={displayedRemoteEvents.length === 0}
                   aria-label={remoteCopied ? "Remote logs copied to clipboard" : "Copy remote cloud stream logs to clipboard"}
@@ -242,8 +201,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
 
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ fontSize: "11px", padding: "4px 10px" }}
+                  className="btn btn-secondary btn-compact"
                   onClick={onClearRemoteStream}
                   aria-label="Clear remote cloud stream log"
                 >
@@ -260,30 +218,18 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
         {activeTelemetryTab === "local" && (
           <div>
             {/* Local Training Status Bar */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                background: "rgba(255,255,255,0.02)",
-                padding: "10px 14px",
-                borderRadius: "6px",
-                border: "1px solid var(--border-color)",
-                marginBottom: "12px",
-                fontSize: "12px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span className={`badge ${localJobId ? "badge-success" : "badge-secondary"}`} style={{ fontWeight: 700 }}>
+            <div className="telemetry-local-status">
+              <div className="row-gap-lg">
+                <span className={`badge badge-bold ${localJobId ? "badge-success" : "badge-secondary"}`}>
                   {localJobId ? "LOCAL TRAINING IN PROGRESS" : "LOCAL WORKER IDLE"}
                 </span>
                 {localJobId ? (
-                  <span style={{ color: "var(--text-secondary)" }}>
-                    Active Model: <strong style={{ color: "var(--text-primary)" }}>{localJobModel}</strong> | Job ID:{" "}
+                  <span className="telemetry-worker-info">
+                    Active Model: <strong className="telemetry-worker-model">{localJobModel}</strong> | Job ID:{" "}
                     <code>{localJobId}</code>
                   </span>
                 ) : (
-                  <span style={{ color: "var(--text-muted)" }}>
+                  <span className="telemetry-worker-hint">
                     Select any model card above and click &quot;Local Training&quot; to begin governed local GPU execution.
                   </span>
                 )}
@@ -299,11 +245,10 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             </div>
             <div
               ref={localLogContainerRef}
-              className="log-container"
+              className="log-container log-container-local"
               role="log"
               aria-live="off"
               aria-label="Local training stream log"
-              style={{ minHeight: "260px", maxHeight: "360px", overflowY: "auto" }}
             >
               {cleanLocalEvents.length === 0 ? (
                 <div className="log-empty">
@@ -318,10 +263,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[LOCAL] [{ev.step_name.toUpperCase()}]:</span>
-                    <span
-                      className={`log-message ${logLineClass(ev)}`}
-                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
-                    >
+                    <span className={`log-message log-message-wrap ${logLineClass(ev)}`}>
                       {ev.message}
                     </span>
                   </div>
@@ -345,11 +287,10 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
             </div>
             <div
               ref={remoteLogContainerRef}
-              className="log-container"
+              className="log-container log-container-remote"
               role="log"
               aria-live="off"
               aria-label="Remote cloud training stream log"
-              style={{ minHeight: "240px", maxHeight: "340px", overflowY: "auto" }}
             >
               {cleanRemoteEvents.length === 0 ? (
                 <div className="log-empty">
@@ -362,10 +303,7 @@ export const TelemetryConsole: React.FC<TelemetryConsoleProps> = ({
                       {ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : "--:--:--"}
                     </span>
                     <span className="log-step">[CLOUD] [{ev.step_name.toUpperCase()}]:</span>
-                    <span
-                      className={`log-message ${logLineClass(ev)}`}
-                      style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
-                    >
+                    <span className={`log-message log-message-wrap ${logLineClass(ev)}`}>
                       {ev.message}
                     </span>
                   </div>

@@ -33,15 +33,6 @@ type StandardCompileFormProps = Pick<
   | "datasetCompilerOnline"
 >;
 
-const FIELD_LABEL_STYLE: React.CSSProperties = {
-  fontSize: "11px",
-  color: "var(--text-muted)",
-  textTransform: "uppercase",
-  fontWeight: 600,
-  display: "block",
-  marginBottom: "4px",
-};
-
 /** Standard mode: compile a registered manifold with a sidecar preset and optional size / worker overrides. */
 export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   datasets,
@@ -69,32 +60,17 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   datasetCompilerOnline,
 }) => (
   <div>
-    <div
-      className="form-grid"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: "12px",
-        marginBottom: "14px",
-      }}
-    >
+    <div className="form-grid form-grid-standard">
       <div className="form-group">
         <label
           htmlFor="comp-select-manifold"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
+          className="form-field-label"
         >
           Target Manifold:
         </label>
         <select
           id="comp-select-manifold"
-          className="editor-select"
+          className="editor-select form-control-sm"
           value={selectedManifold}
           onChange={(e) => {
             const nextKey = e.target.value;
@@ -105,7 +81,6 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
             }
           }}
           disabled={isCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         >
           {datasets.map((d) => (
             <option key={d.key} value={d.key}>
@@ -118,24 +93,16 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
       <div className="form-group">
         <label
           htmlFor="preset-select"
-          style={{
-            fontSize: "11px",
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            display: "block",
-            marginBottom: "4px",
-          }}
+          className="form-field-label"
         >
           Compilation Preset:
         </label>
         <select
           id="preset-select"
-          className="editor-select"
+          className="editor-select form-control-sm"
           value={selectedPreset}
           onChange={(e) => onSelectPreset(e.target.value)}
           disabled={isCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         >
           <PresetOptions
             presets={presets}
@@ -146,7 +113,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label htmlFor="comp-input-max-gb" style={FIELD_LABEL_STYLE}>
+        <label htmlFor="comp-input-max-gb" className="form-field-label">
           Max Size (GB):
         </label>
         <input
@@ -154,17 +121,16 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           type="number"
           min={0}
           step="any"
-          className="editor-input"
+          className="editor-input form-control-sm"
           placeholder="Preset limit"
           value={compileMaxGb}
           onChange={(e) => onChangeCompileMaxGb(e.target.value)}
           disabled={isCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         />
       </div>
 
       <div className="form-group">
-        <label htmlFor="comp-input-workers" style={FIELD_LABEL_STYLE}>
+        <label htmlFor="comp-input-workers" className="form-field-label">
           Workers:
         </label>
         <input
@@ -172,12 +138,11 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           type="number"
           min={1}
           step={1}
-          className="editor-input"
+          className="editor-input form-control-sm"
           placeholder="Server default"
           value={compileWorkers}
           onChange={(e) => onChangeCompileWorkers(e.target.value)}
           disabled={isCompiling}
-          style={{ fontSize: "12px", padding: "6px 8px" }}
         />
       </div>
 
@@ -194,31 +159,29 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           return (
             <>
               <div className="form-group">
-                <label htmlFor="comp-input-start-date" style={FIELD_LABEL_STYLE}>
+                <label htmlFor="comp-input-start-date" className="form-field-label">
                   Start Date:
                 </label>
                 <input
                   id="comp-input-start-date"
                   type="date"
-                  className="editor-input"
+                  className="editor-input form-control-sm"
                   value={compileStartDate}
                   onChange={(e) => onChangeCompileStartDate?.(e.target.value)}
                   disabled={isCompiling}
-                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="comp-input-end-date" style={FIELD_LABEL_STYLE}>
+                <label htmlFor="comp-input-end-date" className="form-field-label">
                   End Date:
                 </label>
                 <input
                   id="comp-input-end-date"
                   type="date"
-                  className="editor-input"
+                  className="editor-input form-control-sm"
                   value={compileEndDate}
                   onChange={(e) => onChangeCompileEndDate?.(e.target.value)}
                   disabled={isCompiling}
-                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 />
               </div>
             </>
@@ -227,16 +190,15 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
         if (isLlm) {
           return (
             <div className="form-group">
-              <label htmlFor="comp-yield-mode" style={FIELD_LABEL_STYLE}>
+              <label htmlFor="comp-yield-mode" className="form-field-label">
                 Yield Strategy:
               </label>
               <input
                 id="comp-yield-mode"
                 type="text"
                 readOnly
-                className="editor-input"
+                className="editor-input form-control-sm form-control-readonly"
                 value="Autonomous Source Analysis"
-                style={{ fontSize: "12px", padding: "6px 8px", opacity: 0.85 }}
               />
             </div>
           );
@@ -245,16 +207,15 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           <>
             {isDetection && (
               <div className="form-group">
-                <label htmlFor="comp-select-label-strategy" style={FIELD_LABEL_STYLE}>
+                <label htmlFor="comp-select-label-strategy" className="form-field-label">
                   Label Strategy:
                 </label>
                 <select
                   id="comp-select-label-strategy"
-                  className="editor-select"
+                  className="editor-select form-control-sm"
                   value={compileLabelStrategy}
                   onChange={(e) => onChangeCompileLabelStrategy?.(e.target.value)}
                   disabled={isCompiling}
-                  style={{ fontSize: "12px", padding: "6px 8px" }}
                 >
                   <option value="">Manifest default</option>
                   <option value="yolov8">YOLOv8</option>
@@ -264,16 +225,15 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
               </div>
             )}
             <div className="form-group">
-              <label htmlFor="comp-select-shard-ext" style={FIELD_LABEL_STYLE}>
+              <label htmlFor="comp-select-shard-ext" className="form-field-label">
                 Shard Extension:
               </label>
               <select
                 id="comp-select-shard-ext"
-                className="editor-select"
+                className="editor-select form-control-sm"
                 value={compileShardExt}
                 onChange={(e) => onChangeCompileShardExt(e.target.value)}
                 disabled={isCompiling || !isWebDataset}
-                style={{ fontSize: "12px", padding: "6px 8px" }}
               >
                 <option value="">Compiler default</option>
                 {WEBDATASET_SHARD_EXTENSIONS.map((ext) => (
@@ -288,14 +248,13 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
       })()}
     </div>
 
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <div className="row-gap-lg">
       <button
         id="comp-btn-compile"
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-action-bold"
         onClick={onCompile}
         disabled={isCompiling || !datasetCompilerOnline}
-        style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
         aria-label={
           !datasetCompilerOnline
             ? "Compile unavailable: Dataset Compiler Sidecar offline"
@@ -310,7 +269,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
     {compileStatus && (
       <ValidationBanner
         message={compileStatus}
-        style={{ marginTop: "12px", fontSize: "12px" }}
+        className="banner-space-top-sm banner-text-sm"
       />
     )}
   </div>

@@ -62,41 +62,23 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
     taskFilter !== "ALL";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+    <div className="toolbar-wrapper">
       {/* Top Header & Section Tab Switcher */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+      <div className="toolbar-header">
+        <div className="row-gap-lg row-wrap">
+          <h3 className="card-heading-bold">
             Dataset Compiler &amp; Manifold Hub ({filteredDatasetsCount} / {totalDatasetsCount})
           </h3>
           <HelpTooltip content="Authoritative compilation hub. Converts loose imagery into high-throughput WebDataset (.data), Parquet, and MDS streaming containers." />
 
           {/* Section Tabs */}
-          <div
-            style={{
-              display: "inline-flex",
-              background: "rgba(0,0,0,0.3)",
-              padding: "3px",
-              borderRadius: "6px",
-              border: "1px solid var(--border-color)",
-              gap: "4px",
-            }}
-          >
+          <div className="subtab-switcher-pill">
             <button
               id="compiler-subtabs-tab-catalog"
               type="button"
               aria-pressed={activeSectionTab === "catalog"}
-              className={`btn ${activeSectionTab === "catalog" ? "btn-primary" : "btn-secondary"}`}
+              className={`btn btn-compact ${activeSectionTab === "catalog" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("catalog")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
             >
               Manifolds Catalog
             </button>
@@ -104,9 +86,8 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               id="compiler-subtabs-tab-queue"
               type="button"
               aria-pressed={activeSectionTab === "modernize"}
-              className={`btn ${activeSectionTab === "modernize" ? "btn-primary" : "btn-secondary"}`}
+              className={`btn btn-compact ${activeSectionTab === "modernize" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("modernize")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
             >
               Modernization Queue
             </button>
@@ -114,9 +95,8 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               id="compiler-subtabs-tab-reduce"
               type="button"
               aria-pressed={activeSectionTab === "reduction"}
-              className={`btn ${activeSectionTab === "reduction" ? "btn-primary" : "btn-secondary"}`}
+              className={`btn btn-compact ${activeSectionTab === "reduction" ? "btn-primary" : "btn-secondary"}`}
               onClick={() => onTabChange("reduction")}
-              style={{ fontSize: "11px", padding: "4px 10px" }}
             >
               Scale Reduction
             </button>
@@ -124,14 +104,13 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
         </div>
 
         {/* Global Action Buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+        <div className="row-gap-md row-wrap">
           <button
             id="comp-btn-update-all-kaggle"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-toolbar"
             onClick={onUpdateAllMetadata}
             disabled={isUpdatingAllMetadata || !datasetCompilerOnline}
-            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="Batch push dataset-metadata.json descriptors to Kaggle Cloud for all registered manifolds"
           >
             <span>{isUpdatingAllMetadata ? "Updating Metadata..." : "Update All Kaggle Metadata"}</span>
@@ -140,10 +119,9 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <button
             id="comp-btn-regen-manifolds"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-toolbar"
             onClick={onRegenerateIndex}
             disabled={isRegeneratingIndex || !datasetCompilerOnline}
-            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="Re-scans all disk manifolds in LemGendaryDatasets and regenerates unified_data.yaml index"
           >
             <span>{isRegeneratingIndex ? "Regenerating..." : "Regen Index"}</span>
@@ -152,10 +130,9 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <button
             id="compiler-btn-validate-schema"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-toolbar"
             onClick={onValidateSchema}
             disabled={isValidatingSchema || !datasetCompilerOnline}
-            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="Validates unified_data.yaml against the Dataset Compiler config schema (read-only)"
           >
             <span>{isValidatingSchema ? "Validating..." : "Validate Schema"}</span>
@@ -164,10 +141,9 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <button
             id="comp-btn-refresh-catalog"
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-toolbar"
             onClick={onRefreshCatalog}
             disabled={isRefreshing}
-            style={{ fontSize: "12px", padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
             aria-label="Refresh dataset manifolds from sidecar"
           >
             <span>{isRefreshing ? "Refreshing..." : "Refresh Catalog"}</span>
@@ -178,45 +154,23 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
 
       {/* Filter Controls Bar (Visible on Catalog Tab) */}
       {activeSectionTab === "catalog" && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "10px",
-            padding: "12px",
-            background: "rgba(255, 255, 255, 0.02)",
-            border: "1px solid var(--border-color)",
-            borderRadius: "8px",
-          }}
-        >
+        <div className="filter-bar">
           {/* Live Search Input */}
-          <div style={{ flex: "1 1 220px", position: "relative" }}>
+          <div className="filter-search-box">
             <input
               type="text"
               aria-label="Filter manifolds by name, format or task"
               placeholder="Filter by manifold name, format, task..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="editor-input"
-              style={{ width: "100%", padding: "6px 10px", fontSize: "12px" }}
+              className="editor-input form-control-wide-md"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
                 aria-label="Clear manifold filter"
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-muted)",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
+                className="btn-clear-search"
               >
                 X
               </button>
@@ -224,16 +178,15 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           </div>
 
           {/* Status Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+          <div className="row-gap-sm">
+            <span className="filter-label">
               Status:
             </span>
             <select
               aria-label="Status filter"
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
-              className="editor-select"
-              style={{ padding: "6px 8px", fontSize: "12px" }}
+              className="editor-select filter-select"
             >
               <option value="ALL">All Statuses</option>
               <option value="COMPILED">Compiled</option>
@@ -242,16 +195,15 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           </div>
 
           {/* Format Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+          <div className="row-gap-sm">
+            <span className="filter-label">
               Format:
             </span>
             <select
               aria-label="Format filter"
               value={formatFilter}
               onChange={(e) => onFormatFilterChange(e.target.value)}
-              className="editor-select"
-              style={{ padding: "6px 8px", fontSize: "12px" }}
+              className="editor-select filter-select"
             >
               <option value="ALL">All Formats</option>
               {uniqueFormats.map((f) => (
@@ -263,16 +215,15 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           </div>
 
           {/* Task Filter */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+          <div className="row-gap-sm">
+            <span className="filter-label">
               Task:
             </span>
             <select
               aria-label="Task filter"
               value={taskFilter}
               onChange={(e) => onTaskFilterChange(e.target.value)}
-              className="editor-select"
-              style={{ padding: "6px 8px", fontSize: "12px" }}
+              className="editor-select filter-select"
             >
               <option value="ALL">All Tasks</option>
               {uniqueTasks.map((t) => (
@@ -286,9 +237,8 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           {hasActiveFilters && (
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-xs"
               onClick={onResetFilters}
-              style={{ fontSize: "11px", padding: "4px 8px" }}
             >
               Reset Filters
             </button>

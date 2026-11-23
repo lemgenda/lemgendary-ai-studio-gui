@@ -13,12 +13,12 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnv
     return (
       <section className="card" aria-labelledby="hw-card-title-offline">
         <div className="card-title">
-          <h3 id="hw-card-title-offline" style={{ fontSize: "16px", fontWeight: 600 }}>
+          <h3 id="hw-card-title-offline" className="card-heading">
             System &amp; Accelerator Profile
           </h3>
           <span className="badge badge-error" aria-label="Sidecar offline">OFFLINE</span>
         </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "16px" }}>
+        <p className="offline-card-desc">
           Environment Manager (Port {servicePort("env-manager")}) is not reachable.
           Hardware metrics, Python runtime, and accelerator data are unavailable.
         </p>
@@ -48,11 +48,11 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnv
   return (
     <section className="card" aria-labelledby="hw-card-title">
       <div className="card-title">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <h3 id="hw-card-title" style={{ fontSize: "16px", fontWeight: 600 }}>System &amp; Hardware Architecture</h3>
+        <div className="row-gap-sm">
+          <h3 id="hw-card-title" className="card-heading">System &amp; Hardware Architecture</h3>
           <HelpTooltip content="Deep platform probe executed by env_manager.system_probe. Queries OS kernel, CPU topology, system RAM, and GPU accelerator features." />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="row-gap-sm">
           <span
             className={`badge ${backendBadgeClass}`}
             aria-label={`Primary accelerator backend: ${hardware.primary_backend.toUpperCase()}`}
@@ -89,15 +89,15 @@ export const HardwareCard: React.FC<HardwareCardProps> = ({ hardware, onStartEnv
 
       <div className="metric-row">
         <span className="metric-label">Recommended Torch Index</span>
-        <span className="metric-value" style={{ fontFamily: "var(--font-mono)", fontSize: "11px" }}>
+        <span className="metric-value metric-value-mono">
           {hardware.recommended_torch_index}
         </span>
       </div>
 
       {hardware.accelerators.length > 0 && (
-        <div style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>
+        <div className="hardware-accel-section">
+          <div className="hardware-accel-header">
+            <span className="hardware-accel-title">
               Detected Accelerators:
             </span>
             <HelpTooltip content="Physical GPU devices detected via NVIDIA Management Library (NVML) or DirectML platform enumeration." />

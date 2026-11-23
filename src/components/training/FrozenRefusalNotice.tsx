@@ -31,16 +31,6 @@ export function frozenRefusalHint(launch: FrozenRefusalLaunch): string {
   );
 }
 
-const CELL_STYLE: React.CSSProperties = {
-  padding: "4px 8px",
-  borderBottom: "1px solid var(--border-color)",
-  textAlign: "left",
-  fontFamily: "var(--font-mono, monospace)",
-  fontSize: "11px",
-  wordBreak: "break-all",
-  verticalAlign: "top",
-};
-
 interface FrozenRefusalNoticeProps {
   report: FrozenRefusalReport;
   onDismiss: () => void;
@@ -50,48 +40,47 @@ export const FrozenRefusalNotice: React.FC<FrozenRefusalNoticeProps> = ({ report
   <div
     id="train-frozen-refusal"
     role="alert"
-    className="validation-banner banner-error"
-    style={{ marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}
+    className="validation-banner banner-error frozen-refusal-banner"
   >
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+    <div className="frozen-refusal-header">
       <strong>{report.jobLabel} failed: resume refused because frozen run settings changed.</strong>
       <button
         id="train-btn-frozen-refusal-dismiss"
         type="button"
+        className="btn-dismiss-icon"
         onClick={onDismiss}
         aria-label="Dismiss resume refusal"
-        style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 700, padding: "0 4px", fontSize: "12px", lineHeight: 1 }}
       >
         X
       </button>
     </div>
-    <span id="train-frozen-refusal-message" style={{ fontSize: "12px" }}>
+    <span id="train-frozen-refusal-message" className="frozen-refusal-text">
       {report.message}
     </span>
     {report.changes.length > 0 && (
-      <table id="train-frozen-refusal-changes" style={{ borderCollapse: "collapse", width: "100%" }}>
-        <caption style={{ textAlign: "left", fontSize: "12px", fontWeight: 600, paddingBottom: "4px" }}>
+      <table id="train-frozen-refusal-changes" className="frozen-refusal-table">
+        <caption className="frozen-refusal-caption">
           Changed frozen settings
         </caption>
         <thead>
           <tr>
-            <th scope="col" style={CELL_STYLE}>Setting</th>
-            <th scope="col" style={CELL_STYLE}>Run started with</th>
-            <th scope="col" style={CELL_STYLE}>Configured now</th>
+            <th scope="col" className="frozen-refusal-cell">Setting</th>
+            <th scope="col" className="frozen-refusal-cell">Run started with</th>
+            <th scope="col" className="frozen-refusal-cell">Configured now</th>
           </tr>
         </thead>
         <tbody>
           {report.changes.map((change) => (
             <tr key={change.key}>
-              <td style={CELL_STYLE}>{change.key}</td>
-              <td style={CELL_STYLE}>{change.old}</td>
-              <td style={CELL_STYLE}>{change.new}</td>
+              <td className="frozen-refusal-cell">{change.key}</td>
+              <td className="frozen-refusal-cell">{change.old}</td>
+              <td className="frozen-refusal-cell">{change.new}</td>
             </tr>
           ))}
         </tbody>
       </table>
     )}
-    <span id="train-frozen-refusal-hint" style={{ fontSize: "12px" }}>
+    <span id="train-frozen-refusal-hint" className="frozen-refusal-text">
       {frozenRefusalHint(report.launch)}
     </span>
   </div>

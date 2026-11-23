@@ -189,7 +189,7 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
       className="modal-content-medium"
       title={`Cloud & Registry Dispatch: ${model.display_name}`}
       headerActions={
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="modal-header-actions-row">
           <HelpTooltip content="Dispatches the generated training notebook to a Kaggle session or pushes isolated multi-variation models to Kaggle Models Hub." />
           <button
             type="button"
@@ -209,38 +209,37 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
             items={PLATFORM_TABS}
             value={targetPlatform}
             onChange={setTargetPlatform}
-            tabClassName={(selected) => `btn ${selected ? "btn-primary" : "btn-secondary"}`}
-            style={{ display: "flex", gap: "8px", background: "rgba(255,255,255,0.03)", padding: "4px", borderRadius: "8px", border: "1px solid var(--border-color)" }}
-            tabStyle={{ flex: 1, padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
+            className="modal-tablist"
+            tabClassName={(selected) => `btn modal-tab-option ${selected ? "btn-primary" : "btn-secondary"}`}
           />
 
           <TabPanel idPrefix="cloud-modal" items={PLATFORM_TABS} value={targetPlatform}>
           {/* Pre-Flight Checklist */}
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
-              <h4 style={{ fontSize: "13px", fontWeight: 700, margin: 0, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <div className="modal-section-mb-lg">
+            <div className="modal-section-header">
+              <h4 className="section-kicker">
                 Pre-Flight Environment Verification
               </h4>
               <HelpTooltip content="Authoritative pre-execution check verifying that datasets, notebook templates, credentials, and checkpoint vaults exist before triggering cloud compute." />
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div className="modal-checklist">
               {/* Check 1: Notebook Template */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+              <div className="modal-checklist-item">
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Canonical Notebook Template</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{notebookFilename}</div>
+                  <div className="modal-checklist-title">Canonical Notebook Template</div>
+                  <div className="modal-checklist-mono">{notebookFilename}</div>
                 </div>
-                <span className="badge badge-secondary" style={{ fontSize: "11px" }} title="The sidecar generates the notebook when the job is dispatched; it is not checked beforehand.">
+                <span className="badge badge-secondary" title="The sidecar generates the notebook when the job is dispatched; it is not checked beforehand.">
                   GENERATED ON LAUNCH
                 </span>
               </div>
 
               {/* Check 2: Dataset Manifold */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+              <div className="modal-checklist-item">
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Required Dataset Manifold</div>
-                  <div id="cloud-modal-dataset-links" style={{ fontSize: "11px", color: "#60a5fa", fontFamily: "var(--font-mono)", display: "flex", flexDirection: "column" }}>
+                  <div className="modal-checklist-title">Required Dataset Manifold</div>
+                  <div id="cloud-modal-dataset-links" className="modal-checklist-links">
                     {kaggleHandles === null
                       ? "Dataset handles unavailable (Training Suite offline)"
                       : kaggleHandles.datasetUrls.length === 0
@@ -252,41 +251,40 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
                           ))}
                   </div>
                 </div>
-                <span className="badge badge-secondary" style={{ fontSize: "11px" }} title="The notebook resolves the dataset on Kaggle at run time; the GUI does not check that it exists.">
+                <span className="badge badge-secondary" title="The notebook resolves the dataset on Kaggle at run time; the GUI does not check that it exists.">
                   NOT CHECKED
                 </span>
               </div>
 
               {/* Check 3: Checkpoint Vault */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+              <div className="modal-checklist-item">
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>Checkpoint Vault (Resume Capability)</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                  <div className="modal-checklist-title">Checkpoint Vault (Resume Capability)</div>
+                  <div className="modal-checklist-mono">
                     LemGendaryModels/{model.key}/checkpoints/
                   </div>
                 </div>
-                <span className={`badge ${model.checkpoint_exists ? "badge-success" : "badge-secondary"}`} style={{ fontSize: "11px" }}>
+                <span className={`badge ${model.checkpoint_exists ? "badge-success" : "badge-secondary"}`}>
                   {model.checkpoint_exists ? "RECOVERY READY" : "COLD START"}
                 </span>
               </div>
 
               {/* Check 4: Cloud Credentials */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.02)", padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+              <div className="modal-checklist-item">
                 <div>
-                  <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-primary)" }}>API Authentication</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{authView.detail}</div>
+                  <div className="modal-checklist-title">API Authentication</div>
+                  <div className="modal-checklist-sub">{authView.detail}</div>
                 </div>
                 <span
                   id="cloud-modal-auth-badge"
                   className={`badge ${authView.badge === "AUTHENTICATED" ? "badge-success" : "badge-warning"}`}
-                  style={{ fontSize: "11px" }}
                 >
                   {authView.badge}
                 </span>
               </div>
             </div>
             {authView.problem && (
-              <div id="cloud-modal-auth-error" style={{ marginTop: "8px" }}>
+              <div id="cloud-modal-auth-error" className="modal-checklist-error">
                 <ValidationBanner type="error" role="alert" message={authView.problem} />
               </div>
             )}
@@ -294,35 +292,33 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
 
           {/* Configuration Options */}
           {targetPlatform === "kaggle" ? (
-            <div style={{ marginBottom: "20px" }}>
+            <div className="modal-section-mb-lg">
               <KaggleLaunchOptions choices={acceleratorChoices} form={launchForm} onChange={setLaunchForm} />
 
               <div className="form-group">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-                  <label htmlFor="kaggle-monitor-slug" style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                <div className="form-field-label-row">
+                  <label htmlFor="kaggle-monitor-slug" className="form-field-label-sm">
                     Monitor an already running kernel:
                   </label>
                   <HelpTooltip content="Attaches the Remote Cloud console to a Kaggle kernel that is already running (for example one launched from the Kaggle website), using the poll interval and auto-pull settings above. Pick one of the account's recent kernels or type its owner/kernel-slug." />
                 </div>
                 <KaggleKernelPicker value={monitorSlug.trim()} onPick={setMonitorSlug} disabled={isBusy} />
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div className="row-gap-md">
                   <input
                     id="kaggle-monitor-slug"
                     type="text"
-                    className="editor-input"
+                    className="editor-input form-control-flex"
                     placeholder="owner/kernel-slug"
                     value={monitorSlug}
                     onChange={(e) => setMonitorSlug(e.target.value)}
-                    style={{ flex: 1, padding: "8px 12px", fontSize: "13px" }}
                   />
                   <button
                     type="button"
                     id="kaggle-monitor-btn"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-modal-attach"
                     onClick={handleMonitor}
                     disabled={isBusy || !isKernelSlug(monitorSlug)}
                     title="Requires a kernel reference in the form owner/kernel-slug"
-                    style={{ padding: "8px 14px", fontSize: "13px" }}
                   >
                     Attach Monitor
                   </button>
@@ -330,19 +326,19 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               </div>
             </div>
           ) : targetPlatform === "colab" ? (
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "14px", marginBottom: "20px" }}>
-              <div style={{ fontSize: "12px", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+            <div className="modal-info-card">
+              <div className="modal-info-text">
                 Google Colab execution mounts <strong>Google Drive FUSE</strong> directly at <code>/content/drive/MyDrive/LemGendaryModels</code>.
                 Background daemon threads stream updated model weights and metrics every 30 seconds.
               </div>
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.6, marginTop: "8px" }}>
+              <div className="modal-info-note">
                 The GUI cannot launch Colab runs: generate the training notebook from the model card and open it in Colab yourself.
               </div>
             </div>
           ) : (
-            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px", marginBottom: "20px" }}>
-              <div style={{ marginBottom: "12px" }}>
-                <h4 style={{ fontSize: "13px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+            <div className="modal-info-card-lg">
+              <div className="modal-info-heading">
+                <h4 className="card-section-title">
                   Kaggle Models Hub — Multi-Variation Isolated Staging
                 </h4>
               </div>
@@ -369,42 +365,39 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               type="error"
               message={launchError}
               onDismiss={() => setLaunchError(null)}
-              style={{ marginBottom: "16px" }}
+              className="banner-space-bottom"
             />
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid var(--border-color)", paddingTop: "16px" }}>
-            <div style={{ display: "flex", gap: "8px" }}>
+          <div className="modal-action-footer">
+            <div className="row-gap-md">
               {kaggleLinks ? (
                 <>
                   <ExternalLink
                     href={kaggleLinks.notebookUrl}
-                    className="btn btn-secondary"
-                    style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+                    className="btn btn-secondary btn-modal-link"
                   >
                     Kaggle Notebook
                   </ExternalLink>
                   <ExternalLink
                     href={kaggleLinks.modelHubUrl}
-                    className="btn btn-secondary"
-                    style={{ padding: "6px 12px", fontSize: "12px", textDecoration: "none" }}
+                    className="btn btn-secondary btn-modal-link"
                   >
                     Kaggle Model Hub
                   </ExternalLink>
                 </>
               ) : (
-                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Kaggle links need the model handles from the Training Suite.</span>
+                <span className="modal-action-muted">Kaggle links need the model handles from the Training Suite.</span>
               )}
             </div>
 
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="row-gap-md">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-modal-cancel"
                 onClick={onClose}
                 disabled={isBusy || isUploading}
-                style={{ padding: "8px 16px", fontSize: "13px" }}
               >
                 Cancel
               </button>
@@ -412,11 +405,10 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               {targetPlatform === "kaggle" && (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-modal-confirm"
                   onClick={handleLaunch}
                   disabled={isBusy || !launchFormValid}
                   title={launchFormValid ? undefined : "Fix the Advanced launch options first"}
-                  style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
                 >
                   {isBusy ? "Dispatching..." : "Launch Cloud Training"}
                 </button>
@@ -425,10 +417,9 @@ export const CloudTrainModal: React.FC<CloudTrainModalProps> = ({
               {targetPlatform === "upload" && (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-primary btn-modal-confirm"
                   onClick={handlePushModel}
                   disabled={isUploading}
-                  style={{ padding: "8px 20px", fontSize: "13px", fontWeight: 600 }}
                 >
                   {isUploading ? "Processing..." : dryRun ? "Validate Isolation (Dry Run)" : "Push to Kaggle Models"}
                 </button>

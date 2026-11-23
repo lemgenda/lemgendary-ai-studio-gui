@@ -77,3 +77,12 @@ h1, h2, h3, h4, h5, h6 {
 code, pre {
   font-family: var(--font-mono);
 }
+
+/* Off-screen staging element for legacy clipboard fallback */
+.clipboard-staging {
+  position: fixed;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+}

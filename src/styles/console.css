@@ -105,3 +105,99 @@
 .status-offline {
   background-color: var(--accent-rose);
 }
+
+/* Console & Status Bar Helpers */
+.log-container-selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.log-container-local {
+  min-height: 260px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.log-container-remote {
+  min-height: 240px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.log-line-selectable {
+  user-select: text;
+}
+
+.log-tag-nowrap {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.log-message-wrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.log-empty-inline {
+  color: var(--text-muted);
+  padding: 12px 0;
+  user-select: none;
+}
+
+.status-indicator-nav {
+  display: inline-block;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.status-indicator-alert {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.status-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-bar-sidecars {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-bar-sidecar-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-bar-sidecar-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.status-bar-sidecar-label-online {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-bar-mesh-online {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+}
+
+.status-bar-mesh-offline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-rose);
+}

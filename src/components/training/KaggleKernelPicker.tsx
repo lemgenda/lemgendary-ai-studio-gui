@@ -43,15 +43,14 @@ export const KaggleKernelPicker: React.FC<KaggleKernelPickerProps> = ({ value, o
       : "Pick a recent kernel...";
 
   return (
-    <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+    <div className="kaggle-picker-row">
       <select
         id="kaggle-monitor-kernel-select"
-        className="editor-input"
+        className="editor-input form-control-flex"
         aria-label="Recent Kaggle kernels of the configured account"
         value={known ? value : ""}
         onChange={(e) => onPick(e.target.value)}
         disabled={disabled || isLoading || kernels.length === 0}
-        style={{ flex: 1, padding: "8px 12px", fontSize: "13px" }}
       >
         <option value="">{placeholder}</option>
         {kernels.map((k) => (
@@ -63,10 +62,9 @@ export const KaggleKernelPicker: React.FC<KaggleKernelPickerProps> = ({ value, o
       <button
         type="button"
         id="kaggle-monitor-kernels-refresh"
-        className="btn btn-secondary"
+        className="btn btn-secondary btn-modal-attach"
         onClick={() => void loadKernels()}
         disabled={disabled || isLoading}
-        style={{ padding: "8px 14px", fontSize: "13px" }}
       >
         {isLoading ? "Loading..." : "Reload Kernels"}
       </button>

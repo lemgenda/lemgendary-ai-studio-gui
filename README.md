@@ -248,9 +248,10 @@ The desktop window runs with a strict CSP set in `src-tauri/tauri.conf.json`
   'none'`, `base-uri 'self'`, `form-action 'self'`.
 - `style-src 'self' https://fonts.googleapis.com` and `font-src 'self'
   https://fonts.gstatic.com` for the Google Fonts stylesheet in `index.html`.
-  React `style={...}` props are applied through the CSSOM and need no
-  `'unsafe-inline'`; inline `<style>` elements are not allowed, so keyframes
-  live in `src/index.css`.
+  Zero inline CSS (`style={...}`), inline `<style>` elements, or DOM `.style`
+  mutations are used anywhere in `src/`; all component styles and keyframes
+  live in modular external stylesheets under `src/styles/` imported by
+  `src/index.css`.
 - `img-src 'self' data: blob:` because Vite inlines the small branding SVGs as
   `data:` URLs; bug report screenshots and their thumbnails are `data:`/`blob:`
   images too.
@@ -276,6 +277,28 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.75 - Complete Elimination Of Inline CSS & Modular Stylesheets
+
+- **Zero Inline Styles (`src/components/`, `src/utils/clipboard.ts`)**:
+  Eliminated all inline `style={{ ... }}` attributes, `style`/`tabStyle`
+  component props, `React.CSSProperties` style objects, and DOM `.style`
+  writes across all 48 TSX components and `src/utils/clipboard.ts`.
+- **Modular External Stylesheets (`src/index.css`, `src/styles/*.css`)**:
+  Extracted all layout helpers, headings, form controls, filter toolbars,
+  banners, data tables, panel styles, dataset compiler grids, model manifold
+  cards, and training controls into 4 new modular CSS files
+  (`components.css`, `panels.css`, `compiler.css`, `training.css`) and 10
+  expanded existing stylesheets imported in cascade order by `src/index.css`.
+- **Selector-Driven Telemetry & Popovers (`TelemetryProgressTracker.tsx`,
+  `HoverPinPopover.tsx`, `Tabs.tsx`, `ValidationBanner.tsx`)**: Replaced inline
+  progress-bar transforms and theme CSS variable props with declarative
+  `.telemetry-theme-*` classes and CSS `[data-pct="0"]`..`[data-pct="100"]`
+  selectors in `src/styles/telemetry.css`, and replaced `style`/`tabStyle`
+  props with semantic `className` composition.
+- **Validation**: Verified all 52 Vitest test files (338 tests, including
+  `cssClassCoverage.test.ts`), `eslint --max-warnings 0`, TypeScript
+  type-checking, and production Vite build with zero errors or warnings.
 
 ### v2.10.74 - Unified Card Containers, True Masonry Layout & Nav Polish
 

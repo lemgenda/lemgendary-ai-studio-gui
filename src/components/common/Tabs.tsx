@@ -28,8 +28,6 @@ export interface TabListProps<T extends string> {
   /** Class of each tab button for its selected state. */
   tabClassName: (selected: boolean) => string;
   className?: string;
-  style?: React.CSSProperties;
-  tabStyle?: React.CSSProperties;
 }
 
 export function tabDomId<T extends string>(idPrefix: string, item: TabItem<T>): string {
@@ -48,8 +46,6 @@ export function TabList<T extends string>({
   onChange,
   tabClassName,
   className,
-  style,
-  tabStyle,
 }: TabListProps<T>): React.ReactElement {
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -74,7 +70,7 @@ export function TabList<T extends string>({
   };
 
   return (
-    <div role="tablist" aria-label={label} className={className} style={style}>
+    <div role="tablist" aria-label={label} className={className}>
       {items.map((item, index) => {
         const selected = item.id === value;
         return (
@@ -92,7 +88,6 @@ export function TabList<T extends string>({
             tabIndex={selected ? 0 : -1}
             disabled={item.disabled}
             className={tabClassName(selected)}
-            style={tabStyle}
             onClick={() => onChange(item.id)}
             onKeyDown={(e) => handleKeyDown(e, index)}
           >
@@ -109,7 +104,6 @@ export interface TabPanelProps<T extends string> {
   items: readonly TabItem<T>[];
   value: T;
   className?: string;
-  style?: React.CSSProperties;
   children: React.ReactNode;
 }
 
@@ -118,7 +112,6 @@ export function TabPanel<T extends string>({
   items,
   value,
   className,
-  style,
   children,
 }: TabPanelProps<T>): React.ReactElement {
   const active = items.find((item) => item.id === value) ?? items[0];
@@ -128,7 +121,6 @@ export function TabPanel<T extends string>({
       role="tabpanel"
       aria-labelledby={active ? tabDomId(idPrefix, active) : undefined}
       className={className}
-      style={style}
     >
       {children}
     </div>

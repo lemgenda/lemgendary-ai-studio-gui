@@ -134,3 +134,172 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Button layout & size modifiers */
+.btn-full {
+  width: 100%;
+  font-size: 12px;
+}
+
+.btn-full-compact {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 7px 12px;
+}
+
+.btn-compact {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.btn-compact-gap {
+  font-size: 11px;
+  padding: 4px 10px;
+  gap: 6px;
+}
+
+.btn-compact-wide {
+  font-size: 11px;
+  padding: 4px 12px;
+}
+
+.btn-xs {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.btn-2xs {
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.btn-card-action {
+  font-size: 11px;
+  padding: 6px 8px;
+  font-weight: 600;
+}
+
+.btn-card-link {
+  font-size: 11px;
+  padding: 6px 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-dismiss-sm {
+  font-size: 11px;
+  padding: 2px 10px;
+}
+
+.btn-toolbar {
+  font-size: 12px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-toolbar-sm {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
+.btn-toolbar-bold {
+  font-size: 12px;
+  padding: 5px 12px;
+  font-weight: 600;
+}
+
+.btn-action-compact {
+  font-size: 12px;
+  padding: 6px 14px;
+}
+
+.btn-action-bold {
+  font-size: 12px;
+  padding: 6px 14px;
+  font-weight: 600;
+}
+
+.btn-nowrap {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-font-sm {
+  font-size: 12px;
+}
+
+.btn-maintenance {
+  font-size: 12px;
+  padding: 8px 14px;
+}
+
+.btn-maintenance-primary {
+  font-size: 12px;
+  padding: 8px 14px;
+  font-weight: 600;
+}
+
+.btn-modal-link {
+  padding: 6px 12px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.btn-modal-cancel {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-modal-confirm {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.btn-modal-attach {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.btn-inline-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-dismiss-icon {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.btn-clear-search {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-icon-fixed {
+  flex-shrink: 0;
+}

@@ -94,28 +94,25 @@ interface KaggleLaunchOptionsProps {
   onChange: (form: KaggleLaunchForm) => void;
 }
 
-const LABEL_STYLE: React.CSSProperties = { fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" };
-
 export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choices, form, onChange }) => {
   const accelerators = choices?.list.accelerators ?? [];
   const selected = form.accelerator || choices?.list.default || "";
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+    <div className="kaggle-launch-grid">
       <div className="form-group">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <label htmlFor="kaggle-accelerator-select" style={LABEL_STYLE}>
+        <div className="form-field-label-row">
+          <label htmlFor="kaggle-accelerator-select" className="form-field-label-sm">
             Kaggle Accelerator:
           </label>
           <HelpTooltip content="Kaggle session type from the ecosystem accelerator table (retired machine shapes are not offered). Sent as the accelerator id; the Training Suite maps it to the Kaggle machine shape." />
         </div>
         <select
           id="kaggle-accelerator-select"
-          className="editor-select"
+          className="editor-select form-control-lg"
           value={selected}
           onChange={(e) => onChange({ ...form, accelerator: e.target.value })}
           disabled={accelerators.length === 0}
-          style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
         >
           {accelerators.length === 0 && <option value="">Loading accelerators...</option>}
           {accelerators.map((acc) => (
@@ -126,15 +123,15 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
           ))}
         </select>
         {choices?.source === "snapshot" && (
-          <div id="kaggle-accelerator-source" style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}>
+          <div id="kaggle-accelerator-source" className="field-note-xs">
             Training Suite offline: list from the ecosystem snapshot.
           </div>
         )}
       </div>
 
       <div className="form-group">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <label htmlFor="kaggle-poll-interval-input" style={LABEL_STYLE}>
+        <div className="form-field-label-row">
+          <label htmlFor="kaggle-poll-interval-input" className="form-field-label-sm">
             Poll Interval (s):
           </label>
           <HelpTooltip content={`First status poll interval in seconds (minimum ${KAGGLE_POLL_MIN_SECONDS}, default ${KAGGLE_POLL_DEFAULT_SECONDS}). The Training Suite backs off to 300 s while the kernel status is unchanged.`} />
@@ -142,24 +139,23 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
         <input
           id="kaggle-poll-interval-input"
           type="number"
-          className="editor-input"
+          className="editor-input form-control-lg"
           min={KAGGLE_POLL_MIN_SECONDS}
           step={1}
           value={form.pollIntervalText}
           onChange={(e) => onChange({ ...form, pollIntervalText: e.target.value })}
-          style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
         />
       </div>
 
-      <div className="form-group" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "8px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+      <div className="form-group form-checkbox-field">
+        <div className="form-checkbox-inner">
+          <label className="checkbox-label">
             <input
               id="kaggle-auto-pull-checkbox"
               type="checkbox"
+              className="checkbox-input-lg"
               checked={form.autoPull}
               onChange={(e) => onChange({ ...form, autoPull: e.target.checked })}
-              style={{ cursor: "pointer", width: "16px", height: "16px" }}
             />
             <span>Auto-pull to LemGendaryModels</span>
           </label>
@@ -167,14 +163,14 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
         </div>
       </div>
 
-      <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--text-primary)", cursor: "pointer", userSelect: "none" }}>
+      <div className="form-group kaggle-checkbox-row">
+        <label className="checkbox-label">
           <input
             id="kaggle-auto-resume-checkbox"
             type="checkbox"
+            className="checkbox-input-lg"
             checked={form.autoResume}
             onChange={(e) => onChange({ ...form, autoResume: e.target.checked })}
-            style={{ cursor: "pointer", width: "16px", height: "16px" }}
           />
           <span>Auto-resume after the session deadline</span>
         </label>
@@ -182,8 +178,8 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
       </div>
 
       <div className="form-group">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
-          <label htmlFor="kaggle-max-resumes-input" style={LABEL_STYLE}>
+        <div className="form-field-label-row">
+          <label htmlFor="kaggle-max-resumes-input" className="form-field-label-sm">
             Max Resumes:
           </label>
           <HelpTooltip content={`Most resume sessions this job pushes (minimum ${KAGGLE_MAX_RESUMES_MIN}). Empty uses kaggle_session.max_resumes of the Training Suite config.yaml.`} />
@@ -191,14 +187,13 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
         <input
           id="kaggle-max-resumes-input"
           type="number"
-          className="editor-input"
+          className="editor-input form-control-lg"
           min={KAGGLE_MAX_RESUMES_MIN}
           step={1}
           placeholder="Config default"
           value={form.maxResumesText}
           disabled={!form.autoResume}
           onChange={(e) => onChange({ ...form, maxResumesText: e.target.value })}
-          style={{ width: "100%", padding: "8px 12px", fontSize: "13px" }}
         />
       </div>
 
@@ -206,7 +201,7 @@ export const KaggleLaunchOptions: React.FC<KaggleLaunchOptionsProps> = ({ choice
         id="kaggle-override-frozen-checkbox"
         checked={form.overrideFrozen}
         onChange={(overrideFrozen) => onChange({ ...form, overrideFrozen })}
-        style={{ alignSelf: "center" }}
+        className="kaggle-checkbox-align-center"
       />
 
       <KaggleAdvancedOptions form={form.advanced} onChange={(advanced) => onChange({ ...form, advanced })} />

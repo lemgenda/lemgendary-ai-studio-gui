@@ -1,0 +1,617 @@
+/* LemGendary AI Studio - Shared UI primitives: flex groups, headings, forms, filters, banners and tables. */
+
+/* Flex Layout Helpers */
+.row-gap-xs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.row-gap-sm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row-gap-md {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-gap-lg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-gap-xl {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.row-wrap {
+  flex-wrap: wrap;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.row-between-start {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.stack-xs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stack-xl {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Headings & Kickers */
+.card-heading {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.card-heading-bold {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.card-subheading {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.card-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.section-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Form Labels, Inputs & Checkboxes */
+.form-field-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.form-field-label-sm {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.form-field-label-secondary {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.form-field-label-caps {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.form-control-sm {
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.form-control-md {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.form-control-wide-md {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.form-control-lg {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.form-control-flex {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.form-control-narrow {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.form-control-weight {
+  width: 80px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.form-control-readonly {
+  opacity: 0.85;
+}
+
+.form-checkbox-field {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.form-checkbox-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.form-checkbox-inner-sm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label-compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label-disabled {
+  cursor: not-allowed;
+}
+
+.checkbox-input-lg {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.checkbox-input-lg-disabled {
+  cursor: not-allowed;
+  width: 16px;
+  height: 16px;
+}
+
+.field-alert-inline {
+  font-size: 11px;
+  color: #f87171;
+  margin-top: 4px;
+}
+
+.field-note-xs {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Toolbars, Subtab Pills & Filter Bars */
+.toolbar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.toolbar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.subtab-switcher-pill {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  gap: 4px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.filter-search-box {
+  flex: 1 1 220px;
+  position: relative;
+}
+
+.filter-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.filter-select {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.segmented-control-compact {
+  max-width: 260px;
+}
+
+.segmented-btn-compact {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+/* Validation & Mesh Banners */
+.validation-banner-dismissible {
+  justify-content: space-between;
+}
+
+.validation-banner-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.banner-space-bottom {
+  margin-bottom: 16px;
+}
+
+.banner-space-bottom-sm {
+  margin-bottom: 12px;
+}
+
+.banner-space-top {
+  margin-top: 16px;
+}
+
+.banner-space-top-sm {
+  margin-top: 12px;
+}
+
+.banner-space-top-xs {
+  margin-top: 10px;
+}
+
+.banner-space-top-2xs {
+  margin-top: 6px;
+}
+
+.banner-text-sm {
+  font-size: 12px;
+}
+
+.mesh-offline-banner {
+  padding: 12px 20px;
+  background-color: rgba(244, 63, 94, 0.12);
+  border: 1px solid var(--accent-rose);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mesh-offline-text {
+  font-size: 13px;
+  color: var(--accent-rose);
+  font-weight: 600;
+}
+
+.mesh-error-banner {
+  padding: 10px 16px;
+  background-color: rgba(251, 146, 60, 0.10);
+  border: 1px solid var(--accent-amber, #f59e0b);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.mesh-error-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.sidecar-offline-banner {
+  padding: 12px 16px;
+  background-color: rgba(251, 146, 60, 0.12);
+  border: 1px solid var(--accent-amber, #f59e0b);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidecar-offline-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sidecar-offline-title {
+  color: var(--accent-amber, #f59e0b);
+}
+
+/* Shared Card Strips, Metric Modifiers & Empty Catalogs */
+.card-status-strip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.card-status-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.card-specs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.card-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metric-value-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.metric-value-mono-muted {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.metric-value-upper {
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.metric-value-bold {
+  font-weight: 600;
+}
+
+.metric-value-emerald {
+  color: var(--accent-emerald);
+}
+
+.metric-value-danger {
+  color: var(--accent-rose);
+}
+
+.metric-value-highlight {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.metric-value-sky {
+  color: #38bdf8;
+}
+
+.metric-value-muted {
+  color: var(--text-muted);
+}
+
+.empty-catalog-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.empty-catalog-state-compact {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+.empty-catalog-message {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* Data Tables */
+.data-table-scroll {
+  overflow-x: auto;
+}
+
+.data-table-scroll-box {
+  overflow-x: auto;
+  margin-top: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.data-table-scroll-box-lg {
+  margin-top: 16px;
+  overflow-x: auto;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.data-table-mono {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.data-table-head-row {
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  color: var(--text-muted);
+}
+
+.data-table-head-row-upper {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.data-table-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.data-table-cell {
+  padding: 8px 12px;
+}
+
+.data-table-th-key {
+  padding: 8px 12px;
+  color: var(--accent-cyan);
+  font-weight: 500;
+  text-align: left;
+}
+
+.data-table-td-secondary {
+  padding: 8px 12px;
+  color: var(--text-secondary);
+}
+
+.data-table-td-muted {
+  padding: 8px 12px;
+  color: var(--text-muted);
+}
+
+.data-table-cell-sm {
+  padding: 8px 10px;
+}
+
+.data-table-cell-sm-bold {
+  padding: 8px 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.data-table-cell-sm-mono {
+  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.data-table-cell-sm-muted {
+  padding: 8px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.data-table-cell-sm-right {
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.data-table-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+}

@@ -26,26 +26,25 @@ export const ScaleReductionView: React.FC<ScaleReductionViewProps> = ({
   onRunReduce,
 }) => {
   return (
-    <div style={{ padding: "16px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
-      <h4 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--text-primary)" }}>
+    <div className="compiler-subpanel">
+      <h4 className="scale-reduce-title">
         Manifold Downsampling &amp; Scale Reduction
       </h4>
-      <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 16px 0" }}>
+      <p className="scale-reduce-desc">
         Synthesize a lightweight scaled derivative manifold (e.g. 25% or 10% sampling) preserving paired input/target alignments for rapid local unit testing.
       </p>
 
-      <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px", marginBottom: "16px" }}>
+      <div className="form-grid form-grid-reduction">
         <div className="form-group">
-          <label htmlFor="reduce-manifold-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+          <label htmlFor="reduce-manifold-select" className="form-field-label">
             Source Manifold:
           </label>
           <select
             id="reduce-manifold-select"
-            className="editor-select"
+            className="editor-select form-control-sm"
             value={reduceManifold}
             onChange={(e) => setReduceManifold(e.target.value)}
             disabled={isReducing}
-            style={{ fontSize: "12px", padding: "6px 8px" }}
           >
             <option value="">Select Manifold to Reduce...</option>
             {datasets.map((d) => (
@@ -57,16 +56,15 @@ export const ScaleReductionView: React.FC<ScaleReductionViewProps> = ({
         </div>
 
         <div className="form-group">
-          <label htmlFor="reduce-scale-select" style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, display: "block", marginBottom: "4px" }}>
+          <label htmlFor="reduce-scale-select" className="form-field-label">
             Sampling Scale Factor:
           </label>
           <select
             id="reduce-scale-select"
-            className="editor-select"
+            className="editor-select form-control-sm"
             value={reduceScale}
             onChange={(e) => setReduceScale(Number(e.target.value))}
             disabled={isReducing}
-            style={{ fontSize: "12px", padding: "6px 8px" }}
           >
             <option value={0.1}>10% Sampling (Diagnostic Smoke Test)</option>
             <option value={0.25}>25% Sampling (Balanced Lightweight)</option>
@@ -78,10 +76,9 @@ export const ScaleReductionView: React.FC<ScaleReductionViewProps> = ({
 
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-action-bold"
         onClick={onRunReduce}
         disabled={isReducing || !datasetCompilerOnline || !reduceManifold}
-        style={{ fontSize: "12px", padding: "6px 14px", fontWeight: 600 }}
       >
         {isReducing ? "Executing Scale Reduction..." : "Launch Scale Reduction"}
       </button>
@@ -89,7 +86,7 @@ export const ScaleReductionView: React.FC<ScaleReductionViewProps> = ({
       {reduceStatus && (
         <ValidationBanner
           message={reduceStatus}
-          style={{ marginTop: "16px", fontSize: "12px" }}
+          className="banner-space-top banner-text-sm"
         />
       )}
     </div>

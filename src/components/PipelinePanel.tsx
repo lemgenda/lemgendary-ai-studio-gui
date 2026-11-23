@@ -49,11 +49,11 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
   return (
     <section className="card" aria-labelledby="pipeline-panel-title">
       <div className="card-title">
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <h3 id="pipeline-panel-title" style={{ fontSize: "16px", fontWeight: 600 }}>Smart Clean Install Pipeline Orchestrator</h3>
+        <div className="row-gap-md">
+          <h3 id="pipeline-panel-title" className="card-heading">Smart Clean Install Pipeline Orchestrator</h3>
           <HelpTooltip content={`Deterministic ${PIPELINE_STEPS.length}-step environment installation and verification pipeline. Synchronizes dependencies, creates virtual environments, audits toolchains, and eliminates version drift.`} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div className="row-gap-sm">
           <span
             className={`badge ${isRunning ? "badge-warning" : "badge-info"}`}
             aria-label={`Pipeline execution state: ${isRunning ? "Active" : "Ready"}`}
@@ -64,7 +64,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         </div>
       </div>
 
-      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px" }}>
+      <p className="pipeline-desc">
         Executes deterministic end-to-end reconciliation across all LemGendary projects:
         hardware discovery, global toolchain verification, venv creation, manifest sync,
         safe package updates, and zero-emoji bytecode compilation.
@@ -82,7 +82,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
       />
       <ol
         aria-label="Pipeline steps"
-        style={{ display: "flex", gap: "10px", flexWrap: "wrap", listStyle: "none", padding: 0, margin: "0 0 24px 0" }}
+        className="pipeline-steps-bar"
       >
         {PIPELINE_STEPS.map((s) => {
           const state = states[s.num - 1];
@@ -92,25 +92,18 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
           return (
             <li
               key={s.num}
-              style={{
-                flex: "1 1 120px",
-                padding: "12px",
-                backgroundColor: "var(--bg-secondary)",
-                borderRadius: "var(--radius-sm)",
-                border: isCurrent ? "1px solid var(--accent-amber)" : "1px solid var(--border-color)",
-                position: "relative",
-              }}
+              className={`pipeline-step-pill ${isCurrent ? "pipeline-step-pill-active" : ""}`}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+              <div className="row-between">
+                <span className="pipeline-step-num">
                   [Step {s.num}]
                 </span>
-                <span className={`badge ${pill.badge}`} style={{ fontSize: "9px", padding: "1px 4px" }}>
+                <span className={`badge ${pill.badge} badge-xs`}>
                   {pill.label}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "4px" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600 }}>{s.name}</span>
+              <div className="pipeline-step-pill-name-row">
+                <span className="pipeline-step-pill-name">{s.name}</span>
                 <HelpTooltip content={`Step ${s.num}: ${s.shortDesc}`} position="top" />
               </div>
             </li>
@@ -118,7 +111,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
         })}
       </ol>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className="row-gap-md">
         <button
           id="dash-btn-run-pipeline"
           type="button"
@@ -153,7 +146,7 @@ export const PipelinePanel: React.FC<PipelinePanelProps> = ({
       {!envManagerOnline && (
         <p
           role="alert"
-          style={{ fontSize: "12px", color: "var(--accent-rose)", marginTop: "8px" }}
+          className="pipeline-offline-alert"
         >
           Environment Manager (Port {servicePort("env-manager")}) is offline.
           The pipeline cannot execute until the sidecar is launched.

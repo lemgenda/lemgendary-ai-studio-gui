@@ -113,7 +113,7 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
       id="config-editor-modal"
       title="Universal Dynamic Config & Secrets Vault"
       headerActions={
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, marginLeft: "12px" }}>
+        <div className="modal-header-actions-fill">
           <HelpTooltip content="Universal in-app configuration editor. Manage manifest registries, neural hyperparameters, and cloud secrets (Kaggle mandatory, Google Drive, GitHub, MT5) with live validation and atomic backup." />
           <TabList
             idPrefix="config-editor"
@@ -125,7 +125,7 @@ export const ConfigEditorModal: React.FC<ConfigEditorModalProps> = ({
             tabClassName={(selected) => `modal-tab-btn ${selected ? "active" : ""}`}
           />
           <HelpTooltip content="Registry Manifests: inspect and edit core YAML and JSON manifests across repositories with live syntax validation and diff preview. Secrets & Tokens Vault: manage multi-service credentials and API tokens; Kaggle is mandatory, the rest optional." />
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="modal-header-close-group">
             <button
               type="button"
               className="btn btn-secondary"

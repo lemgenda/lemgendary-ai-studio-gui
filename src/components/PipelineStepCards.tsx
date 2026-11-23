@@ -53,24 +53,18 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
   };
 
   return (
-    <div style={{ marginTop: "20px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: 600 }}>Individual Pipeline Step Execution</h3>
+    <div className="pipeline-steps-section">
+      <div className="pipeline-steps-header">
+        <div className="row-gap-md">
+          <h3 className="card-heading">Individual Pipeline Step Execution</h3>
           <HelpTooltip content={`Run individual pipeline stages in isolation. Useful for diagnosing specific failures, auditing dependencies, or re-compiling bytecode without triggering the full ${PIPELINE_STEPS.length}-step pipeline.`} />
         </div>
-        <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+        <span className="pipeline-steps-count">
           7 Independent Diagnostic & Reconciliation Steps
         </span>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "16px",
-        }}
-      >
+      <div className="pipeline-steps-grid">
         {PIPELINE_STEPS.map((step) => {
           const latestEvent = getStepLatestEvent(step.num);
           const isLatestCompleted = Boolean(latestEvent && isTerminalEvent(latestEvent));
@@ -100,132 +94,62 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
           return (
             <div
               key={step.num}
-              className="card"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                padding: "16px",
-                border: isStepRunning ? "1px solid var(--accent-amber)" : "1px solid var(--border-color)",
-                transition: "border-color 0.2s ease, box-shadow 0.2s ease",
-              }}
+              className={`card pipeline-step-card ${isStepRunning ? "pipeline-step-card-running" : ""}`}
             >
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--text-muted)",
-                        fontWeight: 600,
-                      }}
-                    >
+                <div className="pipeline-step-card-header">
+                  <div className="row-gap-md">
+                    <span className="pipeline-step-card-num">
                       [Step {step.num}]
                     </span>
-                    <h4 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>
+                    <h4 className="pipeline-step-card-title">
                       {step.name}
                     </h4>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span
-                      className={`badge ${statusBadgeClass}`}
-                      style={{ fontSize: "10px", padding: "2px 6px" }}
-                    >
+                  <div className="row-gap-sm">
+                    <span className={`badge ${statusBadgeClass} badge-sm`}>
                       {statusText}
                     </span>
                     <HelpTooltip content={step.detailedDesc} position="left" />
                   </div>
                 </div>
 
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-secondary)",
-                    lineHeight: 1.5,
-                    marginBottom: "12px",
-                  }}
-                >
+                <p className="pipeline-step-card-desc">
                   {step.shortDesc}
                 </p>
 
                 {isStepRunning && (
                   <div
-                    style={{
-                      marginBottom: "10px",
-                      position: "relative",
-                      height: "5px",
-                      borderRadius: "9999px",
-                      backgroundColor: "rgba(255, 255, 255, 0.08)",
-                      overflow: "hidden",
-                    }}
+                    className="pipeline-step-progress-track"
                     role="progressbar"
                     aria-label={`Step ${step.num} execution progress`}
                     aria-busy="true"
                   >
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        bottom: 0,
-                        width: "50%",
-                        background: "linear-gradient(90deg, #f59e0b 0%, #ffd166 60%, #00f0ff 100%)",
-                        borderRadius: "9999px",
-                        boxShadow: "0 0 8px rgba(255, 209, 102, 0.5)",
-                        animation: "telemetry-indeterminate-sweep 1.8s infinite ease-in-out",
-                      }}
-                    />
+                    <div className="pipeline-step-progress-fill" />
                   </div>
                 )}
 
                 {latestEvent && (
                   <div
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: "var(--radius-sm)",
-                      backgroundColor: "var(--bg-secondary)",
-                      border: "1px solid var(--border-color)",
-                      marginBottom: "14px",
-                      fontSize: "11px",
-                      fontFamily: "var(--font-mono)",
-                      color:
-                        latestEvent.status === "error"
-                          ? "var(--accent-rose)"
-                          : latestEvent.status === "warning"
-                          ? "var(--accent-amber)"
-                          : "var(--text-secondary)",
-                      maxHeight: "60px",
-                      overflowY: "auto",
-                      wordBreak: "break-word",
-                    }}
+                    className={`pipeline-step-log ${
+                      latestEvent.status === "error"
+                        ? "pipeline-step-log-error"
+                        : latestEvent.status === "warning"
+                        ? "pipeline-step-log-warning"
+                        : ""
+                    }`}
                   >
                     {latestEvent.message}
                   </div>
                 )}
               </div>
 
-              <div style={{ paddingTop: "8px", borderTop: "1px solid var(--border-color)" }}>
+              <div className="pipeline-step-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-full-compact"
                   onClick={() => handleStepClick(step.num)}
                   disabled={isRunning || runningStep !== null || !envManagerOnline}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "8px",
-                    fontSize: "12px",
-                    padding: "7px 12px",
-                  }}
                   aria-label={`Run Step ${step.num}: ${step.name}`}
                   aria-busy={isStepRunning}
                 >

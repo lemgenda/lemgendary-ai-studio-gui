@@ -426,7 +426,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <ValidationBanner
             type="info"
             message={refreshFeedback}
-            style={{ marginBottom: "16px", fontSize: "12px" }}
+            className="banner-space-bottom banner-text-sm"
           />
         )}
 
@@ -435,7 +435,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
             type={schemaValidation.schemaNotice.type}
             message={schemaValidation.schemaNotice.message}
             onDismiss={schemaValidation.onDismissSchemaNotice}
-            style={{ marginBottom: "16px", fontSize: "12px" }}
+            className="banner-space-bottom banner-text-sm"
           />
         )}
 
@@ -443,7 +443,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
           <ValidationBanner
             message={actionNotice}
             onDismiss={() => setActionNotice(null)}
-            style={{ marginBottom: "16px", fontSize: "12px" }}
+            className="banner-space-bottom banner-text-sm"
           />
         )}
 
@@ -451,7 +451,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
         {activeSectionTab === "catalog" && (
           <div className="card-grid card-grid-models masonry-grid">
             {filteredDatasets.length === 0 ? (
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
+              <div className="empty-catalog-state-compact">
                 {datasets.length > 0
                   ? "No dataset manifolds matched your current search and filter settings."
                   : datasetCompilerOnline

@@ -1,0 +1,338 @@
+/* LemGendary AI Studio - Training Suite cards, batch controls, Kaggle options & dialogs. */
+
+/* Training Masonry Spacing */
+.models-masonry-spaced {
+  margin-bottom: 24px;
+}
+
+/* Model Manifold Card */
+.model-card-active {
+  border: 1px solid var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.override-frozen-card-row {
+  padding: 0 10px;
+}
+
+/* Variation Badges Strip */
+.variation-badges-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.variation-badges-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Model Metrics & QLoRA Matrix */
+.llm-matrix-card {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 4px 0;
+}
+
+.llm-matrix-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a78bfa;
+  margin-bottom: 4px;
+}
+
+.llm-matrix-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.llm-matrix-val {
+  color: var(--text-primary);
+}
+
+.sota-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.sota-detail-label {
+  color: var(--text-secondary);
+}
+
+.sota-detail-goal {
+  color: var(--text-muted);
+}
+
+.sota-detail-achieved {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sota-achieved-pass {
+  color: var(--accent-emerald);
+}
+
+.sota-achieved-fail {
+  color: var(--accent-rose);
+}
+
+/* Batch Size Selector */
+.batch-selector-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.batch-selector-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.batch-control {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.batch-control:disabled {
+  cursor: not-allowed;
+}
+
+.batch-control-custom {
+  width: 70px;
+  cursor: text;
+}
+
+.batch-control-invalid {
+  border-color: var(--accent-rose, #f43f5e);
+}
+
+/* Model Card Actions Grid */
+.model-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Override Frozen Toggle */
+.override-frozen-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Frozen Refusal Notice */
+.frozen-refusal-banner {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.frozen-refusal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.frozen-refusal-text {
+  font-size: 12px;
+}
+
+.frozen-refusal-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.frozen-refusal-caption {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.frozen-refusal-cell {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  word-break: break-all;
+  vertical-align: top;
+}
+
+/* Soup Blend Dialog */
+.soup-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.soup-legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.soup-option-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.soup-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+
+.soup-table-head {
+  text-align: left;
+  color: var(--text-muted);
+}
+
+/* Kaggle Launch Options, Advanced Options & Kernel Picker */
+.kaggle-launch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.kaggle-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kaggle-checkbox-align-center {
+  align-self: center;
+}
+
+.kaggle-advanced-fieldset {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0;
+}
+
+.kaggle-advanced-legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 6px;
+}
+
+.kaggle-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.kaggle-picker-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Variation Isolation Checker */
+.isolation-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.isolation-controls-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.isolation-status-heading {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.isolation-verifying {
+  color: #38bdf8;
+  text-transform: none;
+  margin-left: 6px;
+}
+
+.isolation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.isolation-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.variation-card {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.variation-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.variation-card-key {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.variation-card-files {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.variation-card-error {
+  font-size: 10px;
+  color: #f87171;
+}

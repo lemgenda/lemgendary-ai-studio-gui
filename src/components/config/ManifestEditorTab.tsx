@@ -159,20 +159,20 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
         <ValidationBanner
           type="error"
           message={`Manifest registry is unavailable (Port ${servicePort("env-manager")} offline${registryError ? `: ${registryError}` : ""}). Start the Environment Manager to view and edit manifests.`}
-          style={{ marginBottom: "12px" }}
+          className="banner-space-bottom-sm"
         />
       )}
       {!registryOffline && loadError !== null && (
         <ValidationBanner
           type="error"
           message={`Could not load ${selectedName}: ${loadError}. Validate and Save stay disabled until the manifest loads.`}
-          style={{ marginBottom: "12px" }}
+          className="banner-space-bottom-sm"
         />
       )}
 
       <div className="editor-toolbar">
         <div className="editor-control-group">
-          <label htmlFor="manifest-select" style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+          <label htmlFor="manifest-select" className="manifest-select-label">
             Target Manifest:
           </label>
           <select
@@ -257,7 +257,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
         <ValidationBanner
           type={validationResult.valid ? "success" : "error"}
           message={validationResult.message}
-          style={{ marginBottom: "12px" }}
+          className="banner-space-bottom-sm"
         />
       )}
 
@@ -266,7 +266,7 @@ export const ManifestEditorTab: React.FC<ManifestEditorTabProps> = ({
           type="success"
           message={saveSuccessMsg}
           onDismiss={() => setSaveSuccessMsg(null)}
-          style={{ marginBottom: "12px" }}
+          className="banner-space-bottom-sm"
         />
       )}
 

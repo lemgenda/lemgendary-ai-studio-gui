@@ -91,9 +91,9 @@ export const SoupBlendDialog: React.FC<SoupBlendDialogProps> = ({ model, onClose
         </>
       }
     >
-      <fieldset style={{ border: "none", padding: 0, margin: "0 0 12px 0", display: "flex", flexDirection: "column", gap: "6px" }}>
-        <legend style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "6px" }}>Donors</legend>
-        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
+      <fieldset className="soup-fieldset">
+        <legend className="soup-legend">Donors</legend>
+        <label className="soup-option-label">
           <input
             id="soup-mode-all"
             type="radio"
@@ -103,7 +103,7 @@ export const SoupBlendDialog: React.FC<SoupBlendDialogProps> = ({ model, onClose
           />
           <span>Every vault checkpoint on disk, uniform weights</span>
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px" }}>
+        <label className="soup-option-label">
           <input
             id="soup-mode-pick"
             type="radio"
@@ -121,9 +121,9 @@ export const SoupBlendDialog: React.FC<SoupBlendDialogProps> = ({ model, onClose
       </fieldset>
 
       {mode === "pick" && (
-        <table style={{ width: "100%", fontSize: "12px", borderCollapse: "collapse" }}>
+        <table className="soup-table">
           <thead>
-            <tr style={{ textAlign: "left", color: "var(--text-muted)" }}>
+            <tr className="soup-table-head">
               <th scope="col">Use</th>
               <th scope="col">Vault checkpoint</th>
               <th scope="col">Weight</th>
@@ -151,12 +151,11 @@ export const SoupBlendDialog: React.FC<SoupBlendDialogProps> = ({ model, onClose
                     type="number"
                     min={0}
                     step="any"
-                    className="editor-input"
+                    className="editor-input form-control-weight"
                     value={d.weight}
                     onChange={(e) => updateDraft(d.key, { weight: e.target.value })}
                     disabled={!d.selected}
                     aria-label={`Weight of the ${d.label} vault checkpoint`}
-                    style={{ width: "80px", padding: "4px 8px", fontSize: "12px" }}
                   />
                 </td>
                 <td>{d.selected ? shareLabel(d.weight, drafts) : "-"}</td>
@@ -166,7 +165,7 @@ export const SoupBlendDialog: React.FC<SoupBlendDialogProps> = ({ model, onClose
         </table>
       )}
 
-      {error && <ValidationBanner type="error" message={error} style={{ marginTop: "12px", fontSize: "12px" }} />}
+      {error && <ValidationBanner type="error" message={error} className="banner-space-top-sm banner-text-sm" />}
     </Modal>
   );
 };
