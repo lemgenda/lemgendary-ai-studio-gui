@@ -14,19 +14,21 @@ import { ServiceOperationResult } from "./types";
 
 /**
  * Lightweight reachability probe for a single sidecar port.
- * Uses a 1500 ms AbortController timeout so the UI never hangs waiting.
+ * Uses a 5000 ms AbortController timeout so the UI never flags busy sidecars as offline.
  * Falls back to false on any network error or timeout.
  */
 export async function probeSidecarPort(target: number | ServiceId): Promise<boolean> {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 2000);
+  const timer = window.setTimeout(() => controller.abort(), 5000);
   let url: string;
   if (typeof target === "string" && target in MESH_SERVICES) {
     const service = MESH_SERVICES[target];
     url = `${service.httpUrl}${service.livenessPath}`;
   } else {
     const match = Object.values(MESH_SERVICES).find((s) => s.defaultPort === target);
-    url = match ? `${match.httpUrl}${match.livenessPath}` : `http://${ECOSYSTEM.identity.bind_host}:${target}/api/health`;
+    url = match
+      ? `${match.httpUrl}${match.livenessPath}`
+      : `http://${ECOSYSTEM.identity.bind_host}:${target}/api/health`;
   }
   try {
     const res = await sidecarFetch(url, {

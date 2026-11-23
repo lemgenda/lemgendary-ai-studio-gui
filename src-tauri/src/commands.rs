@@ -118,6 +118,14 @@ fn python_for(proj_dir: &Path) -> String {
 /// so a service that exits on startup leaves its error behind.
 fn spawn_service_logged(service_id: &str, log_dir: &Path) -> Result<String, String> {
     let spec = service_spec(service_id)?;
+    if let Ok(pids) = listening_pids(spec.port) {
+        if !pids.is_empty() {
+            return Ok(format!(
+                "Service '{}' is already running (listening on port {} with pid {:?}).",
+                service_id, spec.port, pids
+            ));
+        }
+    }
     let proj_dir =
         find_project_dir(spec.folder).unwrap_or_else(|| PathBuf::from("..").join(spec.folder));
 

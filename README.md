@@ -2284,6 +2284,15 @@ Also: Service Termination.
   pushes, pulls, or exports) registered in the persistent database do not
   falsely trigger local training UI state on panel load.
 
+### v3.9.0 - Sidecar Probe Timeout Expansion & Duplicate Spawn Guard
+
+- **Probe Timeout Expansion**: Increased the sidecar reachability probe timeout
+  in `src/api/serviceLifecycle.ts` from 2000 ms to 5000 ms, avoiding false
+  offline flapping during heavy GPU training or validation passes.
+- **Native Spawn Port Guard**: Added listening PID detection in
+  `src-tauri/src/commands.rs` to ensure the desktop application does not spawn
+  duplicate processes if a sidecar is already active.
+
 ### v3.8.0 — Dev Store Window Export for Automation and Screen Capture
 
 - **`src/main.tsx` — Window Store Export** — Expose `useStudioStore` on
