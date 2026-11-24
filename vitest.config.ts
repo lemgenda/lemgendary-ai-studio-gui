@@ -1,5 +1,5 @@
 import { defineConfig, mergeConfig } from "vitest/config";
-import viteConfig from "./vite.config";
+import viteConfig from "./vite.config.ts";
 
 // Vitest replaces CSS with an empty module unless it is included here; the
 // CSS class coverage test reads `src/index.css` and `src/styles/*.css` through `?raw`.

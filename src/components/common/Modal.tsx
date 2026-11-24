@@ -33,7 +33,7 @@ export interface ModalProps {
   /** Id of the element that describes the dialog (`aria-describedby`). */
   describedById?: string;
   /** Element focused on open; defaults to the first focusable element. */
-  initialFocusRef?: React.RefObject<HTMLElement>;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
   /** Extra controls placed in the header next to the title. */
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;

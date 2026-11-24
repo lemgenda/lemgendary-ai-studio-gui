@@ -280,6 +280,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ### v2.10.77 - Native Sidecar Teardown On App Exit & Ghost Process Prevention
 
+- **React 19, Vite 8 & Tooling Ecosystem Upgrade (`package.json`, `src/components/common/Modal.tsx`)**:
+  Upgraded desktop frontend dependencies to React 19 (`react`, `react-dom`,
+  `@types/react`, `@types/react-dom` 19.3), Vite 8 (`vite` 8.3,
+  `@vitejs/plugin-react` 6.3), Vitest 5 (`vitest` 5.1), and tooling
+  (`typescript-eslint` 8.74, `jsdom` 31.0, `globals` 17.14). Updated `ModalProps`
+  `initialFocusRef` to support `RefObject<HTMLElement | null>` for strict
+  React 19 ref type compatibility. All 52 test suites (341 tests) passing.
 - **Native App Teardown on Window Close and App Exit (`src-tauri/src/main.rs`,
   `src-tauri/src/commands.rs`)**: Registered window destroyed
   (`WindowEvent::Destroyed`) and Tauri application exit (`RunEvent::Exit`)
