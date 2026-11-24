@@ -250,6 +250,21 @@ pub fn stop_service(service_id: String) -> Result<ServiceStopResult, String> {
     })
 }
 
+/// Synchronously stop every registered ecosystem sidecar by terminating
+/// whatever listens on its ecosystem port.
+pub fn stop_all_services_native() -> Result<Vec<ServiceStopResult>, String> {
+    let mut results = Vec::new();
+    for service_id in service_ids()? {
+        results.push(stop_service(service_id.to_string())?);
+    }
+    Ok(results)
+}
+
+#[tauri::command]
+pub fn stop_all_services() -> Result<Vec<ServiceStopResult>, String> {
+    stop_all_services_native()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

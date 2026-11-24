@@ -278,6 +278,22 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.77 - Native Sidecar Teardown On App Exit & Ghost Process Prevention
+
+- **Native App Teardown on Window Close and App Exit (`src-tauri/src/main.rs`,
+  `src-tauri/src/commands.rs`)**: Registered window destroyed
+  (`WindowEvent::Destroyed`) and Tauri application exit (`RunEvent::Exit`)
+  handlers calling `commands::stop_all_services_native()`. Guaranteed all
+  listening sidecar processes (`env-manager` on port 8000, `dataset-compiler`
+  on port 8100, and `training-suite` on port 8200) are terminated cleanly via
+  `taskkill` when the desktop application closes.
+- **Desktop Service Lifecycle Client (`src/api/serviceLifecycle.ts`,
+  `src/api/__tests__/sidecarRouting.test.ts`)**: Added `stopAllServices()` to
+  the client lifecycle API with Tauri invoke routing and HTTP fallback to the
+  Environment Manager sidecar (`POST /api/services/stop-all`).
+- **Regression Tests**: Added unit tests covering desktop invoke execution and
+  browser HTTP delegation in `sidecarRouting.test.ts`.
+
 ### v2.10.76 - Terminal Upload Completion & Active Progress Dismissal
 
 - Upgraded 9 package(s) for the lemgendary-ai-studio-gui.

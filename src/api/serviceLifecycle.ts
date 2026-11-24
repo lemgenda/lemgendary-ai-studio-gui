@@ -141,3 +141,29 @@ export async function startAllServices(): Promise<{ results: Record<string, Serv
   await invokeNativeSpawn("spawn_all_services");
   return { results: {} };
 }
+
+/**
+ * Stop every running sidecar: uses native `stop_all_services` in desktop app
+ * if available, falling back to Environment Manager's stop-all endpoint.
+ */
+export async function stopAllServices(): Promise<{ results: Record<string, ServiceOperationResult> }> {
+  if (isTauri()) {
+    try {
+      const results = await invoke<Record<string, ServiceOperationResult>>("stop_all_services");
+      return { results };
+    } catch (nativeErr: unknown) {
+      const nativeMessage = nativeErr instanceof Error ? nativeErr.message : String(nativeErr);
+      logger.warn(`Native stop_all_services failed, trying Environment Manager: ${nativeMessage}`);
+    }
+  }
+
+  if (await probeSidecarPort("env-manager")) {
+    const res = await sidecarFetch(`${ENV_BASE}/api/services/stop-all`, {
+      method: "POST",
+    });
+    if (!res.ok) return throwHttpError(res, "Stop all services");
+    return res.json();
+  }
+
+  return { results: {} };
+}

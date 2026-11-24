@@ -19,6 +19,7 @@ import {
   openExternalUrl,
   startAllServices,
   startService,
+  stopAllServices,
   stopService,
 } from "../client";
 import { MESH_SERVICES } from "../config";
@@ -158,6 +159,29 @@ describe("service control routing", () => {
 
     stubFetch(true, { [url]: () => new Response(JSON.stringify({ detail: "not running" }), { status: 400 }) });
     await expect(stopService("dataset-compiler")).rejects.toThrow(/Native stop failed \(netstat failed\);.*not running/);
+  });
+
+  it("stopAllServices uses Tauri invoke when in desktop app", async () => {
+    isTauriMock.mockReturnValue(true);
+    const stoppedResult = { "dataset-compiler": { status: "stopped", message: "Terminated" } };
+    invokeMock.mockResolvedValueOnce(stoppedResult);
+
+    const res = await stopAllServices();
+    expect(invokeMock).toHaveBeenCalledWith("stop_all_services");
+    expect(res).toEqual({ results: stoppedResult });
+  });
+
+  it("stopAllServices uses Environment Manager endpoint in browser or fallback", async () => {
+    isTauriMock.mockReturnValue(false);
+    const stopAllUrl = `${ENV_BASE}/api/services/stop-all`;
+    const stoppedResult = { results: { "dataset-compiler": { status: "stopped", message: "Terminated" } } };
+    const fetchMock = stubFetch(true, {
+      [stopAllUrl]: () => new Response(JSON.stringify(stoppedResult)),
+    });
+
+    const res = await stopAllServices();
+    expect(res).toEqual(stoppedResult);
+    expect(requestedUrls(fetchMock)).toContain(stopAllUrl);
   });
 });
 
