@@ -280,6 +280,10 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ### v2.10.78 - Shortest-Column Masonry Layout with GPU-Accelerated FLIP Reflow
 
+- **Safe Toolchain Package Upgrades (`package.json`)**: Upgraded
+  `@axe-core/react` to `^4.14.1`, `@types/node` to `^26.6.7`, and `@types/react`
+  to `^19.3.1`.
+
 - **Generic Masonry Layout Primitive (`src/hooks/useMasonryFlip.ts`,
   `src/components/ui/MasonryFlipGrid.tsx`)**:
   Implemented reusable `<MasonryFlipGrid />` and `useMasonryFlip` hook providing
