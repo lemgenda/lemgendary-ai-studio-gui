@@ -449,7 +449,7 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
         {/* ─── TAB 1: MANIFOLDS CATALOG ─── */}
         {activeSectionTab === "catalog" && (
-          <div className="card-grid card-grid-models">
+          <div className="manifolds-masonry-container">
             <MasonryFlipGrid
               items={datasetItemsWithId}
               renderItem={(d) => (

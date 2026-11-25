@@ -388,7 +388,7 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         />
 
         {/* 2. Model Cards Masonry Grid */}
-        <div className="card-grid card-grid-models models-masonry-spaced">
+        <div className="models-masonry-container models-masonry-spaced">
           <MasonryFlipGrid
             items={modelItemsWithId}
             renderItem={(m) => (

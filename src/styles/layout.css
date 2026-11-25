@@ -240,17 +240,10 @@
   min-width: 0;
 }
 
-@media (max-width: 1100px) {
-  .masonry-column:nth-child(3) {
-    display: none;
-  }
-}
-
-@media (max-width: 680px) {
-  .masonry-column:nth-child(2),
-  .masonry-column:nth-child(3) {
-    display: none;
-  }
+.models-masonry-container,
+.manifolds-masonry-container {
+  width: 100%;
+  min-width: 0;
 }
 
 /* ─── Compact Collapsible Cards ──────────────────────────────────────────── */

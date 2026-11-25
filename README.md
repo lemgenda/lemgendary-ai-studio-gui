@@ -293,10 +293,12 @@ lem-env validate --project lemgendary-ai-studio-gui
   cancellation for interrupted/rapid clicks, multi-monitor DPI resize
   resilience, and `prefers-reduced-motion` accessibility support.
 - **Compiler & Model Hub Modernization (`CompilerPanel.tsx`,
-  `TrainingPanel.tsx`)**:
+  `TrainingPanel.tsx`, `src/styles/layout.css`)**:
   Migrated both the Manifold Hub (Compiler panel) and Model Hub (Training panel)
   from static multi-column modulo layouts to dynamic shortest-column Masonry
   with FLIP reflow animations on card expansion, collapse, and filtering.
+  Removed conflicting CSS grid wrappers and set full-width masonry containers
+  (`.models-masonry-container`, `.manifolds-masonry-container`).
 - **Robust Multiplatform & Test Guarding**:
   Added environment checks for `window.matchMedia` and `ResizeObserver` to
   ensure graceful fallback and flawless test execution under Node.js/jsdom
