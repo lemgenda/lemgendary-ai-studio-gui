@@ -36,7 +36,7 @@ export const ModelMetricsSection: React.FC<ModelMetricsSectionProps> = ({
 
       <div className="metric-row">
         <span className="metric-label">Parameters</span>
-        <span className="metric-value">{m.parameters_m != null ? `${m.parameters_m} M` : "N/A"}</span>
+        <span className="metric-value">{m.parameters_m != null ? `${m.parameters_m}\u00A0M` : "N/A"}</span>
       </div>
 
       <div className="metric-row">

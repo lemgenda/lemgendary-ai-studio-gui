@@ -278,6 +278,21 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.80 - Masonry Column Minimum Width & Metric Wrapping Hardening
+
+- **Masonry Responsive Scaling (`src/hooks/useMasonryFlip.ts`,
+  `src/styles/layout.css`, `src/components/ui/MasonryFlipGrid.tsx`)**:
+  Enforced a 320px minimum column width constraint (`min-width: 320px`) across
+  masonry columns so expanded cards cannot squeeze or collapse. Expanded
+  responsive column calculation to support 4 columns on displays wider than
+  1640px to eliminate unnecessary empty right-hand space.
+- **Metric Row Layout & Typography Polish (`src/styles/layout.css`,
+  `src/components/training/ModelMetricsSection.tsx`)**:
+  Added gap spacing and flex-shrink constraints to metric labels while allowing
+  values to align right without collision. Attached non-breaking space between
+  parameter numbers and unit indicators (`\u00A0M`) preventing single-character
+  line wrapping.
+
 ### v2.10.79 - Staggered Card Transitions Without Sliding Animations
 
 - **Staggered Disappear & Appear Engine (`src/hooks/useMasonryFlip.ts`)**:

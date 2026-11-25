@@ -24,7 +24,7 @@ describe("ModelMetricsSection", () => {
 
   it("shows 0 parameters_m as a value, not N/A", () => {
     const html = render({ ...BASE_MODEL, parameters_m: 0 });
-    expect(html).toContain("0 M");
+    expect(html).toMatch(/0[\s\u00A0]M/);
     expect(html).not.toContain("N/A");
   });
 

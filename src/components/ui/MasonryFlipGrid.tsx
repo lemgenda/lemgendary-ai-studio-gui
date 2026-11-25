@@ -47,7 +47,7 @@ export function MasonryFlipGrid<T extends { id: string | number }>({
             display: "flex",
             flexDirection: "column",
             gap: `${options?.gap ?? 20}px`,
-            minWidth: 0,
+            minWidth: "320px",
           }}
         >
           {column.map((item) => (

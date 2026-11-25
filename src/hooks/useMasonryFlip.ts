@@ -69,13 +69,16 @@ export function useMasonryFlip<T extends { id: string | number }>(
       if (requestedColumnCount && requestedColumnCount > 0) {
         return requestedColumnCount;
       }
-      if (width <= 680) {
+      if (width <= 720) {
         return 1;
       }
-      if (width <= 1100) {
+      if (width <= 1180) {
         return 2;
       }
-      return 3;
+      if (width <= 1640) {
+        return 3;
+      }
+      return 4;
     },
     [requestedColumnCount]
   );
