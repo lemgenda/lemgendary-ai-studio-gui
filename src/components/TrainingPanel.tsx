@@ -4,6 +4,7 @@ import { SoupBlendDialog } from "./training/SoupBlendDialog";
 import { SoupRecipe } from "./training/soupRecipe";
 import { TrainingToolbar } from "./training/TrainingToolbar";
 import { ModelManifoldCard } from "./training/ModelManifoldCard";
+import { MasonryFlipGrid } from "./ui/MasonryFlipGrid";
 import { TrainingTelemetry } from "./training/TrainingTelemetry";
 import { ValidationBanner } from "./common/ValidationBanner";
 import { NO_TRANSFER_JOB, useStudioStore } from "../store/useStudioStore";
@@ -290,12 +291,11 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
     if (await handleBlendSoup(modelKey, recipe)) setSoupModel(null);
   };
 
-  const modelColumns = useMemo(() => {
-    const cols: [ModelItem[], ModelItem[], ModelItem[]] = [[], [], []];
-    filteredModels.forEach((m, idx) => {
-      cols[idx % 3].push(m);
-    });
-    return cols;
+  const modelItemsWithId = useMemo(() => {
+    return filteredModels.map((m) => ({
+      ...m,
+      id: m.key,
+    }));
   }, [filteredModels]);
 
   return (
@@ -388,78 +388,76 @@ export const TrainingPanel: React.FC<TrainingPanelProps> = ({
         />
 
         {/* 2. Model Cards Masonry Grid */}
-        <div className="card-grid card-grid-models masonry-grid models-masonry-spaced">
-          {filteredModels.length === 0 ? (
-            <div className="empty-catalog-state">
-              {models.length > 0 ? (
-                <>
-                  <p className="empty-catalog-message">No architectures matched your search or filter criteria.</p>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-font-sm"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setStatusFilter("ALL");
-                      setCategoryFilter("ALL");
-                      setArchFilter("ALL");
-                    }}
-                  >
-                    Clear All Filters
-                  </button>
-                </>
-              ) : (
-                <div data-testid="models-empty-state">
-                  <p className="empty-catalog-message">
-                    {trainingSuiteOnline
-                      ? "The Training Suite returned no models."
-                      : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
-                  </p>
-                  <button type="button" className="btn btn-secondary btn-font-sm" onClick={() => void loadTrainingData()}>
-                    Retry
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            modelColumns.map((col, colIdx) => (
-              <div key={colIdx} className="masonry-column">
-                {col.map((m) => (
-                  <ModelManifoldCard
-                    key={m.key}
-                    model={m}
-                    isCurrentlyTrainingThis={localJob.modelKey === m.key}
-                    isBusy={
-                      actionBusyKey === `local_${m.key}` ||
-                      actionBusyKey === `cloud_${m.key}` ||
-                      actionBusyKey === `pull_${m.key}` ||
-                      actionBusyKey === `push_${m.key}`
-                    }
-                    actionBusyKey={actionBusyKey}
-                    isTargetPinned={pinnedTargetModel === m.key}
-                    onToggleTargetPin={() => setPinnedTargetModel((prev) => (prev === m.key ? null : m.key))}
-                    generatingNotebookModel={generatingNotebookModel}
-                    onStartLocalTrain={startLocalTrain}
-                    onStopLocalTrain={handleStopLocalTrain}
-                    onOpenCloudModal={handleOpenCloudModal}
-                    onPushArtifacts={handlePushArtifacts}
-                    onPullArtifacts={handlePullArtifacts}
-                    onGenerateTrainingNotebook={handleGenerateTrainingNotebook}
-                    onGenerateUsageNotebook={handleGenerateUsageNotebook}
-                    onEvaluateModel={handleEvaluateModel}
-                    onExportModel={handleExportModel}
-                    onGenerateDocs={handleGenerateDocs}
-                    onStageVariations={handleStageVariations}
-                    onOpenSoupDialog={setSoupModel}
-                    trainingSuiteOnline={trainingSuiteOnline}
-                    isExpanded={expandedModelKey === m.key}
-                    onToggleExpand={() =>
-                      setExpandedModelKey((prev) => (prev === m.key ? null : m.key))
-                    }
-                  />
-                ))}
+        <div className="card-grid card-grid-models models-masonry-spaced">
+          <MasonryFlipGrid
+            items={modelItemsWithId}
+            renderItem={(m) => (
+              <ModelManifoldCard
+                key={m.key}
+                model={m}
+                isCurrentlyTrainingThis={localJob.modelKey === m.key}
+                isBusy={
+                  actionBusyKey === `local_${m.key}` ||
+                  actionBusyKey === `cloud_${m.key}` ||
+                  actionBusyKey === `pull_${m.key}` ||
+                  actionBusyKey === `push_${m.key}`
+                }
+                actionBusyKey={actionBusyKey}
+                isTargetPinned={pinnedTargetModel === m.key}
+                onToggleTargetPin={() => setPinnedTargetModel((prev) => (prev === m.key ? null : m.key))}
+                generatingNotebookModel={generatingNotebookModel}
+                onStartLocalTrain={startLocalTrain}
+                onStopLocalTrain={handleStopLocalTrain}
+                onOpenCloudModal={handleOpenCloudModal}
+                onPushArtifacts={handlePushArtifacts}
+                onPullArtifacts={handlePullArtifacts}
+                onGenerateTrainingNotebook={handleGenerateTrainingNotebook}
+                onGenerateUsageNotebook={handleGenerateUsageNotebook}
+                onEvaluateModel={handleEvaluateModel}
+                onExportModel={handleExportModel}
+                onGenerateDocs={handleGenerateDocs}
+                onStageVariations={handleStageVariations}
+                onOpenSoupDialog={setSoupModel}
+                trainingSuiteOnline={trainingSuiteOnline}
+                isExpanded={expandedModelKey === m.key}
+                onToggleExpand={() =>
+                  setExpandedModelKey((prev) => (prev === m.key ? null : m.key))
+                }
+              />
+            )}
+            emptyState={
+              <div className="empty-catalog-state">
+                {models.length > 0 ? (
+                  <>
+                    <p className="empty-catalog-message">No architectures matched your search or filter criteria.</p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-font-sm"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("ALL");
+                        setCategoryFilter("ALL");
+                        setArchFilter("ALL");
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  </>
+                ) : (
+                  <div data-testid="models-empty-state">
+                    <p className="empty-catalog-message">
+                      {trainingSuiteOnline
+                        ? "The Training Suite returned no models."
+                        : "No models to show: the Training Suite sidecar is offline. Start it to load the model catalog."}
+                    </p>
+                    <button type="button" className="btn btn-secondary btn-font-sm" onClick={() => void loadTrainingData()}>
+                      Retry
+                    </button>
+                  </div>
+                )}
               </div>
-            ))
-          )}
+            }
+          />
         </div>
       </div>
 

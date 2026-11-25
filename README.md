@@ -278,15 +278,37 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.78 - Shortest-Column Masonry Layout with GPU-Accelerated FLIP Reflow
+
+- **Generic Masonry Layout Primitive (`src/hooks/useMasonryFlip.ts`,
+  `src/components/ui/MasonryFlipGrid.tsx`)**:
+  Implemented reusable `<MasonryFlipGrid />` and `useMasonryFlip` hook providing
+  shortest-column bin-packing with dynamic card height measurement via
+  `ResizeObserver`. Features GPU-accelerated FLIP animations (`280ms
+  cubic-bezier(0.22, 1, 0.36, 1)`), scroll-parent relative math, edge-case
+  cancellation for interrupted/rapid clicks, multi-monitor DPI resize
+  resilience, and `prefers-reduced-motion` accessibility support.
+- **Compiler & Model Hub Modernization (`CompilerPanel.tsx`,
+  `TrainingPanel.tsx`)**:
+  Migrated both the Manifold Hub (Compiler panel) and Model Hub (Training panel)
+  from static multi-column modulo layouts to dynamic shortest-column Masonry
+  with FLIP reflow animations on card expansion, collapse, and filtering.
+- **Robust Multiplatform & Test Guarding**:
+  Added environment checks for `window.matchMedia` and `ResizeObserver` to
+  ensure graceful fallback and flawless test execution under Node.js/jsdom
+  test runners and Tauri WebView environments.
+
 ### v2.10.77 - Native Sidecar Teardown On App Exit & Ghost Process Prevention
 
-- **React 19, Vite 8 & Tooling Ecosystem Upgrade (`package.json`, `src/components/common/Modal.tsx`)**:
+- **React 19, Vite 8 & Tooling Ecosystem Upgrade (`package.json`,
+  `src/components/common/Modal.tsx`)**:
   Upgraded desktop frontend dependencies to React 19 (`react`, `react-dom`,
   `@types/react`, `@types/react-dom` 19.3), Vite 8 (`vite` 8.3,
   `@vitejs/plugin-react` 6.3), Vitest 5 (`vitest` 5.1), and tooling
-  (`typescript-eslint` 8.74, `jsdom` 31.0, `globals` 17.14). Updated `ModalProps`
-  `initialFocusRef` to support `RefObject<HTMLElement | null>` for strict
-  React 19 ref type compatibility. All 52 test suites (341 tests) passing.
+  (`typescript-eslint` 8.74, `jsdom` 31.0, `globals` 17.14). Updated
+  `ModalProps` `initialFocusRef` to support `RefObject<HTMLElement | null>`
+  for strict React 19 ref type compatibility. All 52 test suites (341 tests)
+  passing.
 - **Native App Teardown on Window Close and App Exit (`src-tauri/src/main.rs`,
   `src-tauri/src/commands.rs`)**: Registered window destroyed
   (`WindowEvent::Destroyed`) and Tauri application exit (`RunEvent::Exit`)

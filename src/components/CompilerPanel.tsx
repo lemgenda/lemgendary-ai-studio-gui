@@ -20,6 +20,7 @@ import {
 import { CompilerToolbar } from "./compiler/CompilerToolbar";
 import { DatasetCompilationForm } from "./compiler/DatasetCompilationForm";
 import { DatasetManifoldCard } from "./compiler/DatasetManifoldCard";
+import { MasonryFlipGrid } from "./ui/MasonryFlipGrid";
 import { ModernizationQueueTable } from "./compiler/ModernizationQueueTable";
 import { ScaleReductionView } from "./compiler/ScaleReductionView";
 import { ValidationBanner } from "./common/ValidationBanner";
@@ -366,12 +367,11 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     setPinnedSourcesManifold((prev) => (prev === datasetKey ? null : datasetKey));
   };
 
-  const datasetColumns = useMemo(() => {
-    const cols: [DatasetItem[], DatasetItem[], DatasetItem[]] = [[], [], []];
-    filteredDatasets.forEach((d, idx) => {
-      cols[idx % 3].push(d);
-    });
-    return cols;
+  const datasetItemsWithId = useMemo(() => {
+    return filteredDatasets.map((d) => ({
+      ...d,
+      id: d.key,
+    }));
   }, [filteredDatasets]);
 
   return (
@@ -449,43 +449,41 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
 
         {/* ─── TAB 1: MANIFOLDS CATALOG ─── */}
         {activeSectionTab === "catalog" && (
-          <div className="card-grid card-grid-models masonry-grid">
-            {filteredDatasets.length === 0 ? (
-              <div className="empty-catalog-state-compact">
-                {datasets.length > 0
-                  ? "No dataset manifolds matched your current search and filter settings."
-                  : datasetCompilerOnline
-                  ? "The Dataset Compiler returned no manifolds."
-                  : "No manifolds to show: the Dataset Compiler sidecar is offline. Start it to load the catalog."}
-              </div>
-            ) : (
-              datasetColumns.map((col, colIdx) => (
-                <div key={colIdx} className="masonry-column">
-                  {col.map((d) => (
-                    <DatasetManifoldCard
-                      key={d.key}
-                      dataset={d}
-                      isBusy={
-                        actionBusyKey === `dl_${d.key}` ||
-                        actionBusyKey === `ul_${d.key}` ||
-                        actionBusyKey === `meta_${d.key}`
-                      }
-                      actionBusyKey={actionBusyKey}
-                      isSourcesPinned={pinnedSourcesManifold === d.key}
-                      onToggleSourcesPin={() => toggleSourcesPin(d.key)}
-                      onUpdateMetadataSingle={handleUpdateMetadataSingle}
-                      onDownloadManifold={handleDownloadManifold}
-                      onUploadManifold={handleUploadManifold}
-                      datasetCompilerOnline={datasetCompilerOnline}
-                      isExpanded={expandedManifoldKey === d.key}
-                      onToggleExpand={() =>
-                        setExpandedManifoldKey((prev) => (prev === d.key ? null : d.key))
-                      }
-                    />
-                  ))}
+          <div className="card-grid card-grid-models">
+            <MasonryFlipGrid
+              items={datasetItemsWithId}
+              renderItem={(d) => (
+                <DatasetManifoldCard
+                  key={d.key}
+                  dataset={d}
+                  isBusy={
+                    actionBusyKey === `dl_${d.key}` ||
+                    actionBusyKey === `ul_${d.key}` ||
+                    actionBusyKey === `meta_${d.key}`
+                  }
+                  actionBusyKey={actionBusyKey}
+                  isSourcesPinned={pinnedSourcesManifold === d.key}
+                  onToggleSourcesPin={() => toggleSourcesPin(d.key)}
+                  onUpdateMetadataSingle={handleUpdateMetadataSingle}
+                  onDownloadManifold={handleDownloadManifold}
+                  onUploadManifold={handleUploadManifold}
+                  datasetCompilerOnline={datasetCompilerOnline}
+                  isExpanded={expandedManifoldKey === d.key}
+                  onToggleExpand={() =>
+                    setExpandedManifoldKey((prev) => (prev === d.key ? null : d.key))
+                  }
+                />
+              )}
+              emptyState={
+                <div className="empty-catalog-state-compact">
+                  {datasets.length > 0
+                    ? "No dataset manifolds matched your current search and filter settings."
+                    : datasetCompilerOnline
+                    ? "The Dataset Compiler returned no manifolds."
+                    : "No manifolds to show: the Dataset Compiler sidecar is offline. Start it to load the catalog."}
                 </div>
-              ))
-            )}
+              }
+            />
           </div>
         )}
 
