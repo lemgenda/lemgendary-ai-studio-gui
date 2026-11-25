@@ -101,11 +101,16 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
         <button
           type="button"
           id="comp-btn-kaggle-registry-reload"
-          className="btn btn-secondary btn-action-compact btn-nowrap"
+          className="btn-icon-action"
           onClick={() => void reload()}
           disabled={isLoading || !datasetCompilerOnline}
+          aria-label={isLoading ? "Loading registry..." : "Reload Registry"}
+          title="Reload Registry"
         >
-          {isLoading ? "Loading..." : "Reload Registry"}
+          {/* Refresh/Reload SVG icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
+          </svg>
         </button>
       </div>
 

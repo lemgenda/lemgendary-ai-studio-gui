@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const snapshotPath = join(repoRoot, "src", "generated", "ecosystem.json");
+const schemaSnapshotPath = join(repoRoot, "src", "generated", "ecosystem.schema.json");
 const checkOnly = process.argv.includes("--check");
 
 function sourcePath() {
@@ -30,6 +31,11 @@ function sourcePath() {
     ? resolve(process.env.LEMGENDARY_WORKSPACE_ROOT)
     : resolve(repoRoot, "..");
   return join(workspaceRoot, "lemgendary-env-manager", "ecosystem", "ecosystem.json");
+}
+
+function schemaSourcePath() {
+  const source = sourcePath();
+  return join(dirname(source), "ecosystem.schema.json");
 }
 
 /** Line endings differ between checkouts (core.autocrlf); content must not. */
@@ -73,6 +79,13 @@ function main() {
   mkdirSync(dirname(snapshotPath), { recursive: true });
   writeFileSync(snapshotPath, normalize(sourceText), "utf8");
   console.log(`[sync-ecosystem] copied ${source} -> ${snapshotPath}`);
+
+  const schemaSource = schemaSourcePath();
+  if (existsSync(schemaSource)) {
+    const schemaSourceText = readFileSync(schemaSource, "utf8");
+    writeFileSync(schemaSnapshotPath, normalize(schemaSourceText), "utf8");
+    console.log(`[sync-ecosystem] copied ${schemaSource} -> ${schemaSnapshotPath}`);
+  }
   return 0;
 }
 

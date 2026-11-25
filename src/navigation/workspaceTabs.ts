@@ -17,6 +17,7 @@ export const WORKSPACE_TABS: readonly WorkspaceTab[] = [
   { id: "dashboard", label: "Dashboard", title: "Ecosystem Control Dashboard", tooltip: "Ecosystem overview: system hardware, quick clean install orchestrator, managed project environments, and live log stream." },
   { id: "datasets", label: "LemGendary Dataset Compiler Suite", title: "LemGendary Dataset Compiler Suite", tooltip: `Port ${servicePort("dataset-compiler")} sidecar: inspect manifold formats, sample counts, and trigger multi-threaded streaming WebDataset compilation.` },
   { id: "training", label: "LemGendary Model Training Suite", title: "LemGendary Model Training Suite", tooltip: `Port ${servicePort("training-suite")} sidecar: neural architecture cards, Sawtooth Governor VRAM telemetry, spatial ladder progression, and training dispatch.` },
+  { id: "docs", label: "LemGendary AI Documentation Hub", title: "LemGendary AI Documentation Hub", tooltip: "Local offline documentation hub: complete architectural whitepapers, operator manuals, mathematical proofs, and guides." },
   { id: "pipeline", label: "Clean Install Pipeline", title: "Smart Clean Install Pipeline", tooltip: "Deterministic 7-step environment recreation, toolchain audit, wheel cache purging, and bytecode verification." },
   { id: "health", label: "Health & Version Drift", title: "Health & Version Drift Matrix", tooltip: "Host toolchain prerequisites audit and cross-project package version comparison matrix." },
 ];

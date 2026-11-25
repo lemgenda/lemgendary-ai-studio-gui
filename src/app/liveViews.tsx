@@ -50,9 +50,10 @@ export const LivePipelinePanel: React.FC<LivePipelinePanelProps> = ({ onRunPipel
 
 export interface LivePipelineStepCardsProps {
   onRunStep: (stepNumber: number) => Promise<void>;
+  onRunPipeline?: (clean: boolean) => Promise<void> | void;
 }
 
-export const LivePipelineStepCards: React.FC<LivePipelineStepCardsProps> = ({ onRunStep }) => {
+export const LivePipelineStepCards: React.FC<LivePipelineStepCardsProps> = ({ onRunStep, onRunPipeline }) => {
   const events = useStudioStore((s) => s.events);
   const isRunning = useStudioStore((s) => s.isRunningPipeline);
   const envManagerOnline = useStudioStore((s) => s.meshStatus.envManager);
@@ -67,6 +68,7 @@ export const LivePipelineStepCards: React.FC<LivePipelineStepCardsProps> = ({ on
       isRunning={isRunning}
       activeStepNum={activeStepNum}
       onRunStep={onRunStep}
+      onRunPipeline={onRunPipeline}
       recentEvents={events}
       envManagerOnline={envManagerOnline}
     />

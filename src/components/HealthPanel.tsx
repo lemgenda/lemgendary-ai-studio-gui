@@ -19,13 +19,60 @@ interface HealthPanelProps {
 
 export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvManager }) => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [updatingPackage, setUpdatingPackage] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState<boolean>(false);
   const [isInstallingHooks, setIsInstallingHooks] = useState<boolean>(false);
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [maintenanceFeedback, setMaintenanceFeedback] = useState<string | null>(null);
   const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+  const [latestVersions, setLatestVersions] = useState<Record<string, string>>({});
   /** Destructive maintenance action waiting for confirmation. */
-  const [pendingAction, setPendingAction] = useState<"upgrade" | "purge" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"purge" | null>(null);
+
+  // Probe dry-run plan on mount / report change to populate latest stable versions for PIP and NPM packages
+  React.useEffect(() => {
+    let isCancelled = false;
+    const fetchLatestVersions = async () => {
+      try {
+        const res = await triggerSafeUpdate(true);
+        if (isCancelled || !res.plan) return;
+        const plan = res.plan as {
+          projects?: Array<{
+            name: string;
+            outdated_packages?: Array<{
+              name: string;
+              latest_version?: string;
+              current_version?: string;
+            }>;
+            safe_packages?: Array<{
+              name: string;
+              latest_version?: string;
+            }>;
+          }>;
+        };
+        const latestMap: Record<string, string> = {};
+        if (Array.isArray(plan.projects)) {
+          for (const proj of plan.projects) {
+            if (Array.isArray(proj.outdated_packages)) {
+              for (const pkg of proj.outdated_packages) {
+                if (pkg.name && pkg.latest_version) {
+                  latestMap[pkg.name.toLowerCase().replace(/[-_.]+/g, "-")] = pkg.latest_version;
+                  latestMap[pkg.name] = pkg.latest_version;
+                }
+              }
+            }
+          }
+        }
+        setLatestVersions((prev) => ({ ...prev, ...latestMap }));
+      } catch (err) {
+        console.warn("[LemGendary AI Studio] Failed to probe latest package versions:", err);
+      }
+    };
+    void fetchLatestVersions();
+    return () => {
+      isCancelled = true;
+    };
+  }, [report]);
   if (!report) {
     return (
       <section className="card" aria-labelledby="health-offline-title">
@@ -53,12 +100,13 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
     );
   }
 
-  const handleSafeUpdate = async (dryRun: boolean = false) => {
+  const handleSafeUpdate = async (dryRun: boolean = false, project?: string, pkgName?: string) => {
     setIsUpdating(true);
+    if (pkgName) setUpdatingPackage(pkgName);
     setMaintenanceFeedback(null);
     setMaintenanceError(null);
     try {
-      const res = await triggerSafeUpdate(dryRun);
+      const res = await triggerSafeUpdate(dryRun, project);
       setMaintenanceFeedback(
         dryRun
           ? "Safe upgrade dry run complete. See logs for package version diffs."
@@ -70,6 +118,7 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       setMaintenanceError(`Safe update failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsUpdating(false);
+      setUpdatingPackage(null);
     }
   };
 
@@ -206,30 +255,88 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
                 {projNames.map((name) => (
                   <th key={name} scope="col" className="data-table-cell">{name}</th>
                 ))}
+                <th scope="col" className="data-table-cell">Latest Version</th>
                 <th scope="col" className="data-table-cell">Status</th>
+                <th scope="col" className="data-table-cell">
+                  <button
+                    type="button"
+                    className="btn-upgrade-all"
+                    onClick={() => handleSafeUpdate(false)}
+                    disabled={isUpdating}
+                    title="Upgrade all outdated packages across Python virtual environments"
+                  >
+                    {isUpdating ? "Upgrading..." : "Upgrade All"}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {report.version_drift.map((drift) => (
-                <tr key={drift.package_name} className="data-table-row">
-                  <th scope="row" className="data-table-th-key">
-                    {drift.package_name}
-                  </th>
-                  {projNames.map((pName) => (
-                    <td key={pName} className="data-table-td-secondary">
-                      {drift.versions[pName] || "-"}
+              {report.version_drift.map((drift) => {
+                const normalizedPkg = drift.package_name.toLowerCase().replace(/[-_.]+/g, "-");
+                // Determine latest version from upgrades map or resolved plan
+                const upgradeItem = drift.upgrades
+                  ? Object.values(drift.upgrades).find((u) => u.latest)
+                  : undefined;
+                const latest =
+                  upgradeItem?.latest ||
+                  latestVersions[normalizedPkg] ||
+                  latestVersions[drift.package_name] ||
+                  "-";
+
+                // Check if any installed version is lower than latest
+                const isOutdated = Object.values(drift.versions).some((ver) => {
+                  if (!ver || latest === "-") return false;
+                  return ver !== latest;
+                });
+
+                return (
+                  <tr key={drift.package_name} className="data-table-row">
+                    <th scope="row" className="data-table-th-key">
+                      {drift.package_name}
+                    </th>
+                    {projNames.map((pName) => (
+                      <td key={pName} className="data-table-td-secondary">
+                        {drift.versions[pName] || "-"}
+                      </td>
+                    ))}
+                    <td className="data-table-td-secondary">{latest}</td>
+                    <td className="data-table-cell">
+                      <div className="row-gap-sm">
+                        {isOutdated ? (
+                          <span className="badge badge-orange">Upgrade</span>
+                        ) : (
+                          <span className={`badge ${drift.has_drift ? "badge-warning" : "badge-success"}`}>
+                            {drift.has_drift ? "DRIFT" : "INSTALLED"}
+                          </span>
+                        )}
+                        <HelpTooltip
+                          content={
+                            isOutdated
+                              ? `Newer version available (${latest}). Click Upgrade to apply.`
+                              : drift.has_drift
+                              ? `Package ${drift.package_name} has mismatched versions across projects.`
+                              : `Package ${drift.package_name} is up to date.`
+                          }
+                          position="left"
+                        />
+                      </div>
                     </td>
-                  ))}
-                  <td className="data-table-cell">
-                    <div className="row-gap-sm">
-                      <span className={`badge ${drift.has_drift ? "badge-warning" : "badge-success"}`}>
-                        {drift.has_drift ? "DRIFT" : "SYNC"}
-                      </span>
-                      <HelpTooltip content={drift.has_drift ? `Package ${drift.package_name} has mismatched versions across projects.` : `Package ${drift.package_name} is identically pinned across all manifests.`} position="left" />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="data-table-cell">
+                      {isOutdated && (
+                        <button
+                          type="button"
+                          className="btn-upgrade-row"
+                          onClick={() => handleSafeUpdate(false, undefined, drift.package_name)}
+                          disabled={isUpdating}
+                          aria-label={`Upgrade ${drift.package_name} to version ${latest}`}
+                        >
+                          {updatingPackage === drift.package_name ? "Upgrading..." : "Upgrade"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -272,25 +379,60 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
                   <tr className="data-table-head-row">
                     <th scope="col" className="data-table-cell">Package Name</th>
                     <th scope="col" className="data-table-cell">Installed Version</th>
+                    <th scope="col" className="data-table-cell">Latest Version</th>
                     <th scope="col" className="data-table-cell">Category</th>
                     <th scope="col" className="data-table-cell">Status</th>
+                    <th scope="col" className="data-table-cell">
+                      <button
+                        type="button"
+                        className="btn-upgrade-all"
+                        onClick={() => handleSafeUpdate(false, guiProject.name)}
+                        disabled={isUpdating}
+                        title="Upgrade all outdated NPM packages in the Desktop GUI project"
+                      >
+                        {isUpdating ? "Upgrading..." : "Upgrade All"}
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(guiProject.installed_packages).map(([pkg, ver]) => (
-                    <tr key={pkg} className="data-table-row">
-                      <th scope="row" className="data-table-th-key">
-                        {pkg}
-                      </th>
-                      <td className="data-table-td-secondary">{ver}</td>
-                      <td className="data-table-td-muted">
-                        {pkg.startsWith("@types") || pkg.includes("eslint") || pkg === "typescript" || pkg === "vite" || pkg === "vitest" ? "Dev Dependency" : "Production Dependency"}
-                      </td>
-                      <td className="data-table-cell">
-                        <span className="badge badge-success">INSTALLED</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {Object.entries(guiProject.installed_packages).map(([pkg, ver]) => {
+                    const latest = latestVersions[pkg] || latestVersions[pkg.toLowerCase()] || "-";
+                    const isOutdated = latest !== "-" && latest !== ver;
+
+                    return (
+                      <tr key={pkg} className="data-table-row">
+                        <th scope="row" className="data-table-th-key">
+                          {pkg}
+                        </th>
+                        <td className="data-table-td-secondary">{ver}</td>
+                        <td className="data-table-td-secondary">{latest}</td>
+                        <td className="data-table-td-muted">
+                          {pkg.startsWith("@types") || pkg.includes("eslint") || pkg === "typescript" || pkg === "vite" || pkg === "vitest" ? "Dev Dependency" : "Production Dependency"}
+                        </td>
+                        <td className="data-table-cell">
+                          {isOutdated ? (
+                            <span className="badge badge-orange">Upgrade</span>
+                          ) : (
+                            <span className="badge badge-success">INSTALLED</span>
+                          )}
+                        </td>
+                        <td className="data-table-cell">
+                          {isOutdated && (
+                            <button
+                              type="button"
+                              className="btn-upgrade-row"
+                              onClick={() => handleSafeUpdate(false, guiProject.name, pkg)}
+                              disabled={isUpdating}
+                              aria-label={`Upgrade ${pkg} to version ${latest}`}
+                            >
+                              {updatingPackage === pkg ? "Upgrading..." : "Upgrade"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -315,26 +457,6 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
         </p>
 
         <div className="health-actions-row">
-          <button
-            id="health-btn-safe-upgrade"
-            type="button"
-            className="btn btn-primary btn-maintenance-primary"
-            onClick={() => setPendingAction("upgrade")}
-            disabled={isUpdating}
-          >
-            {isUpdating ? "Upgrading Packages..." : "Safe Package Upgrade"}
-          </button>
-
-          <button
-            id="health-btn-upgrade-dry-run"
-            type="button"
-            className="btn btn-secondary btn-maintenance"
-            onClick={() => handleSafeUpdate(true)}
-            disabled={isUpdating}
-          >
-            Upgrade Dry Run
-          </button>
-
           <button
             id="health-btn-deep-clean"
             type="button"
@@ -386,19 +508,13 @@ export const HealthPanel: React.FC<HealthPanelProps> = ({ report, onStartEnvMana
       <ConfirmDialog
         isOpen={pendingAction !== null}
         id="health-dialog-confirm"
-        title={pendingAction === "purge" ? "Purge workspace caches?" : "Upgrade packages?"}
-        message={
-          pendingAction === "purge"
-            ? "Deep Cache Purge deletes __pycache__ folders, build caches and temporary artifacts across all workspace projects. They are rebuilt on the next run, which can be slow."
-            : "Safe Package Upgrade installs newer package versions into every project virtual environment. Run Upgrade Dry Run first to see what would change."
-        }
-        confirmLabel={pendingAction === "purge" ? "Purge caches" : "Upgrade packages"}
+        title="Purge workspace caches?"
+        message="Deep Cache Purge deletes __pycache__ folders, build caches and temporary artifacts across all workspace projects. They are rebuilt on the next run, which can be slow."
+        confirmLabel="Purge caches"
         onCancel={() => setPendingAction(null)}
         onConfirm={() => {
-          const action = pendingAction;
           setPendingAction(null);
-          if (action === "purge") void handleDeepClean();
-          else if (action === "upgrade") void handleSafeUpdate(false);
+          void handleDeepClean();
         }}
       />
     </div>

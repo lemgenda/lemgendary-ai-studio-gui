@@ -5,6 +5,7 @@ import { Header } from "./components/Header";
 import { HardwareCard } from "./components/HardwareCard";
 import { ManagedProjectsSection } from "./components/ManagedProjectsSection";
 import { HealthPanel } from "./components/HealthPanel";
+import { DocumentationPanel } from "./components/DocumentationPanel";
 import { StatusBar } from "./components/StatusBar";
 import { CompilerPanel } from "./components/CompilerPanel";
 import { TrainingPanel } from "./components/TrainingPanel";
@@ -122,10 +123,13 @@ export const App: React.FC = () => {
             />
           )}
 
+          {currentTab === "docs" && (
+            <DocumentationPanel envManagerOnline={meshStatus.envManager} />
+          )}
+
           {currentTab === "pipeline" && (
             <>
-              <LivePipelinePanel onRunPipeline={handleRunPipeline} />
-              <LivePipelineStepCards onRunStep={handleRunPipelineStep} />
+              <LivePipelineStepCards onRunStep={handleRunPipelineStep} onRunPipeline={handleRunPipeline} />
               <LiveLogPanel />
             </>
           )}

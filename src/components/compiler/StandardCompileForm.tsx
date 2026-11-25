@@ -1,5 +1,4 @@
 import React from "react";
-import { HelpTooltip } from "../HelpTooltip";
 import { ValidationBanner } from "../common/ValidationBanner";
 import { PresetOptions } from "./PresetOptions";
 import { DatasetCompilationFormProps } from "./DatasetCompilationForm";
@@ -246,24 +245,36 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
           </>
         );
       })()}
-    </div>
 
-    <div className="row-gap-lg">
-      <button
-        id="comp-btn-compile"
-        type="button"
-        className="btn btn-primary btn-action-bold"
-        onClick={onCompile}
-        disabled={isCompiling || !datasetCompilerOnline}
-        aria-label={
-          !datasetCompilerOnline
-            ? "Compile unavailable: Dataset Compiler Sidecar offline"
-            : "Start dataset manifold compilation"
-        }
-      >
-        {isCompiling ? "Compiling Manifold..." : "Compile Manifold"}
-      </button>
-      <HelpTooltip content="Launch multi-threaded compilation with the selected presets.yaml profile (image format, quality, vetting and containers). Max Size, Workers and Shard Extension are optional overrides; leave them empty for the preset and sidecar defaults (shards default to .data)." />
+      <div className="form-group form-group-action-end">
+        <span className="form-field-label form-field-label-spacer" aria-hidden="true">&nbsp;</span>
+        <button
+          id="comp-btn-compile"
+          type="button"
+          className="btn-icon-action btn-icon-action-primary"
+          onClick={onCompile}
+          disabled={isCompiling || !datasetCompilerOnline}
+          aria-label={
+            !datasetCompilerOnline
+              ? "Compile unavailable: Dataset Compiler Sidecar offline"
+              : isCompiling
+              ? "Compiling Manifold..."
+              : "Compile Manifold"
+          }
+          title={
+            !datasetCompilerOnline
+              ? "Compile unavailable: Dataset Compiler Sidecar offline"
+              : isCompiling
+              ? "Compiling Manifold..."
+              : "Compile Manifold"
+          }
+        >
+          {/* Play/Execute Compile SVG Icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     {compileStatus && (

@@ -16,7 +16,7 @@ tripartite local microservice topology:
      every `.venv` and `node_modules` and needs confirmation (`clean: true`).
    - Ecosystem-wide compliance validation.
 
-2. **Dataset Compiler Sidecar (`lemgendary-datasets` on Port 8100)**:
+2. **Dataset Compiler Sidecar (`lemgendary-datasets` on Port 8150)**:
    - Manifold catalog and format inspection (`GET /api/compiler/manifolds`, `GET
      /api/compiler/formats`).
    - Direct streaming WebDataset `.tar` sharding and lossless WebP transcoding.
@@ -279,6 +279,8 @@ lem-env validate --project lemgendary-ai-studio-gui
 ## Changelog
 
 ### v2.10.80 - Masonry Column Minimum Width & Metric Wrapping Hardening
+
+- Upgraded package(s) for the lemgendary-ai-studio-gui.
 
 - **Masonry Responsive Scaling (`src/hooks/useMasonryFlip.ts`,
   `src/styles/layout.css`, `src/components/ui/MasonryFlipGrid.tsx`)**:

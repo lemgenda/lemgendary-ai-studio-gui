@@ -65,10 +65,37 @@ export function getProjectDisplayName(name: string): string {
   return CANONICAL_PROJECT_NAMES[name] || name;
 }
 
+export interface PackageUpgradeStatus {
+  current: string | null;
+  latest: string | null;
+  safe: boolean;
+  reason: string | null;
+}
+
 export interface VersionDriftEntry {
   package_name: string;
   versions: Record<string, string | null>;
   has_drift: boolean;
+  upgrades?: Record<string, PackageUpgradeStatus>;
+}
+
+export interface NpmPackageDetail {
+  name: string;
+  declared_version: string;
+  installed_version: string | null;
+  is_dev: boolean;
+  is_installed: boolean;
+  latest_version?: string | null;
+}
+
+export interface NpmPackageStatus {
+  location: string;
+  package_json_path: string;
+  dependencies: Record<string, string>;
+  dev_dependencies: Record<string, string>;
+  node_modules_present: boolean;
+  detailed_packages: NpmPackageDetail[];
+  audit_summary?: string | null;
 }
 
 export interface HealthAuditReport {
@@ -76,6 +103,7 @@ export interface HealthAuditReport {
   hardware: HardwareProfile;
   projects: ProjectHealth[];
   version_drift: VersionDriftEntry[];
+  npm_packages?: NpmPackageStatus[];
   overall_healthy: boolean;
 }
 

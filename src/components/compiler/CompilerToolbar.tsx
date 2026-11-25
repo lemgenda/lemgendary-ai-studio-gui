@@ -72,12 +72,12 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <HelpTooltip content="Authoritative compilation hub. Converts loose imagery into high-throughput WebDataset (.data), Parquet, and MDS streaming containers." />
 
           {/* Section Tabs */}
-          <div className="subtab-switcher-pill">
+          <div className="segmented-control segmented-control-compact" role="group" aria-label="Section views">
             <button
               id="compiler-subtabs-tab-catalog"
               type="button"
               aria-pressed={activeSectionTab === "catalog"}
-              className={`btn btn-compact ${activeSectionTab === "catalog" ? "btn-primary" : "btn-secondary"}`}
+              className={`segmented-btn segmented-btn-compact ${activeSectionTab === "catalog" ? "active" : ""}`}
               onClick={() => onTabChange("catalog")}
             >
               Manifolds Catalog
@@ -86,7 +86,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               id="compiler-subtabs-tab-queue"
               type="button"
               aria-pressed={activeSectionTab === "modernize"}
-              className={`btn btn-compact ${activeSectionTab === "modernize" ? "btn-primary" : "btn-secondary"}`}
+              className={`segmented-btn segmented-btn-compact ${activeSectionTab === "modernize" ? "active" : ""}`}
               onClick={() => onTabChange("modernize")}
             >
               Modernization Queue
@@ -95,7 +95,7 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
               id="compiler-subtabs-tab-reduce"
               type="button"
               aria-pressed={activeSectionTab === "reduction"}
-              className={`btn btn-compact ${activeSectionTab === "reduction" ? "btn-primary" : "btn-secondary"}`}
+              className={`segmented-btn segmented-btn-compact ${activeSectionTab === "reduction" ? "active" : ""}`}
               onClick={() => onTabChange("reduction")}
             >
               Scale Reduction
@@ -141,12 +141,16 @@ export const CompilerToolbar: React.FC<CompilerToolbarProps> = ({
           <button
             id="comp-btn-refresh-catalog"
             type="button"
-            className="btn btn-secondary btn-toolbar"
+            className="btn-icon-action"
             onClick={onRefreshCatalog}
             disabled={isRefreshing}
-            aria-label="Refresh dataset manifolds from sidecar"
+            aria-label={isRefreshing ? "Refreshing catalog..." : "Refresh Catalog"}
+            title="Refresh Catalog"
           >
-            <span>{isRefreshing ? "Refreshing..." : "Refresh Catalog"}</span>
+            {/* Refresh/Reload SVG icon */}
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
+            </svg>
           </button>
           <HelpTooltip content={`Poll port ${servicePort("dataset-compiler")} sidecar to detect local disk changes and Kaggle Cloud sync status.`} />
         </div>

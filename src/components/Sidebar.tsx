@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { HelpTooltip } from "./HelpTooltip";
 import { ExternalLink } from "./common/ExternalLink";
 import { MeshStatus } from "../api/types";
 import { WORKSPACE_TABS } from "../navigation/workspaceTabs";
-import { fetchDocsStatus, openExternalUrl } from "../api/client";
-import { logger } from "../utils/logger";
 import lemgendaIcon from "../branding/lemgenda-icon.svg";
 import lemgendaLogo from "../branding/lemgenda-logo.svg";
 
@@ -28,61 +26,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     dashboard: meshStatus.envManager,
     datasets: meshStatus.datasetCompiler,
     training: meshStatus.trainingSuite,
+    docs: meshStatus.envManager,
     pipeline: meshStatus.envManager,
     health: meshStatus.envManager,
   };
 
   const navItems = WORKSPACE_TABS;
-
-  // The offline hub is served by the Environment Manager at `local_url`.
-  const [docsUrl, setDocsUrl] = useState<string | null>(null);
-  const [docsOpenError, setDocsOpenError] = useState<string | null>(null);
-  const [docsUnavailableReason, setDocsUnavailableReason] = useState<string>(
-    "Checking the Environment Manager for the offline documentation hub..."
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!meshStatus.envManager) {
-      setDocsUrl(null);
-      setDocsUnavailableReason(
-        "Unavailable: the Environment Manager (which serves the offline documentation hub) is offline."
-      );
-      return;
-    }
-    fetchDocsStatus()
-      .then((status) => {
-        if (cancelled) return;
-        if (status.offline_available) {
-          setDocsUrl(status.local_url);
-        } else {
-          setDocsUrl(null);
-          setDocsUnavailableReason(
-            "Unavailable: the Environment Manager reports no local lemgendary-docs checkout."
-          );
-        }
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.warn("Documentation hub status check failed", err);
-        setDocsUrl(null);
-        setDocsUnavailableReason(`Unavailable: ${msg}`);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meshStatus.envManager]);
-
-  const handleOpenDocs = () => {
-    if (!docsUrl) return;
-    setDocsOpenError(null);
-    openExternalUrl(docsUrl).catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      logger.error("Opening the documentation hub failed", err);
-      setDocsOpenError(`Could not open the documentation hub: ${msg}`);
-    });
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = -1;
@@ -133,59 +82,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const isSelected = currentTab === item.id;
           const isOnline = tabSidecarOnline[item.id] ?? false;
           return (
-            <React.Fragment key={item.id}>
-              <div className="nav-item-wrapper">
-                <button
-                  id={`tab-${item.id}`}
-                  type="button"
-                  aria-current={isSelected ? "page" : undefined}
-                  aria-controls="main-content"
-                  className={`nav-item nav-item-grow ${isSelected ? "active" : ""}`}
-                  onClick={() => onSelectTab(item.id)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                >
-                  <span
-                    className={`status-indicator status-indicator-nav ${isOnline ? "status-online" : "status-offline"}`}
-                    aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
-                  />
-                  {item.label}
-                </button>
-                <div className="nav-item-tooltip">
-                  <HelpTooltip content={item.tooltip} position="right" />
-                </div>
+            <div key={item.id} className="nav-item-wrapper">
+              <button
+                id={`tab-${item.id}`}
+                type="button"
+                aria-current={isSelected ? "page" : undefined}
+                aria-controls="main-content"
+                className={`nav-item nav-item-grow ${isSelected ? "active" : ""}`}
+                onClick={() => onSelectTab(item.id)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+              >
+                <span
+                  className={`status-indicator status-indicator-nav ${isOnline ? "status-online" : "status-offline"}`}
+                  aria-label={isOnline ? "Sidecar online" : "Sidecar offline"}
+                />
+                {item.label}
+              </button>
+              <div className="nav-item-tooltip">
+                <HelpTooltip content={item.tooltip} position="right" />
               </div>
-
-              {/* Documentation Hub placed directly below Training Suite and above Clean Install Pipeline */}
-              {item.id === "training" && (
-                <div className="nav-item-wrapper">
-                  <button
-                    id="sidebar-btn-docs-hub"
-                    type="button"
-                    className="nav-item nav-item-grow"
-                    onClick={handleOpenDocs}
-                    disabled={!docsUrl}
-                    title={docsUrl ? undefined : docsUnavailableReason}
-                    aria-label="Open local offline LemGendary AI Documentation Hub"
-                  >
-                    <span
-                      className={`status-indicator status-indicator-nav ${docsUrl ? "status-online" : "status-offline"}`}
-                      aria-label={docsUrl ? "Documentation Hub online" : "Documentation Hub offline"}
-                    />
-                    LemGendary AI Documentation Hub
-                  </button>
-                  <div className="nav-item-tooltip">
-                    <HelpTooltip
-                      content={
-                        docsUrl
-                          ? docsOpenError ?? "Open the complete local LemGendary AI Documentation Hub whitepapers and manuals offline, served by the Environment Manager with zero internet connection required."
-                          : docsUnavailableReason
-                      }
-                      position="right"
-                    />
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
+            </div>
           );
         })}
       </nav>

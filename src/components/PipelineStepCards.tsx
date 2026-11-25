@@ -23,6 +23,8 @@ interface PipelineStepCardsProps {
   isRunning: boolean;
   activeStepNum: number | null;
   onRunStep: (stepNumber: number) => Promise<void>;
+  onRunPipeline?: (clean: boolean) => Promise<void> | void;
+  onRunCustomPipeline?: (stepNumbers: number[]) => Promise<void> | void;
   recentEvents: PipelineEvent[];
   envManagerOnline: boolean;
 }
@@ -31,18 +33,47 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
   isRunning,
   activeStepNum,
   onRunStep,
+  onRunPipeline,
+  onRunCustomPipeline,
   recentEvents,
   envManagerOnline,
 }) => {
   const [runningStep, setRunningStep] = useState<number | null>(null);
+  const [selectedSteps, setSelectedSteps] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
 
-  const handleStepClick = async (stepNum: number) => {
+  const toggleStepSelection = (stepNum: number) => {
+    setSelectedSteps((prev) =>
+      prev.includes(stepNum) ? prev.filter((n) => n !== stepNum) : [...prev, stepNum].sort((a, b) => a - b),
+    );
+  };
+
+  const handleStepClick = async (stepNum: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isRunning || runningStep !== null || !envManagerOnline) return;
     setRunningStep(stepNum);
     try {
       await onRunStep(stepNum);
     } finally {
       setRunningStep(null);
+    }
+  };
+
+  const handleRunCustom = async () => {
+    if (isRunning || selectedSteps.length === 0 || !envManagerOnline) return;
+    if (onRunCustomPipeline) {
+      await onRunCustomPipeline(selectedSteps);
+    } else {
+      // Default fallback: execute selected steps sequentially
+      for (const stepNum of selectedSteps) {
+        await onRunStep(stepNum);
+      }
+    }
+  };
+
+  const handleRunEntire = () => {
+    if (isRunning || !envManagerOnline) return;
+    if (onRunPipeline) {
+      onRunPipeline(false);
     }
   };
 
@@ -56,11 +87,13 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
     <div className="pipeline-steps-section">
       <div className="pipeline-steps-header">
         <div className="row-gap-md">
-          <h3 className="card-heading">Individual Pipeline Step Execution</h3>
-          <HelpTooltip content={`Run individual pipeline stages in isolation. Useful for diagnosing specific failures, auditing dependencies, or re-compiling bytecode without triggering the full ${PIPELINE_STEPS.length}-step pipeline.`} />
+          <h3 className="card-heading">Custom Pipeline and Individual Step Execution</h3>
+          <HelpTooltip
+            content="Click any step card to select or deselect it for a custom pipeline run, or click 'Run Step X Only' to execute an individual stage in isolation."
+          />
         </div>
         <span className="pipeline-steps-count">
-          7 Independent Diagnostic & Reconciliation Steps
+          {selectedSteps.length} of 7 Steps Selected
         </span>
       </div>
 
@@ -71,6 +104,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
           const isStepRunning =
             !isLatestCompleted &&
             ((isRunning && activeStepNum === step.num) || runningStep === step.num);
+          const isSelected = selectedSteps.includes(step.num);
 
           let statusBadgeClass = "badge-info";
           let statusText = "READY";
@@ -94,7 +128,18 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
           return (
             <div
               key={step.num}
-              className={`card pipeline-step-card ${isStepRunning ? "pipeline-step-card-running" : ""}`}
+              tabIndex={0}
+              role="button"
+              aria-pressed={isSelected}
+              aria-label={`Step ${step.num}: ${step.name}. ${isSelected ? "Selected" : "Not selected"}. Click to toggle selection.`}
+              className={`card pipeline-step-card ${isStepRunning ? "pipeline-step-card-running" : ""} ${isSelected ? "pipeline-step-card-selected" : ""}`}
+              onClick={() => toggleStepSelection(step.num)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggleStepSelection(step.num);
+                }
+              }}
             >
               <div>
                 <div className="pipeline-step-card-header">
@@ -148,7 +193,7 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
                 <button
                   type="button"
                   className="btn btn-secondary btn-full-compact"
-                  onClick={() => handleStepClick(step.num)}
+                  onClick={(e) => handleStepClick(step.num, e)}
                   disabled={isRunning || runningStep !== null || !envManagerOnline}
                   aria-label={`Run Step ${step.num}: ${step.name}`}
                   aria-busy={isStepRunning}
@@ -159,6 +204,31 @@ export const PipelineStepCards: React.FC<PipelineStepCardsProps> = ({
             </div>
           );
         })}
+
+        {/* 8th Action Card: Custom and Entire Pipeline Execution */}
+        <div className="card pipeline-action-slot-card" role="region" aria-label="Pipeline Execution Actions">
+          <h4 className="pipeline-action-slot-title">Pipeline Execution</h4>
+          <button
+            id="pipeline-btn-run-custom"
+            type="button"
+            className="btn btn-primary pipeline-action-btn-custom"
+            onClick={handleRunCustom}
+            disabled={isRunning || selectedSteps.length === 0 || !envManagerOnline}
+            title={selectedSteps.length === 0 ? "Select at least one step card to execute" : `Execute ${selectedSteps.length} selected steps sequentially`}
+          >
+            {isRunning ? "Running Pipeline..." : "Run Custom Pipeline"}
+          </button>
+          <button
+            id="pipeline-btn-run-entire"
+            type="button"
+            className="btn btn-secondary pipeline-action-btn-full"
+            onClick={handleRunEntire}
+            disabled={isRunning || !envManagerOnline}
+            title="Execute all 7 pipeline steps sequentially"
+          >
+            Run Entire Pipeline
+          </button>
+        </div>
       </div>
     </div>
   );

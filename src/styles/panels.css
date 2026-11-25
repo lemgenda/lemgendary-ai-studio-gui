@@ -212,11 +212,127 @@
   justify-content: space-between;
   padding: 16px;
   border: 1px solid var(--border-color);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.pipeline-step-card:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.pipeline-step-card-selected {
+  border-color: var(--accent-cyan);
+  background-color: rgba(0, 240, 255, 0.05);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+.pipeline-step-card-selected::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
 }
 
 .pipeline-step-card-running {
   border-color: var(--accent-amber);
+}
+
+.pipeline-action-slot-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 14px;
+  padding: 20px 18px;
+  border: 1px dashed rgba(0, 240, 255, 0.35);
+  border-radius: var(--radius-md);
+  background-color: rgba(0, 240, 255, 0.02);
+}
+
+.pipeline-action-slot-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  margin: 0;
+}
+
+.pipeline-action-btn-custom {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.pipeline-action-btn-full {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* ─── Documentation Hub Panel ────────────────────────────────────────── */
+.docs-panel-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: calc(100vh - 170px);
+  gap: 12px;
+}
+
+.docs-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.docs-panel-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+  height: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+}
+
+.docs-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 220px);
+  border: none;
+  background-color: #0b0f19;
+}
+
+.docs-loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.docs-error-card {
+  margin: 40px auto;
+  max-width: 500px;
+  padding: 24px;
+}
+
+.docs-error-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 10px;
 }
 
 .pipeline-step-card-header {

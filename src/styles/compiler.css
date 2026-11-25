@@ -24,6 +24,21 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
   margin-bottom: 14px;
+  align-items: flex-end;
+}
+
+.form-group-action-end {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  max-width: 50px;
+}
+
+.form-field-label-spacer {
+  visibility: hidden;
+  height: 16px;
+  user-select: none;
 }
 
 .form-grid-custom {

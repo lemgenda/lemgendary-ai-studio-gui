@@ -24,6 +24,13 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.badge-orange {
+  background-color: rgba(249, 115, 22, 0.18);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  font-weight: 600;
+}
+
 .badge-error {
   background-color: rgba(244, 63, 94, 0.15);
   color: var(--accent-rose);
