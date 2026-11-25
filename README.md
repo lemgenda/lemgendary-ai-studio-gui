@@ -278,6 +278,18 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.79 - Staggered Card Transitions Without Sliding Animations
+
+- **Staggered Disappear & Appear Engine (`src/hooks/useMasonryFlip.ts`)**:
+  Replaced continuous sliding physics with sequential 1-by-1 disappearance
+  (500ms intervals) and 500ms appear delay at destination. Cards vanish
+  crisply in sequence and reappear at target column coordinates without
+  distracting horizontal translation or layout lag.
+- **Automated Validation & Unit Tests
+  (`src/components/__tests__/MasonryFlipGrid.test.tsx`)**:
+  Added automated tests verifying column bin-packing distribution, transition
+  timer schedules, and DOM lifecycle cleanup.
+
 ### v2.10.78 - Shortest-Column Masonry Layout with GPU-Accelerated FLIP Reflow
 
 - **Safe Toolchain Package Upgrades (`package.json`)**: Upgraded
