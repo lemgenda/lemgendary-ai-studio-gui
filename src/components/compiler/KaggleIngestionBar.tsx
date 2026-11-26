@@ -15,6 +15,7 @@ type KaggleIngestionBarProps = Pick<
   | "onToggleDownloadForce"
   | "isDownloadingKaggle"
   | "downloadStatus"
+  | "onDismissDownloadStatus"
   | "onDownloadKaggleDirect"
   | "datasetCompilerOnline"
 >;
@@ -50,6 +51,7 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
   onToggleDownloadForce,
   isDownloadingKaggle,
   downloadStatus,
+  onDismissDownloadStatus,
   onDownloadKaggleDirect,
   datasetCompilerOnline,
 }) => {
@@ -159,6 +161,7 @@ export const KaggleIngestionBar: React.FC<KaggleIngestionBarProps> = ({
       {downloadStatus && (
         <ValidationBanner
           message={downloadStatus}
+          onDismiss={onDismissDownloadStatus}
           className="banner-space-top-xs banner-text-sm"
         />
       )}

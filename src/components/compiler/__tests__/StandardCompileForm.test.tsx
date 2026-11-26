@@ -108,4 +108,43 @@ describe("StandardCompileForm", () => {
     expect(onSelectManifold).toHaveBeenCalledWith("forex_universe");
     expect(onSelectPreset).toHaveBeenCalledWith("forex-timeseries");
   });
+
+  it("renders dismissible compileStatus banner and triggers onDismissCompileStatus", async () => {
+    const onDismissCompileStatus = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <StandardCompileForm
+          datasets={SAMPLE_DATASETS}
+          presets={SAMPLE_PRESETS}
+          presetsError={null}
+          selectedManifold="upn_v2"
+          onSelectManifold={vi.fn()}
+          selectedPreset="restoration-hardlinked"
+          onSelectPreset={vi.fn()}
+          compileMaxGb=""
+          onChangeCompileMaxGb={vi.fn()}
+          compileWorkers="4"
+          onChangeCompileWorkers={vi.fn()}
+          compileShardExt=""
+          onChangeCompileShardExt={vi.fn()}
+          isCompiling={false}
+          compileStatus="Compilation failed: Invalid limits"
+          onDismissCompileStatus={onDismissCompileStatus}
+          onCompile={vi.fn()}
+          datasetCompilerOnline={true}
+        />
+      );
+    });
+
+    const dismissBtn = container.querySelector(".btn-dismiss-icon") as HTMLButtonElement;
+    expect(dismissBtn).not.toBeNull();
+    expect(dismissBtn.getAttribute("aria-label")).toBe("Dismiss banner");
+
+    await act(async () => {
+      dismissBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onDismissCompileStatus).toHaveBeenCalledTimes(1);
+  });
 });

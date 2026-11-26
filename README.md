@@ -278,6 +278,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.82 - UI/UX Audit Improvements, Dismissible Error States & WCAG Compliance
+
+- **Dataset Compiler Dismissible Notification Banners (`src/components/compiler/useCompilationForm.ts`, `src/components/compiler/DatasetCompilationForm.tsx`, `src/components/compiler/StandardCompileForm.tsx`, `src/components/compiler/CustomCompileForm.tsx`, `src/components/compiler/KaggleIngestionBar.tsx`)**:
+  Added accessible dismiss button actions (`onDismissCompileStatus`, `onDismissCustomCompileStatus`, `onDismissDownloadStatus`) enabling users to dismiss completed or failed operations with keyboard or mouse.
+- **Automated Validation & Unit Tests (`src/components/compiler/__tests__/StandardCompileForm.test.tsx`)**:
+  Added automated test coverage verifying dismiss actions and accessible ARIA attributes on validation banners.
+
 ### v2.10.81 - Dependency Version Synchronization
 
 - Upgraded package(s) for the lemgendary-ai-studio-gui.

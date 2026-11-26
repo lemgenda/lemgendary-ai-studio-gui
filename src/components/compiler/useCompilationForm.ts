@@ -232,6 +232,7 @@ export function useCompilationForm({
     onToggleCustomPurgeLoose: setCustomPurgeLoose,
     isCustomCompiling,
     customCompileStatus,
+    onDismissCustomCompileStatus: () => setCustomCompileStatus(null),
     onCustomCompile: handleCustomCompile,
     customKaggleRef,
     onChangeCustomKaggleRef: setCustomKaggleRef,
@@ -241,6 +242,8 @@ export function useCompilationForm({
     onToggleDownloadForce: setDownloadForce,
     isDownloadingKaggle,
     downloadStatus,
+    onDismissDownloadStatus: () => setDownloadStatus(null),
     onDownloadKaggleDirect: handleCustomKaggleDownload,
+    onDismissCompileStatus: () => setCompileStatus(null),
   };
 }

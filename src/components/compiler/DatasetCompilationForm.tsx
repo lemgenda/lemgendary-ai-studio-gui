@@ -37,6 +37,7 @@ export interface DatasetCompilationFormProps {
   onChangeCompileLabelStrategy?: (value: string) => void;
   isCompiling: boolean;
   compileStatus: string | null;
+  onDismissCompileStatus?: () => void;
   onCompile: () => void;
   compileMode: "standard" | "custom";
   onChangeCompileMode: (mode: "standard" | "custom") => void;
@@ -56,6 +57,7 @@ export interface DatasetCompilationFormProps {
   onToggleCustomPurgeLoose: (purge: boolean) => void;
   isCustomCompiling: boolean;
   customCompileStatus: string | null;
+  onDismissCustomCompileStatus?: () => void;
   onCustomCompile: () => void;
   customKaggleRef: string;
   onChangeCustomKaggleRef: (ref: string) => void;
@@ -65,6 +67,7 @@ export interface DatasetCompilationFormProps {
   onToggleDownloadForce: (force: boolean) => void;
   isDownloadingKaggle: boolean;
   downloadStatus: string | null;
+  onDismissDownloadStatus?: () => void;
   onDownloadKaggleDirect: () => void;
   datasetCompilerOnline: boolean;
 }
@@ -97,6 +100,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onChangeCompileLabelStrategy,
   isCompiling,
   compileStatus,
+  onDismissCompileStatus,
   onCompile,
   compileMode,
   onChangeCompileMode,
@@ -116,6 +120,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onToggleCustomPurgeLoose,
   isCustomCompiling,
   customCompileStatus,
+  onDismissCustomCompileStatus,
   onCustomCompile,
   customKaggleRef,
   onChangeCustomKaggleRef,
@@ -125,6 +130,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
   onToggleDownloadForce,
   isDownloadingKaggle,
   downloadStatus,
+  onDismissDownloadStatus,
   onDownloadKaggleDirect,
   datasetCompilerOnline,
 }) => {
@@ -140,6 +146,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
         onToggleDownloadForce={onToggleDownloadForce}
         isDownloadingKaggle={isDownloadingKaggle}
         downloadStatus={downloadStatus}
+        onDismissDownloadStatus={onDismissDownloadStatus}
         onDownloadKaggleDirect={onDownloadKaggleDirect}
         datasetCompilerOnline={datasetCompilerOnline}
       />
@@ -200,6 +207,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onChangeCompileLabelStrategy={onChangeCompileLabelStrategy}
             isCompiling={isCompiling}
             compileStatus={compileStatus}
+            onDismissCompileStatus={onDismissCompileStatus}
             onCompile={onCompile}
             datasetCompilerOnline={datasetCompilerOnline}
           />
@@ -226,6 +234,7 @@ export const DatasetCompilationForm: React.FC<DatasetCompilationFormProps> = ({
             onToggleCustomPurgeLoose={onToggleCustomPurgeLoose}
             isCustomCompiling={isCustomCompiling}
             customCompileStatus={customCompileStatus}
+            onDismissCustomCompileStatus={onDismissCustomCompileStatus}
             onCustomCompile={onCustomCompile}
             datasetCompilerOnline={datasetCompilerOnline}
           />

@@ -28,6 +28,7 @@ type StandardCompileFormProps = Pick<
   | "onChangeCompileLabelStrategy"
   | "isCompiling"
   | "compileStatus"
+  | "onDismissCompileStatus"
   | "onCompile"
   | "datasetCompilerOnline"
 >;
@@ -55,6 +56,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
   onChangeCompileLabelStrategy,
   isCompiling,
   compileStatus,
+  onDismissCompileStatus,
   onCompile,
   datasetCompilerOnline,
 }) => (
@@ -280,6 +282,7 @@ export const StandardCompileForm: React.FC<StandardCompileFormProps> = ({
     {compileStatus && (
       <ValidationBanner
         message={compileStatus}
+        onDismiss={onDismissCompileStatus}
         className="banner-space-top-sm banner-text-sm"
       />
     )}

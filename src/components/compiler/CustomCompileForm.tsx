@@ -23,6 +23,7 @@ type CustomCompileFormProps = Pick<
   | "onToggleCustomPurgeLoose"
   | "isCustomCompiling"
   | "customCompileStatus"
+  | "onDismissCustomCompileStatus"
   | "onCustomCompile"
   | "datasetCompilerOnline"
 >;
@@ -47,6 +48,7 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
   onToggleCustomPurgeLoose,
   isCustomCompiling,
   customCompileStatus,
+  onDismissCustomCompileStatus,
   onCustomCompile,
   datasetCompilerOnline,
 }) => (
@@ -189,6 +191,7 @@ export const CustomCompileForm: React.FC<CustomCompileFormProps> = ({
     {customCompileStatus && (
       <ValidationBanner
         message={customCompileStatus}
+        onDismiss={onDismissCustomCompileStatus}
         className="banner-space-top-sm banner-text-sm"
       />
     )}
