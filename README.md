@@ -278,6 +278,13 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.81 - Dependency Version Synchronization
+
+- Upgraded package(s) for the lemgendary-ai-studio-gui.
+
+- **NPM Package Manifest Updates (`package.json`)**: Synchronized
+  `@types/node==26.6.11`, `@types/react==19.3.3`, and `vite==8.4.0`.
+
 ### v2.10.80 - Masonry Column Minimum Width & Metric Wrapping Hardening
 
 - Upgraded package(s) for the lemgendary-ai-studio-gui.
