@@ -19,9 +19,9 @@ export function cleanAnsiAndControlChars(text: string): string {
   // Strip ANSI escape sequences (\x1b[...] or \u001b[...])
   let cleaned = text.replace(ANSI_CSI_REGEX, "");
   // Strip leftover control characters like leading [K or cursor controls with parameter numbers (e.g. [2K, [0m)
-  // Require at least one digit or semicolon so bracketed tags like [PROGRESS] or [GOVERNOR] are never truncated
+  // Require at least one digit or semicolon, or assert non-word character after [K so tags like [KAGGLE] are preserved
   cleaned = cleaned
-    .replace(/^\s*\[K\s*/, "")
+    .replace(/^\s*\[K(?![a-zA-Z0-9_])\s*/, "")
     .replace(/^\[[0-9;]+[a-zA-Z]/, "")
     .replace(/^\[\?[0-9]+[a-zA-Z]/, "");
   cleaned = cleaned.trim();

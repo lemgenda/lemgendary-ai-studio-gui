@@ -29,6 +29,14 @@ describe("API Client & Telemetry Utilities", () => {
       "Epoch 1/10 |==========|\r\u001b[32m[PROGRESS] 50% | Epoch 5/10 | Loss=0.142\u001b[0m";
     const cleaned = cleanAnsiAndControlChars(raw);
     expect(cleaned).toBe("[PROGRESS] 50% | Epoch 5/10 | Loss=0.142");
+
+    // Preserves bracketed tags starting with K like [KAGGLE]
+    const kaggleLog = "[KAGGLE] Authenticating as user (accelerator: tpu-v5e8)";
+    expect(cleanAnsiAndControlChars(kaggleLog)).toBe(kaggleLog);
+
+    // Strips leftover ANSI [K erase-in-line escapes when not part of a word tag
+    expect(cleanAnsiAndControlChars("[K Line after erase")).toBe("Line after erase");
+    expect(cleanAnsiAndControlChars("[2K Line after full erase")).toBe("Line after full erase");
   });
 
   it("identifies progress lines accurately via isProgressLine", () => {

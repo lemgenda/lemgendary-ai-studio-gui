@@ -278,12 +278,31 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ## Changelog
 
+### v2.10.83 - Telemetry ANSI Escape Control Stripping Guard
+
+- **Telemetry Control Character Cleanup (`src/api/telemetry.ts`)**:
+  - Guarded leftover ANSI erase-in-line escape regex (`[K`) with a negative
+    lookahead (`[K(?![a-zA-Z0-9_])`) so that valid bracketed tags such as
+    `[KAGGLE]` are preserved rather than truncated to `AGGLE]`.
+- **Unit Test Coverage (`src/api/__tests__/client.test.ts`)**:
+  - Added unit test cases verifying preservation of `[KAGGLE]` telemetry tags
+    while continuing to strip standalone ANSI control characters.
+
 ### v2.10.82 - UI/UX Audit Improvements, Dismissible Error States & WCAG Compliance
 
-- **Dataset Compiler Dismissible Notification Banners (`src/components/compiler/useCompilationForm.ts`, `src/components/compiler/DatasetCompilationForm.tsx`, `src/components/compiler/StandardCompileForm.tsx`, `src/components/compiler/CustomCompileForm.tsx`, `src/components/compiler/KaggleIngestionBar.tsx`)**:
-  Added accessible dismiss button actions (`onDismissCompileStatus`, `onDismissCustomCompileStatus`, `onDismissDownloadStatus`) enabling users to dismiss completed or failed operations with keyboard or mouse.
-- **Automated Validation & Unit Tests (`src/components/compiler/__tests__/StandardCompileForm.test.tsx`)**:
-  Added automated test coverage verifying dismiss actions and accessible ARIA attributes on validation banners.
+- **Dataset Compiler Dismissible Notification Banners
+  (`src/components/compiler/useCompilationForm.ts`,
+  `src/components/compiler/DatasetCompilationForm.tsx`,
+  `src/components/compiler/StandardCompileForm.tsx`,
+  `src/components/compiler/CustomCompileForm.tsx`,
+  `src/components/compiler/KaggleIngestionBar.tsx`)**:
+  Added accessible dismiss button actions (`onDismissCompileStatus`,
+  `onDismissCustomCompileStatus`, `onDismissDownloadStatus`) enabling users to
+  dismiss completed or failed operations with keyboard or mouse.
+- **Automated Validation & Unit Tests
+  (`src/components/compiler/__tests__/StandardCompileForm.test.tsx`)**:
+  Added automated test coverage verifying dismiss actions and accessible ARIA
+  attributes on validation banners.
 
 ### v2.10.81 - Dependency Version Synchronization
 
