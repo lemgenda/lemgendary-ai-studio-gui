@@ -68,4 +68,44 @@ describe("CompilerPanel without the Dataset Compiler sidecar", () => {
       expect(document.getElementById(id), id).not.toBeNull();
     }
   });
+
+  it("does not re-fetch or wipe loaded manifolds on transient true -> false transitions, and reloads on false -> true", async () => {
+    const sample = {
+      key: "upn_v2",
+      display_name: "Unified Perceptual Net V2",
+      format: "webdataset",
+      canonical_format: "webdataset",
+      total_samples: 100,
+      total_size_mb: 128,
+      format_breakdown: { webp: 100, jpg: 0, png: 0, parquet: 0, other: 0 },
+      is_compiled: true,
+    };
+    mocked.fetchDatasets.mockResolvedValue([sample]);
+
+    await act(async () => {
+      root.render(<CompilerPanel datasetCompilerOnline={true} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Unified Perceptual Net V2");
+    const initialCalls = mocked.fetchDatasets.mock.calls.length;
+
+    await act(async () => {
+      root.render(<CompilerPanel datasetCompilerOnline={false} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mocked.fetchDatasets.mock.calls.length).toBe(initialCalls);
+    expect(container.textContent).toContain("Unified Perceptual Net V2");
+
+    await act(async () => {
+      root.render(<CompilerPanel datasetCompilerOnline={true} />);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mocked.fetchDatasets.mock.calls.length).toBeGreaterThan(initialCalls);
+  });
 });

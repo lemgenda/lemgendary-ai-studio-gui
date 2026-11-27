@@ -1,7 +1,7 @@
 # LemGendary AI Studio GUI
 
 Modern cross-platform desktop user interface for the LemGendary AI ecosystem,
-built with Tauri v2, React 18, TypeScript, and Vite.
+built with Tauri v2, React 19, TypeScript, and Vite.
 
 ## Architectural Overview
 
@@ -45,11 +45,11 @@ tripartite local microservice topology:
 - **Centralized State Architecture (Zustand `useStudioStore`)**:
   - Unified reactive state store (`src/store/useStudioStore.ts`) eliminating
     redundant network round-trips and component prop drilling.
-  - Manages tripartite sidecar health monitoring (Ports 8000, 8100, 8200),
+  - Manages tripartite sidecar health monitoring (Ports 8000, 8150, 8200),
     hardware accelerator metrics, running local/cloud training jobs, model and
     dataset cache manifolds, and real-time ANSI telemetry buffers.
 
-- **5-Panel Streamlined Navigation Topology**:
+- **6-Panel Streamlined Navigation Topology**:
   - **Dashboard**: Hardware Acceleration Sentinel, Tripartite Sidecar Tiles,
     Managed Workspace Projects Health, and embedded event diagnostics.
   - **Dataset Compiler**: Standard presets, Direct Kaggle Ingestion, verified
@@ -62,6 +62,8 @@ tripartite local microservice topology:
   - **Health & Version Drift**: Toolchain prerequisites, Cross-Project Python
     Drift Matrix, Desktop GUI Project Packages (NPM) audit, and ecosystem
     maintenance actions.
+  - **Documentation Hub (`tab-docs`)**: Embedded offline Documentation Hub
+    serving all 48 W3C-validated technical whitepapers and manuals.
 
 - **Modular S.O.L.I.D. Component Hierarchy**:
   - **Shared Micro-Components**:
@@ -139,12 +141,13 @@ tripartite local microservice topology:
     explaining the control's function, associated CLI/API command, and
     operational side effects.
 
-- **Permanent Offline Documentation Hub**:
-  - Served by the Environment Manager at the `local_url` reported by `GET
+- **Permanent Offline Documentation Hub (`tab-docs`)**:
+  - Embedded directly inside the 6-workspace cockpit (`tab-docs`) and served
+    by the Environment Manager at the `local_url` reported by `GET
     /api/docs/status` (`http://127.0.0.1:8000/documentation-hub/index.html`);
     the header button opens it in the system browser and is disabled while the
     Environment Manager is offline.
-  - Provides full offline access to all 46 scientific whitepapers, manuals, and
+  - Provides full offline access to all 48 scientific whitepapers, manuals, and
     architectural specifications with zero external internet dependencies.
 
 - **Report Issue (Bug Reporter)**:
@@ -261,7 +264,7 @@ The desktop window runs with a strict CSP set in `src-tauri/tauri.conf.json`
   `@font-face` rules.
 - `connect-src` allows only Tauri IPC (`ipc:`, `http://ipc.localhost`) and the
   three sidecars over HTTP and WebSocket on `127.0.0.1` and `localhost`, ports
-  8000 (Environment Manager), 8100 (Dataset Compiler) and 8200 (Training Suite).
+  8000 (Environment Manager), 8150 (Dataset Compiler) and 8200 (Training Suite).
   If you point a sidecar elsewhere with a `VITE_*_URL` variable, add that origin
   to `connect-src`.
 - `app.security.devCsp` (used by `npm run tauri dev`) adds `'unsafe-inline'` for
@@ -277,6 +280,24 @@ lem-env validate --project lemgendary-ai-studio-gui
 ```
 
 ## Changelog
+
+### v2.10.85 - CompilerPanel Reload-Storm & Transient-Offline Guard
+
+- **Transition-Aware Catalog Loading (`src/components/CompilerPanel.tsx`)**:
+  - Guarded `loadCompilerData` with refs (`onlineRef`, `hasLoadedDatasetsRef`,
+    `prevOnlineRef`) so transient `true -> false` mesh poll blips neither
+    re-trigger catalog fetches nor wipe already-loaded manifold cards, while
+    `false -> true` transitions reload cleanly.
+
+### v2.10.84 - Ecosystem Snapshot & Documentation Alignment
+
+- **Ecosystem Snapshot Sync (`src/generated/ecosystem.json`)**:
+  - Synchronized bundled ecosystem snapshot with `lemgendary-env-manager`
+    SSOT (`8000`/`8150`/`8200` sidecar ports, project list, and Kaggle
+    accelerators).
+- **Documentation Alignment (`README.md`)**:
+  - Updated React 19, 6-panel navigation (`tab-docs` embedded Documentation
+    Hub), 48 whitepapers count, and Dataset Compiler port `8150`.
 
 ### v2.10.83 - Telemetry ANSI Escape Control Stripping Guard
 

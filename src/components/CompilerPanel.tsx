@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useStudioStore } from "../store/useStudioStore";
 import {
   fetchDatasets,
@@ -87,6 +87,12 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
   const [isUpdatingAllMetadata, setIsUpdatingAllMetadata] = useState<boolean>(false);
   const [isRegeneratingIndex, setIsRegeneratingIndex] = useState<boolean>(false);
 
+  const onlineRef = useRef(datasetCompilerOnline);
+  onlineRef.current = datasetCompilerOnline;
+  const hasLoadedDatasetsRef = useRef(datasets.length > 0);
+  hasLoadedDatasetsRef.current = datasets.length > 0;
+  const prevOnlineRef = useRef(datasetCompilerOnline);
+
   const loadCompilerData = useCallback(async () => {
     setIsRefreshing(true);
     showRefreshFeedback(null);
@@ -101,28 +107,36 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
       ]);
 
       const effectiveCompilable = compilableList.length > 0 ? compilableList : dsList;
-      setCompilableDatasets(effectiveCompilable);
+      if (effectiveCompilable.length > 0 || !hasLoadedDatasetsRef.current) {
+        setCompilableDatasets(effectiveCompilable);
+      }
       if (dsList.length > 0) {
         setDatasets(dsList);
         setCachedDatasets(dsList);
         setSelectedManifold((prev) => prev || effectiveCompilable[0]?.key || dsList[0].key);
         showRefreshFeedback(`Catalog refreshed: ${dsList.length} production manifolds loaded.`);
       } else if (effectiveCompilable.length > 0) {
-        setDatasets([]);
+        if (!hasLoadedDatasetsRef.current) {
+          setDatasets([]);
+        }
         setSelectedManifold((prev) => prev || effectiveCompilable[0].key);
         showRefreshFeedback(`Catalog refreshed: ${effectiveCompilable.length} uncompiled manifolds loaded.`);
       } else {
-        // Empty or unreachable sidecar: show the empty/offline state, never a hand-written catalog.
-        setDatasets([]);
+        // Keep populated cards across transient poll blips; show offline state when empty.
+        if (!hasLoadedDatasetsRef.current || onlineRef.current) {
+          setDatasets([]);
+        }
         showRefreshFeedback(
-          datasetCompilerOnline
+          onlineRef.current
             ? "Dataset Compiler returned no manifolds."
             : `Dataset Compiler Sidecar (Port ${servicePort("dataset-compiler")}) is offline. The catalog stays empty until it is reachable.`
         );
       }
 
       // No offline preset copies: presets.yaml on the sidecar is the only source.
-      setPresets(presetResult.list);
+      if (presetResult.list.length > 0 || !hasLoadedDatasetsRef.current) {
+        setPresets(presetResult.list);
+      }
       setPresetsError(presetResult.error);
       if (presetResult.error) {
         logger.error("Failed to load compiler presets", presetResult.error);
@@ -133,11 +147,19 @@ export const CompilerPanel: React.FC<CompilerPanelProps> = ({ datasetCompilerOnl
     } finally {
       setIsRefreshing(false);
     }
-  }, [datasetCompilerOnline, setCachedDatasets, showRefreshFeedback]);
+  }, [setCachedDatasets, showRefreshFeedback]);
 
   useEffect(() => {
-    loadCompilerData();
+    void loadCompilerData();
   }, [loadCompilerData]);
+
+  useEffect(() => {
+    const wasOnline = prevOnlineRef.current;
+    prevOnlineRef.current = datasetCompilerOnline;
+    if (!wasOnline && datasetCompilerOnline) {
+      void loadCompilerData();
+    }
+  }, [datasetCompilerOnline, loadCompilerData]);
 
   const compilableCatalog = useMemo(
     () => (compilableDatasets.length > 0 ? compilableDatasets : datasets),
