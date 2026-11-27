@@ -283,6 +283,9 @@ lem-env validate --project lemgendary-ai-studio-gui
 
 ### v2.10.85 - CompilerPanel Reload-Storm & Transient-Offline Guard
 
+- **Pre-Commit Hook Sync (`.githooks/pre-commit`)**: Updated line-length guard
+  hook path to `lemgendary-env-manager/tools/check_line_lengths.py`.
+
 - **Transition-Aware Catalog Loading (`src/components/CompilerPanel.tsx`)**:
   - Guarded `loadCompilerData` with refs (`onlineRef`, `hasLoadedDatasetsRef`,
     `prevOnlineRef`) so transient `true -> false` mesh poll blips neither
